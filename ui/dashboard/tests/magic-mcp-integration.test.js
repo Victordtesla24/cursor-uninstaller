@@ -2,12 +2,17 @@ import { renderHook, act } from '@testing-library/react-hooks';
 import { useMagicMcpDashboard } from '../magic-mcp-integration';
 
 // Mock window.cline object before tests
-global.window = {
-  ...global.window,
-  cline: {
-    callMcpFunction: jest.fn()
+beforeEach(() => {
+  // Ensure window object exists
+  if (typeof window === 'undefined') {
+    global.window = {};
   }
-};
+
+  // Setup mock cline object
+  window.cline = {
+    callMcpFunction: jest.fn()
+  };
+});
 
 // Sample test data
 const mockDashboardData = {

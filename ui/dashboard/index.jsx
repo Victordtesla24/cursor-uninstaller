@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CostTracker } from './components/CostTracker.jsx';
-import { MetricsPanel } from './components/MetricsPanel.jsx';
-import { TokenUtilization } from './components/TokenUtilization.jsx';
-import { UsageStats } from './components/UsageStats.jsx';
-import { ModelSelector } from './components/ModelSelector.jsx';
-import { SettingsPanel } from './components/SettingsPanel.jsx';
-import { Header } from './components/Header.jsx';
+import CostTracker from './components/CostTracker.jsx';
+import MetricsPanel from './components/MetricsPanel.jsx';
+import TokenUtilization from './components/TokenUtilization.jsx';
+import UsageStats from './components/UsageStats.jsx';
+import ModelSelector from './components/ModelSelector.jsx';
+import SettingsPanel from './components/SettingsPanel.jsx';
+import Header from './components/Header.jsx';
 import './styles.css';
 
 /**
@@ -20,6 +20,8 @@ export const Dashboard = () => {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('overview');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [sessionTime, setSessionTime] = useState(0);
 
   // Load dashboard data from MCP
   const loadDashboardData = async () => {
@@ -170,15 +172,19 @@ export const Dashboard = () => {
   // Render loading state
   if (loading && !dashboardData) {
     return (
-      <div className="dashboard loading">
+      <div className={`dashboard loading`} data-testid="dashboard-container">
         <div className="loader"></div>
         <div className="loading-text">Loading dashboard data...</div>
       </div>
     );
   }
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
-    <div className="dashboard">
+    <div className={`dashboard-container ${isDarkMode ? 'dark-mode' : 'light-mode'}`} data-testid="dashboard-container">
       {error && (
         <div className="error-banner">
           <span>{error}</span>
@@ -193,6 +199,10 @@ export const Dashboard = () => {
         onViewModeChange={setViewMode}
         onRefresh={handleRefresh}
         lastUpdated={lastUpdated}
+        appName="Cline AI Dashboard"
+        isDarkMode={isDarkMode}
+        onThemeToggle={toggleTheme}
+        sessionTime={sessionTime}
       />
 
       {viewMode === 'overview' && (
@@ -258,4 +268,5 @@ export const Dashboard = () => {
   );
 };
 
+// Add default export for tests
 export default Dashboard;

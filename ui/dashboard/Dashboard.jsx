@@ -146,7 +146,7 @@ export const Dashboard = () => {
         <div className="loading-spinner"></div>
         <div className="loading-text">Loading dashboard data...</div>
 
-        <style jsx>{`
+        <style jsx="true">{`
           .dashboard-container.loading {
             display: flex;
             flex-direction: column;
@@ -189,7 +189,7 @@ export const Dashboard = () => {
           {useMockData ? 'Try MCP Data' : 'Use Mock Data'}
         </button>
 
-        <style jsx>{`
+        <style jsx="true">{`
           .dashboard-container.error {
             display: flex;
             flex-direction: column;
@@ -294,7 +294,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .dashboard-container {
           display: flex;
           flex-direction: column;
@@ -408,8 +408,7 @@ export const Dashboard = () => {
         }
       `}</style>
 
-      {/* Global Styles */}
-      <style jsx global>{`
+      <style jsx="true" global="true">{`
         :root {
           --primary-color: #007bff;
           --primary-hover: #0069d9;

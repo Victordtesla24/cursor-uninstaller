@@ -10,8 +10,13 @@
  * - Refresh dashboard data
  */
 
+import { useState, useEffect } from 'react';
+import mockApi from './mockApi';
+
 // Utility function to safely parse JSON with fallback
-const safeJsonParse = (jsonString, fallback = {}) => {
+const safeJsonParse = (jsonString, fallback = null) => {
+  if (!jsonString) return fallback;
+
   try {
     return JSON.parse(jsonString);
   } catch (e) {
@@ -21,138 +26,301 @@ const safeJsonParse = (jsonString, fallback = {}) => {
 };
 
 /**
+ * Hook for using the Magic MCP Dashboard functionality
+ * @returns {Object} Dashboard data, loading state, error state, and update functions
+ */
+export function useMagicMcpDashboard() {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Fetch dashboard data from the MCP server
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (!window.cline || !window.cline.callMcpFunction) {
+        const mockData = await mockApi.fetchDashboardData();
+        setData(mockData);
+        setLastUpdated(new Date());
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        resourceUri: 'cline://dashboard/all'
+      });
+
+      const parsedData = safeJsonParse(response);
+
+      if (!parsedData) {
+        const mockData = await mockApi.fetchDashboardData();
+        setData(mockData);
+      } else {
+        setData(parsedData);
+      }
+
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to fetch dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initialize component by fetching data
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  /**
+   * Update the selected AI model
+   * @param {string} model - Model identifier (e.g., 'claude-3.7-sonnet', 'gemini-2.5-flash')
+   * @returns {Promise<boolean>} Success status
+   */
+  const updateModel = async (model) => {
+    try {
+      if (!window.cline || !window.cline.callMcpFunction) {
+        setError(`Cannot update model: MCP server not available`);
+        return false;
+      }
+
+      await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'select_model',
+        args: {
+          model: model
+        }
+      });
+
+      // Refresh the data to show the changes
+      await fetchData();
+      return true;
+    } catch (err) {
+      console.error(`Error updating model to ${model}:`, err);
+      setError(`Failed to switch to ${model}`);
+      return false;
+    }
+  };
+
+  /**
+   * Update a Cline AI setting
+   * @param {string} setting - Setting name (e.g., 'autoModelSelection', 'cachingEnabled')
+   * @param {boolean} value - Setting value
+   * @returns {Promise<boolean>} Success status
+   */
+  const updateSetting = async (setting, value) => {
+    // Validate setting name
+    const validSettings = [
+      'autoModelSelection',
+      'cachingEnabled',
+      'contextWindowOptimization',
+      'outputMinimization',
+      'notifyOnLowBudget',
+      'safetyChecks'
+    ];
+
+    if (!validSettings.includes(setting)) {
+      setError(`Invalid setting: ${setting}`);
+      return false;
+    }
+
+    try {
+      if (!window.cline || !window.cline.callMcpFunction) {
+        setError(`Cannot update setting: MCP server not available`);
+        return false;
+      }
+
+      await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_setting',
+        args: {
+          setting: setting,
+          value: value
+        }
+      });
+
+      // Refresh the data to show the changes
+      await fetchData();
+      return true;
+    } catch (err) {
+      console.error(`Error updating setting ${setting}:`, err);
+      setError(`Failed to update ${setting}`);
+      return false;
+    }
+  };
+
+  /**
+   * Update a token budget
+   * @param {string} budgetType - Budget type ('codeCompletion', 'errorResolution', etc.)
+   * @param {number} value - Budget value in tokens
+   * @returns {Promise<boolean>} Success status
+   */
+  const updateTokenBudget = async (budgetType, value) => {
+    // Validate budget type
+    const validBudgetTypes = [
+      'codeCompletion',
+      'errorResolution',
+      'architecture',
+      'thinking'
+    ];
+
+    if (!validBudgetTypes.includes(budgetType)) {
+      setError(`Invalid budget type: ${budgetType}`);
+      return false;
+    }
+
+    // Apply constraints based on budget type
+    if (budgetType === 'codeCompletion') {
+      if (value < 100 || value > 1000) {
+        setError(`Invalid budget value for ${budgetType}. Must be between 100 and 1000`);
+        return false;
+      }
+    } else {
+      // For other budget types
+      if (value < 100 || value > 5000) {
+        setError(`Invalid budget value for ${budgetType}. Must be between 100 and 5000`);
+        return false;
+      }
+    }
+
+    try {
+      if (!window.cline || !window.cline.callMcpFunction) {
+        setError(`Cannot update token budget: MCP server not available`);
+        return false;
+      }
+
+      await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_token_budget',
+        args: {
+          budgetType: budgetType,
+          value: value
+        }
+      });
+
+      // Refresh the data to show the changes
+      await fetchData();
+      return true;
+    } catch (err) {
+      console.error(`Error updating token budget for ${budgetType}:`, err);
+      setError(`Failed to update ${budgetType} budget`);
+      return false;
+    }
+  };
+
+  /**
+   * Refresh dashboard data with fresh metrics
+   * @returns {Promise<boolean>} Success status
+   */
+  const refreshData = async () => {
+    try {
+      if (!window.cline || !window.cline.callMcpFunction) {
+        setError(`Cannot refresh data: MCP server not available`);
+        return false;
+      }
+
+      await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_dashboard_data',
+        args: {}
+      });
+
+      // Fetch the updated data
+      await fetchData();
+      return true;
+    } catch (err) {
+      console.error('Error refreshing dashboard data:', err);
+      setError('Failed to refresh dashboard data');
+      return false;
+    }
+  };
+
+  return {
+    data,
+    isLoading,
+    error,
+    lastUpdated,
+    updateModel,
+    updateSetting,
+    updateTokenBudget,
+    refreshData
+  };
+}
+
+/**
  * Fetch dashboard data from the MCP server
- * @returns {Promise<Object>} Dashboard data including metrics, usage, tokens, costs, etc.
+ * For backward compatibility with non-hook usage
+ * @returns {Promise<Object>} Dashboard data
  */
 export const fetchDashboardData = async () => {
   try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      const response = await window.cline.mcp.fetchDashboardData();
-
-      if (!response || typeof response !== 'string') {
-        console.error('Invalid response from MCP server:', response);
-        // Fall back to mock data if necessary
-        return await import('./mockApi.js').then(module => module.fetchDashboardData());
-      }
-
-      return safeJsonParse(response);
+    if (!window.cline || !window.cline.callMcpFunction) {
+      return mockApi.fetchDashboardData();
     }
 
-    // If not in VSCode or window.cline is not available, use mock data
-    return await import('./mockApi.js').then(module => module.fetchDashboardData());
+    const response = await window.cline.callMcpFunction({
+      serverName: 'cline-dashboard',
+      resourceUri: 'cline://dashboard/all'
+    });
+
+    const parsedData = safeJsonParse(response);
+
+    if (!parsedData) {
+      return mockApi.fetchDashboardData();
+    }
+
+    return parsedData;
   } catch (error) {
-    console.error('Error fetching dashboard data from MCP server:', error);
-    // Fall back to mock data in case of error
-    return await import('./mockApi.js').then(module => module.fetchDashboardData());
+    console.error('Error fetching dashboard data:', error);
+    return mockApi.fetchDashboardData();
   }
 };
 
-/**
- * Update the selected AI model
- * @param {string} model - Model identifier (e.g., 'claude-3.7-sonnet', 'gemini-2.5-flash')
- * @returns {Promise<boolean>} Success status
- */
+// For backward compatibility
 export const updateSelectedModel = async (model) => {
-  try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      await window.cline.mcp.selectModel({ model });
-      return true;
-    }
+  if (!window.cline || !window.cline.callMcpFunction) {
+    return false;
+  }
 
-    // For non-VSCode environments, simulate success
-    console.log(`Model would be updated to: ${model}`);
+  try {
+    await window.cline.callMcpFunction({
+      serverName: 'cline-dashboard',
+      toolName: 'select_model',
+      args: {
+        model: model
+      }
+    });
     return true;
   } catch (error) {
-    console.error('Error updating selected model:', error);
+    console.error('Error updating model:', error);
     return false;
   }
 };
 
-/**
- * Update a Cline AI setting
- * @param {string} setting - Setting name (e.g., 'autoModelSelection', 'cachingEnabled')
- * @param {boolean} value - Setting value
- * @returns {Promise<boolean>} Success status
- */
-export const updateSetting = async (setting, value) => {
-  try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      await window.cline.mcp.updateSetting({ setting, value });
-      return true;
-    }
-
-    // For non-VSCode environments, simulate success
-    console.log(`Setting ${setting} would be updated to: ${value}`);
-    return true;
-  } catch (error) {
-    console.error('Error updating setting:', error);
-    return false;
-  }
-};
-
-/**
- * Update a token budget
- * @param {string} budgetType - Budget type ('codeCompletion', 'errorResolution', etc.)
- * @param {number} value - Budget value in tokens
- * @returns {Promise<boolean>} Success status
- */
-export const updateTokenBudget = async (budgetType, value) => {
-  try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      await window.cline.mcp.updateTokenBudget({ budgetType, value });
-      return true;
-    }
-
-    // For non-VSCode environments, simulate success
-    console.log(`Token budget for ${budgetType} would be updated to: ${value}`);
-    return true;
-  } catch (error) {
-    console.error('Error updating token budget:', error);
-    return false;
-  }
-};
-
-/**
- * Refresh dashboard data with fresh metrics
- * @returns {Promise<boolean>} Success status
- */
-export const refreshDashboardData = async () => {
-  try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      await window.cline.mcp.updateDashboardData();
-      return true;
-    }
-
-    // For non-VSCode environments, simulate success
-    console.log('Dashboard data would be refreshed');
-    return true;
-  } catch (error) {
-    console.error('Error refreshing dashboard data:', error);
-    return false;
-  }
-};
-
-/**
- * Initialize the dashboard by checking MCP server availability
- * @returns {Promise<boolean>} Initialization status
- */
+// Initialize the dashboard by checking MCP server availability
 export const initializeDashboard = async () => {
   try {
-    // Check if window.cline exists (VSCode extension context)
-    if (typeof window !== 'undefined' && window.cline && window.cline.mcp) {
-      // Attempt to connect to MCP server
-      await window.cline.mcp.ping();
+    if (!window.cline || !window.cline.callMcpFunction) {
+      console.log('Running in standalone mode with mock data');
+      return false;
+    }
+
+    const response = await window.cline.callMcpFunction({
+      serverName: 'cline-dashboard',
+      resourceUri: 'cline://dashboard/metrics'
+    });
+
+    if (response) {
       console.log('Successfully connected to Cline AI MCP server');
       return true;
     }
 
-    // For non-VSCode environments, log that we're using mock data
-    console.log('Running in standalone mode with mock data');
+    console.log('Running with mock data due to MCP connection failure');
     return false;
   } catch (error) {
     console.error('Failed to initialize MCP connection:', error);

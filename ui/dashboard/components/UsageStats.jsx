@@ -265,7 +265,7 @@ export const UsageStats = ({ usageData = {}, className = '' }) => {
           <h2>Usage Statistics</h2>
         </div>
         <div className="empty-state">
-          <p>No usage data available</p>
+          <p>No usage data available yet</p>
         </div>
       </div>
     );
@@ -323,7 +323,7 @@ export const UsageStats = ({ usageData = {}, className = '' }) => {
         )}
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .usage-stats {
           display: flex;
           flex-direction: column;

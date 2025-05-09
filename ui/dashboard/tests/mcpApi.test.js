@@ -1,11 +1,4 @@
-// Set up mock for window.cline before imports
-global.window = Object.assign({}, global.window || {}, {
-  cline: {
-    callMcpFunction: jest.fn()
-  }
-});
-
-// Now import the modules that will use window.cline
+// Import the modules that will use window.cline
 import { fetchDashboardData, updateSelectedModel, updateSetting, updateTokenBudget, refreshDashboardData } from '../mcpApi';
 
 // Mock data that will be returned by the mock API
@@ -20,9 +13,18 @@ const mockApiData = {
 };
 
 // Mock the mockApi module
-jest.mock('../mockApi', () => ({
-  fetchDashboardData: jest.fn().mockResolvedValue(mockApiData)
-}));
+jest.mock('../mockApi', () => {
+  return {
+    fetchDashboardData: jest.fn().mockImplementation(() => Promise.resolve(mockApiData)),
+    __esModule: true,
+    default: {
+      fetchDashboardData: jest.fn().mockImplementation(() => Promise.resolve(mockApiData))
+    }
+  };
+});
+
+// Import mockApi to access the mock
+import mockApi from '../mockApi';
 
 // Sample MCP response data
 const mockMcpDashboardData = {

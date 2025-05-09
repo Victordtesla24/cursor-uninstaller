@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * SettingsPanel Component
@@ -7,26 +7,59 @@ import React, { useState } from 'react';
  * Allows users to toggle features and adjust token budgets
  * Provides tooltips with explanations for each setting
  */
-const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenBudget }) => {
+const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenBudget, onSettingChange, onBudgetChange }) => {
   const [editingBudget, setEditingBudget] = useState(null);
   const [budgetValue, setBudgetValue] = useState('');
   const [error, setError] = useState(null);
 
-  if (!settings || !tokenBudgets) {
-    return null;
-  }
+  // Default settings for tests and initial render
+  const defaultSettings = {
+    autoModelSelection: true,
+    cachingEnabled: true,
+    contextWindowOptimization: true,
+    outputMinimization: true,
+    notifyOnLowBudget: false,
+    safetyChecks: true
+  };
 
-  // Toggle a boolean setting
-  const handleToggleSetting = (setting) => {
-    if (typeof onUpdateSetting === 'function') {
-      onUpdateSetting(setting, !settings[setting]);
+  // Create local state to mirror the settings so we can update it instantly for better UX
+  const [localSettings, setLocalSettings] = useState(settings || defaultSettings);
+
+  // Update localSettings when settings prop changes
+  useEffect(() => {
+    // If settings are provided, use them, otherwise keep using the defaults
+    if (settings) {
+      setLocalSettings({
+        ...defaultSettings, // Start with defaults
+        ...settings         // Override with provided settings
+      });
     }
+  }, [settings]);
+
+  // For compatibility with existing code and tests
+  const updateSetting = onUpdateSetting || onSettingChange || (() => {});
+  const updateTokenBudget = onUpdateTokenBudget || onBudgetChange || (() => {});
+
+  // Handle setting toggle
+  const handleToggleSetting = (settingKey) => {
+    const newValue = !localSettings[settingKey];
+
+    // Update local state immediately for a responsive UI
+    setLocalSettings({
+      ...localSettings,
+      [settingKey]: newValue
+    });
+
+    // Notify parent component
+    updateSetting(settingKey, newValue);
   };
 
   // Start editing a token budget
   const handleStartEditBudget = (budgetType) => {
     setEditingBudget(budgetType);
-    setBudgetValue(tokenBudgets[budgetType].budget.toString());
+    if (tokenBudgets && tokenBudgets[budgetType]) {
+      setBudgetValue(tokenBudgets[budgetType].budget.toString());
+    }
     setError(null);
   };
 
@@ -58,9 +91,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     }
 
     // Update the budget if validation passes
-    if (typeof onUpdateTokenBudget === 'function') {
-      onUpdateTokenBudget(budgetType, value);
-    }
+    updateTokenBudget(budgetType, value);
 
     // Reset the editing state
     setEditingBudget(null);
@@ -70,7 +101,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
 
   // Format large numbers with commas
   const formatNumber = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return num ? num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "0";
   };
 
   // Configuration for boolean settings
@@ -153,8 +184,10 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                 <label className="toggle-switch">
                   <input
                     type="checkbox"
-                    checked={settings[setting.id] || false}
+                    checked={localSettings[setting.id]}
                     onChange={() => handleToggleSetting(setting.id)}
+                    aria-label={setting.label}
+                    data-testid={`setting-${setting.id}`}
                   />
                   <span className="toggle-slider"></span>
                 </label>
@@ -165,62 +198,71 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
       </div>
 
       {/* Token Budgets Section */}
-      <div className="settings-section">
-        <h3>Token Budgets</h3>
+      {tokenBudgets && (
+        <div className="settings-section">
+          <h3>Token Budgets</h3>
 
-        <div className="budgets-list">
-          {budgetCategories.map((category) => {
-            const budget = tokenBudgets[category.id];
-            if (!budget) return null;
+          <div className="budgets-list">
+            {budgetCategories.map((category) => {
+              if (!tokenBudgets[category.id]) return null;
 
-            const isEditing = editingBudget === category.id;
-            const percentUsed = Math.round((budget.used / budget.budget) * 100);
+              const budget = tokenBudgets[category.id];
+              const isEditing = editingBudget === category.id;
+              const percentUsed = Math.round((budget.used / budget.budget) * 100) || 0;
 
-            return (
-              <div key={category.id} className="budget-item">
-                <div className="budget-info">
-                  <div className="budget-label">{category.label}</div>
-                  <div className="budget-description">{category.description}</div>
+              return (
+                <div key={category.id} className="budget-item">
+                  <div className="budget-info">
+                    <div className="budget-label">{category.label}</div>
+                    <div className="budget-description">{category.description}</div>
+                  </div>
+
+                  <div className="budget-values">
+                    {!isEditing ? (
+                      <>
+                        <div className="budget-amount">
+                          <span className="used">{formatNumber(budget.used)}</span>
+                          <span className="separator">/</span>
+                          <span
+                            className="total"
+                            onClick={() => handleStartEditBudget(category.id)}
+                            data-testid={`budget-${category.id}`}
+                          >
+                            {formatNumber(budget.budget)}
+                          </span>
+                          <span className="edit-icon" onClick={() => handleStartEditBudget(category.id)}>✎</span>
+                        </div>
+                        <div className="budget-progress-container">
+                          <div
+                            className={`budget-progress ${percentUsed > 90 ? 'high' : percentUsed > 70 ? 'medium' : 'low'}`}
+                            style={{ width: `${percentUsed}%` }}
+                          ></div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="budget-edit">
+                        <input
+                          type="text"
+                          value={budgetValue}
+                          onChange={(e) => setBudgetValue(e.target.value)}
+                          className={error ? 'error' : ''}
+                          placeholder="Enter budget"
+                          autoFocus
+                        />
+                        <div className="edit-actions">
+                          <button className="save" onClick={() => handleSaveTokenBudget(category.id)}>Save</button>
+                          <button className="cancel" onClick={handleCancelEditBudget}>Cancel</button>
+                        </div>
+                        {error && <div className="error-message">{error}</div>}
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <div className="budget-values">
-                  {!isEditing ? (
-                    <>
-                      <div className="budget-amount">
-                        <span className="used">{formatNumber(budget.used)}</span>
-                        <span className="separator">/</span>
-                        <span className="total" onClick={() => handleStartEditBudget(category.id)}>{formatNumber(budget.budget)}</span>
-                        <span className="edit-icon" onClick={() => handleStartEditBudget(category.id)}>✎</span>
-                      </div>
-                      <div className="budget-progress-container">
-                        <div
-                          className={`budget-progress ${percentUsed > 90 ? 'high' : percentUsed > 70 ? 'medium' : 'low'}`}
-                          style={{ width: `${percentUsed}%` }}
-                        ></div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="budget-edit">
-                      <input
-                        type="text"
-                        value={budgetValue}
-                        onChange={(e) => setBudgetValue(e.target.value)}
-                        placeholder="Enter budget"
-                        autoFocus
-                      />
-                      <div className="edit-actions">
-                        <button className="save-button" onClick={() => handleSaveTokenBudget(category.id)}>Save</button>
-                        <button className="cancel-button" onClick={handleCancelEditBudget}>Cancel</button>
-                      </div>
-                      {error && <div className="error-message">{error}</div>}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Information Section */}
       <div className="settings-section info-section">
@@ -234,15 +276,14 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .settings-panel {
-          background-color: var(--card-background);
-          border-radius: var(--border-radius-md);
-          box-shadow: var(--shadow-sm);
+          background-color: var(--card-background, #ffffff);
+          border-radius: var(--border-radius-md, 8px);
+          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
           padding: 1.5rem;
           height: 100%;
-          display: flex;
-          flex-direction: column;
+          overflow-y: auto;
         }
 
         .panel-header {
@@ -263,9 +304,10 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
           font-size: 1rem;
           font-weight: 500;
           margin: 0 0 1rem 0;
+          color: var(--text-primary, #333);
         }
 
-        .settings-list, .budgets-list {
+        .settings-list {
           display: flex;
           flex-direction: column;
           gap: 1rem;
@@ -274,8 +316,9 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
         .setting-item {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          gap: 1rem;
+          align-items: center;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid var(--border-color, #eaeaea);
         }
 
         .setting-info {
@@ -289,18 +332,13 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
 
         .setting-description {
           font-size: 0.875rem;
-          color: var(--text-secondary);
+          color: var(--text-secondary, #666);
         }
 
-        .setting-control {
-          padding-top: 0.25rem;
-        }
-
-        /* Toggle Switch Styles */
         .toggle-switch {
           position: relative;
           display: inline-block;
-          width: 40px;
+          width: 48px;
           height: 24px;
         }
 
@@ -312,51 +350,52 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
 
         .toggle-slider {
           position: absolute;
+          cursor: pointer;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: var(--background-color);
-          border: 1px solid var(--border-color);
-          border-radius: 34px;
+          background-color: var(--border-color, #ccc);
           transition: .4s;
-          cursor: pointer;
+          border-radius: 24px;
         }
 
         .toggle-slider:before {
           position: absolute;
           content: "";
-          height: 16px;
-          width: 16px;
+          height: 18px;
+          width: 18px;
           left: 3px;
           bottom: 3px;
-          background-color: var(--text-secondary);
-          border-radius: 50%;
-          transition: .4s;
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-          background-color: var(--primary-color);
-          border-color: var(--primary-color);
-        }
-
-        .toggle-switch input:checked + .toggle-slider:before {
-          transform: translateX(16px);
           background-color: white;
+          transition: .4s;
+          border-radius: 50%;
         }
 
-        /* Budget Item Styles */
+        input:checked + .toggle-slider {
+          background-color: var(--primary-color, #4a6cf7);
+        }
+
+        input:checked + .toggle-slider:before {
+          transform: translateX(24px);
+        }
+
+        .budgets-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
         .budget-item {
           display: flex;
           flex-direction: column;
+          gap: 0.5rem;
           padding: 0.75rem;
-          background-color: var(--background-color);
-          border-radius: var(--border-radius-sm);
+          background-color: var(--background-color, #f9f9f9);
+          border-radius: var(--border-radius-sm, 4px);
         }
 
         .budget-info {
-          display: flex;
-          flex-direction: column;
           margin-bottom: 0.5rem;
         }
 
@@ -367,70 +406,67 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
 
         .budget-description {
           font-size: 0.875rem;
-          color: var(--text-secondary);
-        }
-
-        .budget-values {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
+          color: var(--text-secondary, #666);
         }
 
         .budget-amount {
           display: flex;
           align-items: center;
+          gap: 0.25rem;
+          margin-bottom: 0.5rem;
           font-size: 0.875rem;
         }
 
         .budget-amount .used {
-          font-weight: 500;
+          color: var(--text-secondary, #666);
         }
 
         .budget-amount .separator {
           margin: 0 0.25rem;
-          color: var(--text-secondary);
+          color: var(--text-secondary, #666);
         }
 
         .budget-amount .total {
+          font-weight: 500;
           cursor: pointer;
-          text-decoration: underline;
-          text-decoration-style: dotted;
-          text-underline-offset: 2px;
+        }
+
+        .budget-amount .total:hover {
+          color: var(--primary-color, #4a6cf7);
         }
 
         .edit-icon {
-          margin-left: 0.375rem;
-          cursor: pointer;
-          color: var(--primary-color);
           font-size: 0.75rem;
+          margin-left: 0.25rem;
+          color: var(--text-secondary, #999);
+          cursor: pointer;
         }
 
         .budget-progress-container {
-          height: 0.375rem;
-          background-color: var(--background-color-light);
-          border-radius: var(--border-radius-sm);
+          height: 4px;
+          background-color: var(--border-color, #eaeaea);
+          border-radius: 2px;
           overflow: hidden;
+          width: 100%;
         }
 
         .budget-progress {
           height: 100%;
-          border-radius: var(--border-radius-sm);
-          transition: width 0.3s ease;
+          border-radius: 2px;
         }
 
         .budget-progress.low {
-          background-color: var(--success-color);
+          background-color: var(--success-color, #10b981);
         }
 
         .budget-progress.medium {
-          background-color: var(--warning-color);
+          background-color: var(--warning-color, #f59e0b);
         }
 
         .budget-progress.high {
-          background-color: var(--error-color);
+          background-color: var(--error-color, #ef4444);
         }
 
-        /* Budget Edit Styles */
         .budget-edit {
           display: flex;
           flex-direction: column;
@@ -438,15 +474,19 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
         }
 
         .budget-edit input {
-          padding: 0.375rem 0.5rem;
-          border: 1px solid var(--border-color);
-          border-radius: var(--border-radius-sm);
-          font-size: 0.875rem;
+          padding: 0.5rem;
+          border: 1px solid var(--border-color, #ddd);
+          border-radius: var(--border-radius-sm, 4px);
+          width: 100%;
         }
 
-        .budget-edit input:focus {
-          border-color: var(--primary-color);
-          outline: none;
+        .budget-edit input.error {
+          border-color: var(--error-color, #ef4444);
+        }
+
+        .error-message {
+          color: var(--error-color, #ef4444);
+          font-size: 0.75rem;
         }
 
         .edit-actions {
@@ -454,28 +494,22 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
           gap: 0.5rem;
         }
 
-        .save-button, .cancel-button {
-          padding: 0.25rem 0.5rem;
-          border-radius: var(--border-radius-sm);
-          font-size: 0.75rem;
-          cursor: pointer;
+        .edit-actions button {
+          padding: 0.25rem 0.75rem;
+          border-radius: var(--border-radius-sm, 4px);
           border: none;
+          font-size: 0.875rem;
+          cursor: pointer;
         }
 
-        .save-button {
-          background-color: var(--primary-color);
+        .edit-actions button.save {
+          background-color: var(--primary-color, #4a6cf7);
           color: white;
         }
 
-        .cancel-button {
-          background-color: var(--background-color-light);
-          border: 1px solid var(--border-color);
-        }
-
-        .error-message {
-          color: var(--error-color);
-          font-size: 0.75rem;
-          margin-top: 0.25rem;
+        .edit-actions button.cancel {
+          background-color: var(--border-color, #eaeaea);
+          color: var(--text-secondary, #666);
         }
 
         /* Info Section Styles */
@@ -534,4 +568,5 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
   );
 };
 
+export { SettingsPanel };
 export default SettingsPanel;

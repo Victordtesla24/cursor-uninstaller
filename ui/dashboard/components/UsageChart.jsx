@@ -211,7 +211,7 @@ const UsageChart = ({ usageData }) => {
         {renderChart()}
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .usage-chart-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);

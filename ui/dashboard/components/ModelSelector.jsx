@@ -7,20 +7,39 @@ import React from 'react';
  * Allows users to select which model to use
  * Shows recommendations for different task types
  */
-const ModelSelector = ({ modelData, onModelSelect }) => {
-  if (!modelData) {
+const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, modelData }) => {
+  // Allow both ways of passing props for backward compatibility with tests
+  // Add compatibility with both onModelChange and onModelSelect prop names
+  const handleModelChange = onModelChange || onModelSelect;
+
+  const modelInfo = modelData || {
+    selected: selectedModel,
+    available: models && Object.entries(models).map(([id, details]) => ({
+      id,
+      ...details
+    })),
+    recommendedFor: {}
+  };
+
+  if (!modelInfo && !models) {
     return null;
   }
 
-  const { selected, available, recommendedFor } = modelData;
+  const { selected, available, recommendedFor } = modelInfo;
 
   // Format token count with K suffix
   const formatTokenCount = (count) => {
+    if (count === undefined || count === null) {
+      return '0K';
+    }
     return `${(count / 1000).toFixed(0)}K`;
   };
 
   // Format cost per token
   const formatCostPerToken = (cost) => {
+    if (cost === undefined || cost === null) {
+      return '$0.00000/token';
+    }
     if (cost < 0.0001) {
       return `$${(cost * 1000000).toFixed(2)}/1M tokens`;
     }
@@ -29,7 +48,7 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
 
   // Helper to determine if a model is recommended for a specific task
   const isRecommendedFor = (modelId, task) => {
-    return recommendedFor[task] === modelId;
+    return recommendedFor && recommendedFor[task] === modelId;
   };
 
   // Helper to get CSS classes for each capability
@@ -48,29 +67,33 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
   return (
     <div className="model-selector-panel">
       <div className="panel-header">
-        <h2>AI Models</h2>
+        <h2>Model Selection</h2>
         <div className="model-count">
-          <span>{available.length} available</span>
+          <span>{(available && available.length) || 0} available</span>
         </div>
       </div>
 
       <div className="models-container">
-        {available.map((model) => {
+        {available && available.map((model) => {
           const isSelected = model.id === selected;
 
+          // For test compatibility
+          const modelId = model.id;
+
           // Calculate tasks this model is recommended for
-          const recommendedTasks = Object.entries(recommendedFor)
-            .filter(([_, modelId]) => modelId === model.id)
-            .map(([task]) => task);
+          const recommendedTasks = recommendedFor ? Object.entries(recommendedFor)
+            .filter(([_, recModelId]) => recModelId === model.id)
+            .map(([task]) => task) : [];
 
           return (
             <div
               key={model.id}
+              data-testid={`model-card-${model.id}`}
               className={`model-card ${isSelected ? 'selected' : ''}`}
-              onClick={() => onModelSelect(model.id)}
+              onClick={() => handleModelChange(model.id)}
             >
               <div className="model-header">
-                <div className="model-name">{model.name}</div>
+                <div className="model-name" data-testid={`model-name-${model.id}`}>{model.name}</div>
 
                 {isSelected && (
                   <div className="selected-badge">Current</div>
@@ -78,7 +101,7 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
               </div>
 
               <div className="model-capabilities">
-                {model.capabilities.map((capability) => (
+                {model.capabilities && model.capabilities.map((capability) => (
                   <span
                     key={capability}
                     className={getCapabilityClass(capability)}
@@ -119,7 +142,7 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!isSelected) {
-                    onModelSelect(model.id);
+                    handleModelChange(model.id);
                   }
                 }}
               >
@@ -131,28 +154,30 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
       </div>
 
       {/* Model Recommendations */}
-      <div className="model-recommendations">
-        <h3>Recommended Models by Task</h3>
+      {recommendedFor && (
+        <div className="model-recommendations">
+          <h3>Recommended Models by Task</h3>
 
-        <div className="recommendations-list">
-          {Object.entries(recommendedFor).map(([task, modelId]) => {
-            const recommendedModel = available.find(model => model.id === modelId);
-            if (!recommendedModel) return null;
+          <div className="recommendations-list">
+            {Object.entries(recommendedFor).map(([task, modelId]) => {
+              const recommendedModel = available && available.find(model => model.id === modelId);
+              if (!recommendedModel) return null;
 
-            return (
-              <div key={task} className="recommendation-item">
-                <div className="task-name">{formatTaskName(task)}</div>
-                <div className="recommended-model">
-                  <span className="model-dot" style={{ backgroundColor: getModelColor(modelId) }}></span>
-                  <span className="model-name">{recommendedModel.name.split(' ').pop()}</span>
+              return (
+                <div key={task} className="recommendation-item">
+                  <div className="task-name">{formatTaskName(task)}</div>
+                  <div className="recommended-model">
+                    <span className="model-dot" style={{ backgroundColor: getModelColor(modelId) }}></span>
+                    <span className="model-name">{recommendedModel.name.split(' ').pop()}</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <style jsx>{`
+      <style jsx="true">{`
         .model-selector-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
@@ -423,37 +448,40 @@ const ModelSelector = ({ modelData, onModelSelect }) => {
   );
 };
 
-// Helper function to get icon for a capability
+// Helper functions for icons and formatting
 const getCapabilityIcon = (capability) => {
   const icons = {
-    code: '👨‍💻',
+    code: '⌨️',
     reasoning: '🧠',
     text: '📝',
     vision: '👁️',
     math: '🔢'
   };
 
-  return icons[capability] || '?';
+  return icons[capability] || '✓';
 };
 
-// Helper function to format task name
 const formatTaskName = (task) => {
-  if (task === 'basicTasks') return 'Basic Tasks';
-
-  return task
-    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-    .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
-};
-
-// Helper function to get a color for a model
-const getModelColor = (modelId) => {
-  const colors = {
-    'claude-3.7-sonnet': '#9b59b6', // Purple
-    'gemini-2.5-flash': '#2ecc71', // Green
-    'claude-3.7-haiku': '#3498db' // Blue
+  const formattedNames = {
+    codeCompletion: 'Code Completion',
+    errorResolution: 'Error Resolution',
+    architecture: 'Architecture',
+    thinking: 'Thinking',
+    basicTasks: 'Basic Tasks'
   };
 
-  return colors[modelId] || 'var(--primary-color)';
+  return formattedNames[task] || task.charAt(0).toUpperCase() + task.slice(1);
 };
 
+const getModelColor = (modelId) => {
+  const colors = {
+    'claude-3.7-sonnet': '#7b68ee',
+    'gemini-2.5-flash': '#4285f4',
+    'claude-3.7-haiku': '#9575cd'
+  };
+
+  return colors[modelId] || '#999';
+};
+
+export { ModelSelector };
 export default ModelSelector;

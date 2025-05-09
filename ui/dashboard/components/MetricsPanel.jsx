@@ -6,9 +6,15 @@ import React from 'react';
  * Displays key metrics in a grid of metric cards
  * Each metric includes a label, value, and optional comparison/trend
  */
-const MetricsPanel = ({ metrics }) => {
+const MetricsPanel = ({ metrics, className }) => {
   if (!metrics) {
     return null;
+  }
+
+  // Extract total requests from dailyUsage if present
+  let totalRequests = null;
+  if (metrics.dailyUsage && Array.isArray(metrics.dailyUsage)) {
+    totalRequests = metrics.dailyUsage.reduce((sum, day) => sum + (day.requests || 0), 0);
   }
 
   // Define metrics configuration with labels, formatters, and icons
@@ -73,8 +79,16 @@ const MetricsPanel = ({ metrics }) => {
       format: (value) => `${(value / 1000).toFixed(1)}K`,
       icon: '📊',
       tooltip: 'Average context window size in tokens'
+    },
+    // Conditionally add total requests metric for test compatibility
+    totalRequests && {
+      id: 'totalRequests',
+      label: 'Total Requests',
+      format: () => totalRequests,
+      icon: '📝',
+      tooltip: 'Total number of requests across all days'
     }
-  ];
+  ].filter(Boolean); // Filter out null/undefined items
 
   return (
     <div className="metrics-panel">
@@ -98,8 +112,8 @@ const MetricsPanel = ({ metrics }) => {
         {metricConfig.map((config) => {
           const value = metrics[config.id];
 
-          // Skip if metric is not available
-          if (value === undefined) return null;
+          // Skip if metric is not available - except for totalRequests which we calculated
+          if (value === undefined && config.id !== 'totalRequests') return null;
 
           return (
             <div key={config.id} className="metric-card" title={config.tooltip}>
@@ -120,7 +134,7 @@ const MetricsPanel = ({ metrics }) => {
         })}
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .metrics-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
@@ -254,26 +268,15 @@ const MetricsPanel = ({ metrics }) => {
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .metrics-grid {
             grid-template-columns: repeat(2, 1fr);
           }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
           .metrics-grid {
             grid-template-columns: 1fr;
-          }
-
-          .panel-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-
-          .header-actions {
-            width: 100%;
-            justify-content: space-between;
           }
         }
       `}</style>
@@ -281,27 +284,22 @@ const MetricsPanel = ({ metrics }) => {
   );
 };
 
-// Helper function to determine trend class based on value and positive direction
+// Helper function to determine trend class (positive, negative, neutral)
 const getTrendClass = (value, positiveDirection) => {
-  // This is a simplified version - in a real app, you'd compare with historical data
-  const threshold = positiveDirection === 'up' ? 0.5 : 0.3;
-
-  if (positiveDirection === 'up') {
-    return value >= threshold ? 'positive' : 'negative';
-  } else {
-    return value <= threshold ? 'positive' : 'negative';
-  }
+  if (value > 0 && positiveDirection === 'up') return 'positive';
+  if (value < 0 && positiveDirection === 'down') return 'positive';
+  if (value < 0 && positiveDirection === 'up') return 'negative';
+  if (value > 0 && positiveDirection === 'down') return 'negative';
+  return 'neutral';
 };
 
 // Helper function to get trend icon
 const getTrendIcon = (value, positiveDirection) => {
-  const threshold = positiveDirection === 'up' ? 0.5 : 0.3;
-
-  if (positiveDirection === 'up') {
-    return value >= threshold ? '↑ Good' : '↓ Improve';
-  } else {
-    return value <= threshold ? '↓ Good' : '↑ Improve';
-  }
+  if (value > 0 && positiveDirection === 'up') return '↑ Improving';
+  if (value < 0 && positiveDirection === 'down') return '↓ Improving';
+  if (value < 0 && positiveDirection === 'up') return '↓ Declining';
+  if (value > 0 && positiveDirection === 'down') return '↑ Declining';
+  return '→ Stable';
 };
 
 export default MetricsPanel;

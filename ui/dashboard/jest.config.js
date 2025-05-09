@@ -4,7 +4,8 @@ module.exports = {
     '\\.(css|less|scss)$': 'identity-obj-proxy'
   },
   setupFilesAfterEnv: [
-    '@testing-library/jest-dom'
+    '@testing-library/jest-dom',
+    '<rootDir>/tests/setupTests.js'
   ],
   transform: {
     '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]

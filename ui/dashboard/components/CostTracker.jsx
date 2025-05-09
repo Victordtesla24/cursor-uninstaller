@@ -7,30 +7,51 @@ import React, { useState } from 'react';
  * Includes cost breakdown by model and savings breakdown by type
  * Provides historical cost charts
  */
-const CostTracker = ({ costData }) => {
+const CostTracker = ({ costData, className }) => {
   const [timeframe, setTimeframe] = useState('daily');
 
   if (!costData) {
     return null;
   }
 
-  const { totalCost, monthlyCost, projectedCost, savings, byModel, history } = costData;
+  // Safely extract and provide defaults for all properties
+  const {
+    totalCost = 0,
+    monthlyCost = 0,
+    projectedCost = 0,
+    savings = { total: 0 },
+    byModel = {},
+    history = {}
+  } = costData;
 
   // Get the appropriate history data based on the selected timeframe
-  const chartData = history[timeframe] || [];
+  const chartData = history && history[timeframe] ? history[timeframe] : [];
 
   // Format currency with 2 decimal places
   const formatCurrency = (value) => {
-    return `$${value.toFixed(2)}`;
+    // Handle edge cases where value is not a number
+    if (value === undefined || value === null) {
+      return '$0.00';
+    }
+
+    // Ensure value is a number
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+
+    // Check if conversion resulted in a valid number
+    if (isNaN(numValue)) {
+      return '$0.00';
+    }
+
+    return `$${numValue.toFixed(2)}`;
   };
 
   // Calculate percentage saved
   const savingsPercentage = Math.round((savings.total / (totalCost + savings.total)) * 100);
 
   return (
-    <div className="cost-tracker-panel">
+    <div className={`cost-tracker-panel ${className || ''}`}>
       <div className="panel-header">
-        <h2>Cost Tracker</h2>
+        <h2>Cost Metrics</h2>
         <div className="timeframe-selector">
           <select
             value={timeframe}
@@ -94,29 +115,33 @@ const CostTracker = ({ costData }) => {
         <div className="cost-breakdown">
           <h3>Cost by Model</h3>
           <div className="breakdown-items">
-            {Object.entries(byModel).map(([model, cost]) => {
-              // Format model name for display
-              const displayName = model.split('-').pop();
+            {Object.keys(byModel).length > 0 ? (
+              Object.entries(byModel).map(([model, cost]) => {
+                // Format model name for display
+                const displayName = model.split('-').pop();
 
-              // Calculate percentage of total cost
-              const percentage = Math.round((cost / totalCost) * 100);
+                // Calculate percentage of total cost
+                const percentage = totalCost > 0 ? Math.round((cost / totalCost) * 100) : 0;
 
-              return (
-                <div key={model} className="breakdown-item">
-                  <div className="item-info">
-                    <div className="item-name">{displayName}</div>
-                    <div className="item-value">{formatCurrency(cost)}</div>
+                return (
+                  <div key={model} className="breakdown-item">
+                    <div className="item-info">
+                      <div className="item-name">{displayName}</div>
+                      <div className="item-value">{formatCurrency(cost)}</div>
+                    </div>
+                    <div className="item-bar-container">
+                      <div
+                        className="item-bar"
+                        style={{ width: `${percentage}%` }}
+                      />
+                      <div className="item-percentage">{percentage}%</div>
+                    </div>
                   </div>
-                  <div className="item-bar-container">
-                    <div
-                      className="item-bar"
-                      style={{ width: `${percentage}%` }}
-                    />
-                    <div className="item-percentage">{percentage}%</div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="no-data">No model cost data available</div>
+            )}
           </div>
         </div>
 
@@ -124,36 +149,40 @@ const CostTracker = ({ costData }) => {
         <div className="cost-breakdown">
           <h3>Savings Breakdown</h3>
           <div className="breakdown-items">
-            {Object.entries(savings)
-              .filter(([key]) => key !== 'total')
-              .map(([savingType, amount]) => {
-                // Format saving type for display
-                const displayName = savingType.charAt(0).toUpperCase() + savingType.slice(1);
+            {savings && Object.keys(savings).filter(key => key !== 'total').length > 0 ? (
+              Object.entries(savings)
+                .filter(([key]) => key !== 'total')
+                .map(([savingType, amount]) => {
+                  // Format saving type for display
+                  const displayName = savingType.charAt(0).toUpperCase() + savingType.slice(1);
 
-                // Calculate percentage of total savings
-                const percentage = Math.round((amount / savings.total) * 100);
+                  // Calculate percentage of total savings
+                  const percentage = savings.total > 0 ? Math.round((amount / savings.total) * 100) : 0;
 
-                return (
-                  <div key={savingType} className="breakdown-item">
-                    <div className="item-info">
-                      <div className="item-name">{displayName}</div>
-                      <div className="item-value positive">{formatCurrency(amount)}</div>
+                  return (
+                    <div key={savingType} className="breakdown-item">
+                      <div className="item-info">
+                        <div className="item-name">{displayName}</div>
+                        <div className="item-value positive">{formatCurrency(amount)}</div>
+                      </div>
+                      <div className="item-bar-container">
+                        <div
+                          className="item-bar savings"
+                          style={{ width: `${percentage}%` }}
+                        />
+                        <div className="item-percentage">{percentage}%</div>
+                      </div>
                     </div>
-                    <div className="item-bar-container">
-                      <div
-                        className="item-bar savings"
-                        style={{ width: `${percentage}%` }}
-                      />
-                      <div className="item-percentage">{percentage}%</div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+            ) : (
+              <div className="no-data">No savings data available</div>
+            )}
           </div>
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .cost-tracker-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
