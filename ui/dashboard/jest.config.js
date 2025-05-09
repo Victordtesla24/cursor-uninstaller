@@ -7,7 +7,7 @@ module.exports = {
     '@testing-library/jest-dom'
   ],
   transform: {
-    '^.+\\.(js|jsx)$': 'babel-jest'
+    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
   testMatch: [
     '**/tests/**/*.test.js',
