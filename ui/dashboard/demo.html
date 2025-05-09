@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cline AI Dashboard Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        #root {
+            height: 100vh;
+        }
+        .loading-message {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+            color: #333;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading-message">
+            <p>Loading Cline AI Dashboard...</p>
+            <p><small>This is a demo page. In a real implementation, this would render the React components.</small></p>
+        </div>
+    </div>
+
+    <script>
+        // This script would normally load and render the React components
+        // For demo purposes, we'll just display a message indicating the dashboard structure
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const root = document.getElementById('root');
+
+            // Simulate loading time
+            setTimeout(() => {
+                root.innerHTML = `
+                    <div class="cline-dashboard">
+                        <div class="header">
+                            <div class="header-title">Cline AI Dashboard</div>
+                            <div class="system-status">
+                                <div class="status-indicator optimal"></div>
+                                <span>System: optimal | Active Requests: 3</span>
+                            </div>
+                            <div class="header-actions">
+                                <div class="view-selector">
+                                    <div class="view-option active">Overview</div>
+                                    <div class="view-option">Detailed</div>
+                                    <div class="view-option">Settings</div>
+                                </div>
+                                <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
+                            <!-- Metrics Panel -->
+                            <div class="dashboard-section metrics-panel">
+                                <div class="section-title">
+                                    <span>Key Metrics</span>
+                                    <span class="icon">📊</span>
+                                </div>
+
+                                <div class="metrics-grid">
+                                    <!-- Sample metrics would be displayed here -->
+                                    <div class="metric-card">
+                                        <div class="metric-value">405</div>
+                                        <div class="metric-label">Total Requests</div>
+                                    </div>
+
+                                    <div class="metric-card">
+                                        <div class="metric-value">49,500</div>
+                                        <div class="metric-label">Total Tokens Used</div>
+                                    </div>
+
+                                    <div class="metric-card">
+                                        <div class="metric-value">1.60ms</div>
+                                        <div class="metric-label">Avg. Response Time</div>
+                                    </div>
+
+                                    <div class="metric-card success">
+                                        <div class="metric-value">68.0%</div>
+                                        <div class="metric-label">Cache Hit Rate</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- UsageStats Panel -->
+                            <div class="dashboard-section usage-stats">
+                                <div class="section-title">
+                                    <span>Usage Statistics</span>
+                                    <span class="icon">📈</span>
+                                </div>
+
+                                <!-- Sample usage stats would be displayed here -->
+                                <div class="stats-container">
+                                    <div class="stat-row">
+                                        <div class="stat-label">Recent Requests (3 days):</div>
+                                        <div class="stat-value">405</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TokenUtilization Panel -->
+                            <div class="dashboard-section token-utilization">
+                                <div class="section-title">
+                                    <span>Token Utilization</span>
+                                    <span class="icon">🔍</span>
+                                </div>
+
+                                <!-- Sample token budgets would be displayed here -->
+                                <div class="budget-section">
+                                    <div class="budget-header">
+                                        <span>Total Token Usage</span>
+                                        <span>4,100 / 5,000</span>
+                                    </div>
+                                    <div class="progress-container">
+                                        <div class="progress-bar warning" style="width: 82%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Other panels would follow the same pattern -->
+                            <div class="dashboard-section cost-tracker">
+                                <div class="section-title">
+                                    <span>Cost Metrics</span>
+                                    <span class="icon">💰</span>
+                                </div>
+                                <!-- Cost tracker content would go here -->
+                            </div>
+
+                            <div class="dashboard-section model-selector">
+                                <div class="section-title">
+                                    <span>Model Selection</span>
+                                    <span class="icon">🤖</span>
+                                </div>
+                                <!-- Model selector content would go here -->
+                            </div>
+
+                            <div class="dashboard-section settings-panel">
+                                <div class="section-title">
+                                    <span>Settings</span>
+                                    <span class="icon">⚙️</span>
+                                </div>
+                                <!-- Settings content would go here -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add event listener for theme toggle
+                const themeToggle = document.querySelector('.theme-toggle');
+                if (themeToggle) {
+                    themeToggle.addEventListener('click', () => {
+                        document.body.classList.toggle('dark-theme');
+                    });
+                }
+
+                // Add event listeners for view options
+                const viewOptions = document.querySelectorAll('.view-option');
+                viewOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        viewOptions.forEach(o => o.classList.remove('active'));
+                        option.classList.add('active');
+                    });
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

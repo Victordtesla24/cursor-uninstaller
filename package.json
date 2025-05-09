@@ -1,0 +1,19 @@
+{
+  "name": "cursor-uninstaller",
+  "version": "1.0.0",
+  "description": "Cursor uninstaller with gemini-2.5-flash plugin integration",
+  "private": true,
+  "dependencies": {
+    "gemini-2.5-flash-plugin": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/cursor-uninstaller.git"
+  },
+  "author": "",
+  "license": "ISC"
+}

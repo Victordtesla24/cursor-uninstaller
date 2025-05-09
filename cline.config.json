@@ -1,0 +1,98 @@
+{
+  "name": "cursor-uninstaller-cline",
+  "version": "1.0.0",
+  "model": {
+    "provider": "anthropic",
+    "name": "claude-3.7-sonnet",
+    "mode": "thinking"
+  },
+  "cache": {
+    "enabled": true,
+    "strategy": "three-tier",
+    "keyGenerator": "sha256(task_type:complexity_score:error_code)",
+    "tiers": [
+      {
+        "level": "L1",
+        "storage": "redis",
+        "config": {
+          "host": "localhost",
+          "port": 6379,
+          "maxMemory": "1MB",
+          "evictionPolicy": "volatile-lru"
+        },
+        "performance": {
+          "expectedHitRate": 0.67,
+          "averageLatency": "2ms"
+        }
+      },
+      {
+        "level": "L2",
+        "storage": "disk",
+        "config": {
+          "path": "./.cache/cline",
+          "maxSize": "100MB",
+          "compressionLevel": "medium"
+        },
+        "performance": {
+          "expectedHitRate": 0.28,
+          "averageLatency": "5ms"
+        }
+      },
+      {
+        "level": "L3",
+        "storage": "api",
+        "config": {
+          "fallbackToModel": true,
+          "retryStrategy": {
+            "attempts": 2,
+            "backoff": "exponential"
+          }
+        },
+        "performance": {
+          "expectedHitRate": 0.05,
+          "averageLatency": "150ms"
+        }
+      }
+    ]
+  },
+  "tokenBudgets": {
+    "default": 500,
+    "extendedThinking": 2000,
+    "codeGeneration": {
+      "simple": 300,
+      "medium": 800,
+      "complex": 1500
+    }
+  },
+  "modelSelectionRules": [
+    {
+      "condition": "token_budget < 500",
+      "model": "gemini-2.5-flash"
+    },
+    {
+      "condition": "task_type == 'debug'",
+      "model": "claude-3.7-sonnet"
+    },
+    {
+      "condition": "complexity_score > 7",
+      "model": "claude-3.7-sonnet:thinking"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "gemini-2.5-flash",
+      "enabled": true,
+      "config": {
+        "version": "gemini-2.5-flash-preview-04-17",
+        "priority": "high",
+        "tokenLimit": 500,
+        "fallbackModel": "claude-3.7-sonnet"
+      }
+    }
+  ],
+  "outputMinimization": {
+    "enforceCodeOnly": true,
+    "conciseResponses": true,
+    "useCitations": true
+  }
+}

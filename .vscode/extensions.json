@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "jasonnutter.search-node-modules",
+        "eg2.vscode-npm-script",
+        "christian-kohler.npm-intellisense",
+        "yzhang.markdown-all-in-one",
+        "sourcery.sourcery",
+        "ms-python.python",
+        "orta.vscode-jest",
+        "zeshuaro.vscode-python-poetry",
+        "teticio.python-envy",
+        "bradlc.vscode-tailwindcss",
+        "saoudrizwan.claude-dev"
+    ]
+}
