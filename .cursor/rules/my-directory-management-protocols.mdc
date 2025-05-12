@@ -3,40 +3,51 @@ description:
 globs:
 alwaysApply: true
 ---
-#### Directory Management Protocol
-**Pre and Post requisite**: This protocol has strict & mandatory pre and post requisites protocol adherance with & including every single other protocols @my-code-optimisation-protocols.mdc, @my-development-protocols.mdc, @my-error-fixing-protocols.mdc, & @my-memory-manager.mdc with utmost attention & precision.
+### Directory Management Protocol
 
-1. **Strict Requirement:** Follow VERCEL (or similar) deployment guidelines and best practices.
-2. **File and Directory Scanning:**
-   - You **must scan** all project directories and files of the following types:
-     `*.py`, `*.js`, `*.ts`, `*.tsx`, `*.json`, `*.txt`, `*.yml`, `*.yaml`, `*.babelrc`, `*.cursorrules`, `*.env`, `*.sh`, `*.Dockerfile`, `*.conf`, `*.xml`, `*.css`, `*.html`, as well as any other relevant project file types or folders.
-   - During scanning, identify **duplicate or similar functionality** in scripts, modules, or configurations.
-3. **Consolidation of Duplicates:**
-   - Merge or remove **duplicate** files, code, or scripts.
-   - Keep only **one unique version** of code that combines essential functionality.
-   - Retain minimal changes, ensuring no additional features are introduced or lost.
-4. **Correct Placement and Renaming:**
-   - Move or rename files as needed to match the project’s recommended directory structure.
-   - Ensure references to these files and modules (imports, exports, paths) are **updated** accordingly.
-5. **Import & Path Management:**
-   - After consolidating or moving files, **update all import statements** and **module references** in the codebase.
-   - If any import or path errors arise, call the **Recursive Import Error Fixing Algorithm** in the Error Handling Protocol of @.cursorrules to resolve them in 2–3 attempts.
-6. **Cleanup Unused or Redundant Assets:**
-   - Remove any **unnecessary** files, folders, or code that duplicate existing functionality or are no longer required after consolidation.
-   - Confirm no references remain to deleted items.
-7. **No Functionality Lost:**
-   - Ensure that no existing features or essential code are inadvertently removed or broken.
-   - **File Integrity Check:** Run relevant tests to confirm everything remains functional.
-8. **Refactoring Large Files (>600 lines):**
-   - When encountering large files, use best practices and  split them into smaller, more modular files, following the single responsibility principle.
-9. **Final Verification:**
-   - Re-run applicable test suites to ensure **zero** import or path errors remain.
-   - Document final changes in the Memory Bank (e.g., updated file paths, new consolidated modules).
-   - Comply with other protocols (e.g., Error Handling, Testing) if any errors occur.
+**Pre- and Post-Requisites:**
+Follow all related protocols (`@my-error-fixing-protocols.mdc`) with absolute precision before and after every change.
 
-**Critical:**
-- No functionality or code must be added or removed beyond the targeted consolidation.
-- Always follow the “Fail Fast” iterative approach and perform a final integrity check after each structural change.
-- You must ensure that the final directory structure remains consistent and that all consolidated functionality is fully operational.
+1. **Deployment Compliance**
+   - Adhere to VERCEL (or equivalent) **deployment best practices**, **project directory structure** at all times.
+
+2. **Comprehensive File Scan**
+   - Recursively scan the entire repo—excluding `node_modules/`, `.venv/`, `.cursor/`, `.vscode/`, `coverage/`, and any `gitignore`-listed paths—for existing files, scripts, modules, and configurations.
+
+3. **Duplicate Detection & Consolidation**
+   - ***Never*** create a new file, script, or module until you have confirmed, verified and validated that any such file does ***not*** already exist in the `codebase` or it overlaps in functionality.
+   - ***Strictly*** existing files, code or scripts within the `codebase` must be used; ***totally*** & ***absolutely*** duplicate files, code or scripts are ***`restricted`*** without any ***exception*** that includes files, code or scripts with same, extended or enhanced functionality with different names.
+   - If you find ***duplicate or overlapping code***, ***merge*** or ***remove*** redundancies, preserving one canonical implementation.
+   - Always solicit explicit user approval before introducing any new file or module that risks duplicating existing functionality.
+
+4. **Strict “No Unrequested Files” Policy**
+   - ***Do not*** create/generate any additional/duplicate files, scripts, or code  with different names, ***unless***:
+     a. The user has explicitly requested creation of a new file/module.
+     b. Failing to create it would break the solution—confirm with the user if in doubt.
+
+5. **Correct Placement & Renaming**
+   - Re-locate or rename any file to match the project’s directory conventions.
+   - Update all import paths, exports, and references accordingly.
+
+6. **Import & Path Integrity**
+   - After any move or merge, run the **Recursive Import Error Fixing Algorithm** (per the Error Handling Protocol) to resolve broken imports within two attempts.
+
+7. **Clean-Up of Redundant Assets**
+   - Remove all orphaned, unused, or superseded files and code blocks.
+   - Verify that no residual references exist to deleted items.
+
+8. **Preserve Functionality**
+   - Ensure zero feature regression: every existing test must still pass, and manual sanity checks should confirm core workflows remain intact.
+
+9. **Refactoring Large Files**
+   - If a file exceeds 600 lines, refactor into smaller, single-responsibility modules—without introducing duplication.
+
+10. **Final Verification & Documentation**
+    - Rerun all relevant test suites to confirm **no** import/path errors or test failures.
+    - Record all structural changes (moved paths, merged modules, deletions) in the Memory Bank for future traceability.
 
 ---
+> **Critical Constraints:**
+> - **No functionality** may be added or removed beyond the targeted consolidation.
+> - **Fail fast:** commit small changes, verify immediately, then proceed.
+> - **Always** confirm with the user before creating any new file or script that isn’t strictly necessary.

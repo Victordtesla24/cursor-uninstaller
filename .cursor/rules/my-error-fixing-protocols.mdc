@@ -3,6 +3,11 @@ description:
 globs:
 alwaysApply: true
 ---
+### Error Fixing Protocol
+
+**Pre- and Post-Requisites:**
+Follow all related protocols (`@my-error-fixing-protocols.mdc`) with absolute precision before and after every change.
+
 **My Error Fixing Protocols** must be followed for **every** error. Prioritize the “Fail Fast” mindset with small, **incremental** fixes. After each fix attempt, verify whether the error is resolved. If not, refine again or source **alternative solutions** from the internet.
 
 #### Key Components
