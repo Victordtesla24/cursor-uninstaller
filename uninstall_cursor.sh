@@ -3275,7 +3275,7 @@ main() {
 
     # Create log directory to ensure logging works
     mkdir -p "$CURSOR_SHARED_LOGS" 2>/dev/null || sudo mkdir -p "$CURSOR_SHARED_LOGS" 2>/dev/null || true
-    
+
     # CRITICAL FIX: Enhanced check for test mode to prevent test suite hang
     # Use all possible test mode flags for maximum compatibility
     if [ "${CURSOR_TEST_MODE:-}" = true ] || [ "${BATS_TEST_SOURCED:-}" = "1" ] || [ "${TEST_MODE:-}" = true ]; then
@@ -3291,7 +3291,7 @@ main() {
         uninstall_cursor() { return 0; }
         clean_up_lingering_files() { return 0; }
         optimize_cursor_performance() { return 0; }
-        export -f get_script_path detect_cursor_paths check_sudo update_status run_task 
+        export -f get_script_path detect_cursor_paths check_sudo update_status run_task
         export -f verify_complete_removal uninstall_cursor clean_up_lingering_files optimize_cursor_performance
         # IMPORTANT: Return immediately to prevent any further execution in test mode
         return 0

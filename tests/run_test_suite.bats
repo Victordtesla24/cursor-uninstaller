@@ -20,7 +20,7 @@ TEST_FILES=(
     # Commented out problematic files that may cause hanging
     # "basic_test.bats"
     # "test_path_functions.bats"
-    # "test_performance_functions.bats" 
+    # "test_performance_functions.bats"
     # "test_project_environments.bats"
     # "test_dmg_installation.bats"
     # "test_uninstallation.bats"
@@ -36,10 +36,10 @@ export TEST_MODE=true
 setup() {
     local test_name=${BATS_TEST_DESCRIPTION}
     echo -e "\n${BLUE}${BOLD}Running test suite: ${test_name}${NC}"
-    
+
     # Debug output to help diagnose issues
     echo "DEBUG: Test mode flags set - CURSOR_TEST_MODE=$CURSOR_TEST_MODE, BATS_TEST_SOURCED=$BATS_TEST_SOURCED, TEST_MODE=$TEST_MODE" >&2
-    
+
     # CRITICAL FIX: Set a shorter global timeout for the entire test process
     (
         sleep 60  # 1 minute timeout for the entire test suite (reduced from 2 minutes)
@@ -47,10 +47,10 @@ setup() {
         # Kill all bats processes more aggressively
         pkill -9 -f "bats" || true
     ) &
-    
+
     # Store the timeout process ID so we can clean it up in teardown
     TIMEOUT_PID=$!
-    
+
     # Create temporary directory for test artifacts if needed
     if [ ! -d "./tmp" ]; then
         mkdir -p "./tmp" || true
@@ -83,17 +83,17 @@ run_test_file() {
         echo -e "${RED}Error: Test file $test_file is not readable${NC}"
         return 1
     fi
-    
+
     # IMPROVED FIX: More robust timeout handling with extra debugging
     echo "DEBUG: Starting test file with timeout: $test_file" >&2
-    
+
     # Use a much shorter timeout (20 seconds) for individual test files
     (
-        # Explicitly set test mode flags for each file run 
+        # Explicitly set test mode flags for each file run
         export CURSOR_TEST_MODE=true
         export BATS_TEST_SOURCED=1
         export TEST_MODE=true
-        
+
         # Run with timeout and capture output for debugging
         timeout --kill-after=3s 20s bats "$test_file" 2> "./tmp/${file_name}.err" || {
             local exit_code=$?
@@ -109,7 +109,7 @@ run_test_file() {
             return 1
         }
     )
-    
+
     local result=$?
     echo "DEBUG: Completed test file $test_file with exit code $result" >&2
     return $result

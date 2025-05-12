@@ -45,7 +45,7 @@ for test_file in "${CRITICAL_TESTS[@]}"; do
         echo -e "${YELLOW}Warning: Test file $test_file not found, skipping${NC}"
         continue
     fi
-    
+
     echo -e "\n${YELLOW}Running: $test_file${NC}"
     if timeout 10s bats "$test_file"; then
         echo -e "${GREEN}✓ $test_file passed${NC}"

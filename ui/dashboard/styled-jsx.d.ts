@@ -6,4 +6,4 @@ declare module 'react' {
     jsx?: boolean;
     global?: boolean;
   }
-} 
+}

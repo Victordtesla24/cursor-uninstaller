@@ -21,7 +21,7 @@ const handleMcpError = (operation, error) => {
 // Utility function to safely parse JSON
 const safeJsonParse = (jsonString, fallback = null) => {
   if (!jsonString) return fallback;
-  
+
   try {
     return JSON.parse(jsonString);
   } catch (e) {
@@ -33,7 +33,7 @@ const safeJsonParse = (jsonString, fallback = null) => {
   }
 };
 
-// Check if MCP is available 
+// Check if MCP is available
 const isMcpAvailable = () => {
   return window?.cline?.callMcpFunction !== undefined;
 };
@@ -63,7 +63,7 @@ export const fetchDashboardData = async () => {
       if (!parsedData) {
         return await mockApi.fetchDashboardData();
       }
-      
+
       return parsedData;
     } catch (error) {
       // Only log in non-test environments

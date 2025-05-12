@@ -92,7 +92,7 @@ const mockDashboardData = {
 beforeEach(() => {
   // Reset all mocks and set default responses
   jest.clearAllMocks();
-  
+
   // Make API return mock data by default
   mockApi.fetchDashboardData.mockResolvedValue(mockDashboardData);
   mockApi.updateSelectedModel.mockResolvedValue(true);
@@ -162,13 +162,13 @@ describe('Dashboard Component', () => {
 
     // Try to find any tab or view selection element
     const viewSelectors = screen.queryAllByRole('button');
-    
+
     if (viewSelectors.length > 0) {
       // Click the first button that might be a view selector
       await act(async () => {
         fireEvent.click(viewSelectors[0]);
       });
-      
+
       // We're just testing that the click doesn't crash the component
       expect(true).toBe(true);
     } else {
@@ -189,7 +189,7 @@ describe('Dashboard Component', () => {
 
     // Clear any previous calls
     mockApi.updateSelectedModel.mockClear();
-    
+
     // Call the API directly to test the function
     const modelId = 'gemini-2.5-flash';
     await act(async () => {
@@ -240,7 +240,7 @@ describe('Dashboard Component', () => {
 
     // Clear previous calls
     mockApi.updateSetting.mockClear();
-    
+
     // Call the API directly
     await act(async () => {
       mockApi.updateSetting('cachingEnabled', false);
@@ -290,7 +290,7 @@ describe('Dashboard Component', () => {
 
     // Clear previous calls
     mockApi.updateTokenBudget.mockClear();
-    
+
     // Call the API directly
     await act(async () => {
       mockApi.updateTokenBudget('codeCompletion', 400);
@@ -340,7 +340,7 @@ describe('Dashboard Component', () => {
 
     // Clear previous calls
     mockApi.refreshDashboardData.mockClear();
-    
+
     // Call the API directly
     await act(async () => {
       mockApi.refreshDashboardData();
@@ -382,7 +382,7 @@ describe('Dashboard Component', () => {
 describe('Dashboard Component Coverage Improvements', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Setup default mock implementation
     mockApi.fetchDashboardData.mockResolvedValue(mockDashboardData);
     mockApi.updateSelectedModel.mockResolvedValue(true);
@@ -394,15 +394,15 @@ describe('Dashboard Component Coverage Improvements', () => {
   test('handles multiple consecutive data fetches', async () => {
     // First data fetch
     mockApi.fetchDashboardData.mockResolvedValueOnce(mockDashboardData);
-    
+
     // Initial render
     const { rerender } = render(<Dashboard />);
-    
+
     // Wait for initial data to load
     await waitFor(() => {
       expect(screen.getByText('Cline AI Dashboard')).toBeInTheDocument();
     });
-    
+
     // Set up second data fetch with modified data
     const updatedData = {
       ...mockDashboardData,
@@ -412,15 +412,15 @@ describe('Dashboard Component Coverage Improvements', () => {
       }
     };
     mockApi.fetchDashboardData.mockResolvedValueOnce(updatedData);
-    
+
     // Trigger a refresh (simulating user action)
     await act(async () => {
       mockApi.refreshDashboardData();
     });
-    
+
     // Re-render the component
     rerender(<Dashboard key="refresh" />);
-    
+
     // Verify the component reloaded data
     expect(mockApi.fetchDashboardData).toHaveBeenCalledTimes(2);
   });
@@ -461,20 +461,20 @@ describe('Dashboard Component Coverage Improvements', () => {
     // Use a more reliable way to find view toggle options
     const viewOptions = screen.getAllByText(/Overview|Detailed|Settings/);
     const detailedViewButton = viewOptions.find(el => el.textContent === 'Detailed');
-    
+
     if (detailedViewButton) {
       fireEvent.click(detailedViewButton);
-      
+
       // Should now show detailed view elements
       expect(screen.getByText('Usage Statistics')).toBeInTheDocument();
     }
-    
-    // Find and click "Settings" view toggle 
+
+    // Find and click "Settings" view toggle
     const settingsViewButton = viewOptions.find(el => el.textContent === 'Settings');
-    
+
     if (settingsViewButton) {
       fireEvent.click(settingsViewButton);
-        
+
       // Settings panel should be visible
       expect(screen.getByText('Feature Settings')).toBeInTheDocument();
     }
@@ -503,7 +503,7 @@ describe('Dashboard Component Coverage Improvements', () => {
     // Find the Header component and invoke its toggleTheme function directly
     // since we can't rely on finding the button in the test environment
     const header = screen.getByText('Cline AI Dashboard').closest('header');
-    
+
     // Simulate theme toggle by directly manipulating the dashboard container class
     const container = screen.getByTestId('dashboard-container');
     if (container.classList.contains('light-mode')) {
@@ -515,7 +515,7 @@ describe('Dashboard Component Coverage Improvements', () => {
     }
 
     // Check if classList.toggle was called or theme changed
-    expect(container.classList.contains('dark-mode') || 
+    expect(container.classList.contains('dark-mode') ||
            container.classList.contains('light-mode')).toBe(true);
 
     // Restore original
@@ -538,16 +538,16 @@ describe('Dashboard Component Coverage Improvements', () => {
     // Find and click the data source toggle if it exists
     try {
       const dataSourceToggle = screen.getByText(/Switch to/);
-      
+
       // Click to toggle data source
       fireEvent.click(dataSourceToggle);
-      
+
       // Should refetch data
       expect(mockApi.fetchDashboardData).toHaveBeenCalledTimes(2);
-      
+
       // Toggle back
       fireEvent.click(dataSourceToggle);
-      
+
       // Should refetch data again
       expect(mockApi.fetchDashboardData).toHaveBeenCalledTimes(3);
     } catch (e) {
@@ -573,27 +573,27 @@ describe('Dashboard Component Coverage Improvements', () => {
     // First navigate to settings view using more reliable text matching
     const viewOptions = screen.getAllByText(/Overview|Detailed|Settings/);
     const settingsButton = viewOptions.find(el => el.textContent === 'Settings');
-    
+
     if (settingsButton) {
       fireEvent.click(settingsButton);
-      
+
       // Look for token budget edit fields
       try {
         const editIcons = screen.getAllByText('✎', { exact: false });
         if (editIcons.length > 0) {
           fireEvent.click(editIcons[0]);
-          
+
           // Now we should have an input field
           const inputs = screen.getAllByRole('textbox');
           if (inputs.length > 0) {
             fireEvent.change(inputs[0], { target: { value: '400000' } });
-            
+
             // Find and click save button
             const saveButtons = screen.getAllByRole('button');
             const saveButton = saveButtons.find(btn => btn.textContent === 'Save');
             if (saveButton) {
               fireEvent.click(saveButton);
-              
+
               // Check if API was called
               expect(mockApi.updateTokenBudget).toHaveBeenCalled();
             }
@@ -608,7 +608,7 @@ describe('Dashboard Component Coverage Improvements', () => {
   test('handles API request failures for updates', async () => {
     mockApi.fetchDashboardData.mockResolvedValueOnce(mockDashboardData);
     mockApi.updateSelectedModel.mockRejectedValueOnce(new Error('Failed to update model'));
-    
+
     // Render dashboard
     await act(async () => {
       render(<Dashboard />);
@@ -635,19 +635,19 @@ describe('Dashboard Component Coverage Improvements', () => {
     const apiPromise = new Promise(resolve => {
       resolveApi = () => resolve(mockDashboardData);
     });
-    
+
     mockApi.fetchDashboardData.mockImplementationOnce(() => apiPromise);
-    
+
     // Render dashboard
     let unmount;
     await act(async () => {
       const renderResult = render(<Dashboard />);
       unmount = renderResult.unmount;
     });
-    
+
     // Unmount component while the API call is still pending
     unmount();
-    
+
     // Now resolve the API call (should not cause any errors)
     await act(async () => {
       resolveApi();
@@ -657,17 +657,17 @@ describe('Dashboard Component Coverage Improvements', () => {
   test('handles refresh button click', async () => {
     mockApi.fetchDashboardData.mockResolvedValueOnce(mockDashboardData);
     mockApi.refreshDashboardData.mockResolvedValueOnce(mockDashboardData);
-    
+
     // Render dashboard
     await act(async () => {
       render(<Dashboard />);
     });
-    
+
     // Wait for dashboard to load
     await waitFor(() => {
       expect(screen.getByText('Cline AI Dashboard')).toBeInTheDocument();
     });
-    
+
     // Directly call the refresh handler since we can't rely on finding the button
     await act(async () => {
       // Get the Dashboard's handleRefresh function and call it directly
@@ -679,8 +679,8 @@ describe('Dashboard Component Coverage Improvements', () => {
         mockApi.fetchDashboardData();
       }
     });
-    
+
     // Check if API was called
     expect(mockApi.fetchDashboardData).toHaveBeenCalled();
   });
-}); 
+});

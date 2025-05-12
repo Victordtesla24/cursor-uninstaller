@@ -29,7 +29,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
       <div className={`usage-chart-panel ${className}`}>
         <h2 className="panel-title">Usage Statistics</h2>
         <div className="no-data-message">No usage data available</div>
-        
+
         <StyledJsx>{`
           .usage-chart-panel {
             background-color: var(--card-background);
@@ -37,7 +37,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
             padding: 1.5rem;
             box-shadow: var(--shadow-sm);
           }
-          
+
           .no-data-message {
             padding: 2rem;
             text-align: center;
@@ -94,7 +94,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
   const renderTimeSeriesChart = (timeData) => {
     // Ensure recentActivity exists and has items
     const activity = safeUsageData.recentActivity || [];
-    
+
     if (activity.length === 0) {
       return (
         <div className="no-data-message">
@@ -102,7 +102,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
         </div>
       );
     }
-    
+
     const maxValue = Math.max(...timeData);
 
     return (
@@ -217,11 +217,11 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
   return (
     <div className={`usage-chart-panel ${className}`}>
       <h2 className="panel-title">Usage Statistics</h2>
-      
+
       <div className="chart-controls">
         <div className="view-selector">
-          <select 
-            value={chartView} 
+          <select
+            value={chartView}
             onChange={(e) => setChartView(e.target.value)}
           >
             <option value="daily">Daily Usage</option>
@@ -231,7 +231,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
             <option value="popularity">By Popularity</option>
           </select>
         </div>
-        
+
         {isTimeSeries && (
           <div className="chart-type-selector">
             <button
@@ -249,7 +249,7 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
           </div>
         )}
       </div>
-      
+
       <div className="chart-container" data-testid="chart-container">
         {renderChart()}
       </div>

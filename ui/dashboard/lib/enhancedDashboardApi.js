@@ -133,7 +133,7 @@ export const subscribeToMcpUpdates = (resourceUri, callback) => {
  */
 export const batchMcpResources = async (serverName, uris, options = {}) => {
   const { logErrors = true } = options;
-  
+
   if (window.__MCP_CLIENT && typeof window.__MCP_CLIENT.batchResources === 'function') {
     return await window.__MCP_CLIENT.batchResources(serverName, uris);
   }

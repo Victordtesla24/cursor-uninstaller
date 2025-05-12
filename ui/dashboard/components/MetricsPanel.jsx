@@ -94,7 +94,7 @@ const MetricsPanel = ({ metrics, className }) => {
   return (
     <div className={`metrics-panel ${className}`}>
       <h2 className="panel-title">System Metrics</h2>
-      
+
       <div className="metrics-grid">
         {metricConfig.map((config) => {
           const value = metrics[config.id];

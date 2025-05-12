@@ -2,10 +2,10 @@ import React from 'react';
 
 /**
  * StyledJsx component
- * 
+ *
  * A wrapper for styled-jsx to prevent React warnings about non-boolean attributes in tests.
  * This component safely handles the jsx and global attributes.
- * 
+ *
  * @param {Object} props - Component props
  * @param {React.ReactNode} props.children - CSS content
  * @param {boolean} props.global - Whether styles should be global
@@ -22,4 +22,4 @@ export const StyledJsx = ({ children, global = false }) => {
   );
 };
 
-export default StyledJsx; 
+export default StyledJsx;

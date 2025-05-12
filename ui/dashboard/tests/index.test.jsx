@@ -26,7 +26,7 @@ jest.mock('../mockApi', () => ({
 describe('Dashboard Index Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     magicMcp.isMcpAvailable.mockReturnValue(true);
     magicMcp.fetchDashboardData.mockResolvedValue({
@@ -37,7 +37,7 @@ describe('Dashboard Index Component', () => {
       costs: {},
       usage: {}
     });
-    
+
     mockApi.fetchDashboardData.mockResolvedValue({
       tokens: { total: { used: 100, budgeted: 1000 } },
       models: { selected: 'test-model' },
@@ -47,22 +47,22 @@ describe('Dashboard Index Component', () => {
       usage: {}
     });
   });
-  
+
   test('renders dashboard component without crashing', async () => {
     await act(async () => {
       render(<Dashboard />);
     });
-    
+
     await waitFor(() => {
       expect(screen.queryByTestId('dashboard-container')).toBeInTheDocument();
     });
   });
-  
+
   test('renders dashboard component with data', async () => {
     await act(async () => {
       render(<Dashboard />);
     });
-    
+
     // Wait for the dashboard to render
     await waitFor(() => {
       // Look for any core component that would be rendered in the dashboard
@@ -70,7 +70,7 @@ describe('Dashboard Index Component', () => {
       expect(dashboardElement).toBeInTheDocument();
     });
   });
-  
+
   test('handles loading state correctly', async () => {
     // Mock a loading state
     magicMcp.fetchDashboardData.mockImplementationOnce(() => {
@@ -88,30 +88,30 @@ describe('Dashboard Index Component', () => {
         }, 100);
       });
     });
-    
+
     render(<Dashboard />);
-    
+
     // Initially should show loading indicator
     expect(screen.getByText(/Loading dashboard data/i)).toBeInTheDocument();
-    
+
     // After data loads, the dashboard should be displayed
     await waitFor(() => {
       expect(screen.queryByTestId('dashboard-container')).toBeInTheDocument();
     });
   });
-  
+
   test('handles error state correctly', async () => {
     // Mock a failure
     magicMcp.fetchDashboardData.mockRejectedValueOnce(new Error('Failed to load dashboard data'));
-    
+
     await act(async () => {
       render(<Dashboard />);
     });
-    
+
     // Should show error message
     await waitFor(() => {
       const errorElement = screen.queryByText(/Failed to load dashboard data/i);
       expect(errorElement).toBeInTheDocument();
     });
   });
-}); 
+});

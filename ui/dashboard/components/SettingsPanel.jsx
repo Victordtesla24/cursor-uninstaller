@@ -12,7 +12,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
   const [editingBudget, setEditingBudget] = useState(null);
   const [budgetValue, setBudgetValue] = useState('');
   const [error, setError] = useState(null);
-  
+
   // Ensure that checkboxes always have a defined state to avoid controlled/uncontrolled input warnings
   useEffect(() => {
     if (!settings) {
@@ -175,7 +175,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
   return (
     <div className="settings-panel">
       <h2 className="panel-title">Settings</h2>
-      
+
       {/* Feature Settings */}
       <div className="settings-section">
         <h3>Feature Settings</h3>
@@ -231,8 +231,8 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                         <div className="budget-amount">
                           <span className="used">{formatNumber(budget.used)}</span>
                           <span className="separator">/</span>
-                          <span 
-                            className="total" 
+                          <span
+                            className="total"
                             onClick={() => handleStartEditBudget(category.id)}
                             data-testid={`edit-budget-${category.id}`}
                           >
@@ -242,7 +242,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                         </div>
 
                         <div className="budget-progress-container">
-                          <div 
+                          <div
                             className={`budget-progress ${percentUsed > 90 ? 'high' : percentUsed > 70 ? 'medium' : 'low'}`}
                             style={{ width: `${percentUsed}%` }}
                             data-testid={`budget-progress-${category.id}`}
@@ -261,15 +261,15 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                           data-testid={`budget-input-${category.id}`}
                         />
                         <div className="edit-actions">
-                          <button 
-                            className="save" 
+                          <button
+                            className="save"
                             onClick={() => handleSaveTokenBudget(category.id)}
                             data-testid={`save-budget-${category.id}`}
                           >
                             Save
                           </button>
-                          <button 
-                            className="cancel" 
+                          <button
+                            className="cancel"
                             onClick={handleCancelEditBudget}
                             data-testid={`cancel-budget-${category.id}`}
                           >

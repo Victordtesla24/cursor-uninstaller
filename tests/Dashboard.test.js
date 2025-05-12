@@ -322,4 +322,4 @@ describe('Dashboard Interaction Tests', () => {
     // Check that the class toggle was called
     expect(mockToggleTheme).toHaveBeenCalledWith('dark-theme');
   });
-}); 
+});

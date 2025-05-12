@@ -25,8 +25,8 @@ export const setupClineMock = () => {
   // Ensure window object exists even in Node environment
   if (typeof window === 'undefined') {
     global.window = {};
-  } 
-  
+  }
+
   // Setup mock if needed
   if (!window.cline) {
     window.cline = {};
@@ -106,8 +106,8 @@ export const setupDateMock = () => {
       return mockDate;
     }
   };
-  
+
   return () => {
     global.Date = originalDate;
   };
-}; 
+};

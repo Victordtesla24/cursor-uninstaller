@@ -10,15 +10,15 @@
  * - Refresh dashboard data
  */
 
-import { useState, useEffect } from 'react';
-import mockApi from './mockApi';
+const { useState, useEffect } = require('react');
+const mockApi = require('./mockApi');
 
 // For easier testing in Jest
 let __TEST_MODE__ = false;
 let __TEST_HANDLERS__ = {};
 
 // Test helper to bypass normal logic and use test handlers directly
-export const __setupTestMode = (handlers = {}) => {
+const __setupTestMode = (handlers = {}) => {
   __TEST_MODE__ = true;
   __TEST_HANDLERS__ = handlers;
   return {
@@ -46,24 +46,24 @@ const safeJsonParse = (jsonString, fallback = null) => {
 
 // Utility function to check if we're in a testing environment
 const isTestEnvironment = () => {
-  return typeof process !== 'undefined' && 
-         process.env.NODE_ENV === 'test' || 
+  return typeof process !== 'undefined' &&
+         process.env.NODE_ENV === 'test' ||
          typeof jest !== 'undefined';
 };
 
 // Check if MCP is available
-export const isMcpAvailable = () => {
+const isMcpAvailable = () => {
   // Special handling for tests
   if (__TEST_MODE__) {
     return true;
   }
-  
+
   // In tests, always return true if window.cline exists
   if (isTestEnvironment() && typeof window !== 'undefined' && window.cline) {
     return true;
   }
-  
-  return typeof window !== 'undefined' && 
+
+  return typeof window !== 'undefined' &&
          window?.cline?.callMcpFunction !== undefined;
 };
 
@@ -71,7 +71,7 @@ export const isMcpAvailable = () => {
  * Hook for using the Magic MCP Dashboard functionality
  * @returns {Object} Dashboard data, loading state, error state, and update functions
  */
-export function useMagicMcpDashboard() {
+function useMagicMcpDashboard() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -96,7 +96,7 @@ export function useMagicMcpDashboard() {
           setIsLoading(false);
         }
       }
-      
+
       if (isMcpAvailable()) {
         const response = await window.cline.callMcpFunction({
           serverName: 'cline-dashboard',
@@ -104,7 +104,7 @@ export function useMagicMcpDashboard() {
         });
 
         const parsedData = safeJsonParse(response);
-        
+
         if (parsedData) {
           setData(parsedData);
           setLastUpdated(new Date());
@@ -126,7 +126,7 @@ export function useMagicMcpDashboard() {
         console.error('Error fetching dashboard data:', err);
       }
       setError(err.message || 'Failed to fetch dashboard data');
-      
+
       // Fallback to mock data
       try {
         const mockData = await mockApi.fetchDashboardData();
@@ -166,7 +166,7 @@ export function useMagicMcpDashboard() {
         return false;
       }
     }
-    
+
     try {
       if (isMcpAvailable()) {
         const response = await window.cline.callMcpFunction({
@@ -176,7 +176,7 @@ export function useMagicMcpDashboard() {
             model: model
           }
         });
-        
+
         const result = safeJsonParse(response, {});
         const success = result.success === true;
 
@@ -224,7 +224,7 @@ export function useMagicMcpDashboard() {
       setError(`Invalid setting: ${setting}`);
       return false;
     }
-    
+
     // Special handling for test mode
     if (__TEST_MODE__ && __TEST_HANDLERS__.updateSetting) {
       try {
@@ -250,7 +250,7 @@ export function useMagicMcpDashboard() {
             value: value
           }
         });
-        
+
         const result = safeJsonParse(response, {});
         const success = result.success === true;
 
@@ -310,7 +310,7 @@ export function useMagicMcpDashboard() {
         return false;
       }
     }
-    
+
     // Special handling for test mode
     if (__TEST_MODE__ && __TEST_HANDLERS__.updateTokenBudget) {
       try {
@@ -336,7 +336,7 @@ export function useMagicMcpDashboard() {
             value: value
           }
         });
-        
+
         const result = safeJsonParse(response, {});
         const success = result.success === true;
 
@@ -382,7 +382,7 @@ export function useMagicMcpDashboard() {
         return false;
       }
     }
-    
+
     try {
       if (isMcpAvailable()) {
         const response = await window.cline.callMcpFunction({
@@ -390,7 +390,7 @@ export function useMagicMcpDashboard() {
           toolName: 'update_dashboard_data',
           args: {}
         });
-        
+
         const result = safeJsonParse(response, {});
         const success = result.success === true;
 
@@ -430,7 +430,7 @@ export function useMagicMcpDashboard() {
 }
 
 // Standalone functions for use without React hooks
-export const fetchDashboardData = async () => {
+const fetchDashboardData = async () => {
   try {
     if (isMcpAvailable()) {
       const response = await window.cline.callMcpFunction({
@@ -443,7 +443,7 @@ export const fetchDashboardData = async () => {
         return parsedData;
       }
     }
-    
+
     // Fallback to mock API
     return await mockApi.fetchDashboardData();
   } catch (error) {
@@ -455,7 +455,7 @@ export const fetchDashboardData = async () => {
   }
 };
 
-export const updateSelectedModel = async (model) => {
+const updateSelectedModel = async (model) => {
   try {
     if (isMcpAvailable()) {
       await window.cline.callMcpFunction({
@@ -468,7 +468,7 @@ export const updateSelectedModel = async (model) => {
 
       return true;
     }
-    
+
     // Fallback to mock API
     return await mockApi.updateSelectedModel(model);
   } catch (error) {
@@ -480,14 +480,14 @@ export const updateSelectedModel = async (model) => {
   }
 };
 
-export const initializeDashboard = async () => {
+const initializeDashboard = async () => {
   try {
     if (isMcpAvailable()) {
       // First attempt to get data from MCP
       const data = await fetchDashboardData();
       return data;
     }
-    
+
     // Fallback to mock API
     return await mockApi.fetchDashboardData();
   } catch (error) {
@@ -497,4 +497,112 @@ export const initializeDashboard = async () => {
     }
     return await mockApi.fetchDashboardData();
   }
+};
+
+// Add refreshDashboardData function to fix tests
+const refreshDashboardData = async () => {
+  try {
+    if (isMcpAvailable()) {
+      const response = await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_dashboard_data',
+        args: {}
+      });
+
+      const result = safeJsonParse(response, {});
+      return result;
+    }
+
+    // Fallback to mock API
+    return await mockApi.refreshDashboardData();
+  } catch (error) {
+    // Silent error in tests
+    if (!isTestEnvironment()) {
+      console.error('Error refreshing dashboard data:', error);
+    }
+    return await mockApi.refreshDashboardData();
+  }
+};
+
+// Add missing standalone functions for updateSetting and updateTokenBudget
+const updateSetting = async (setting, value) => {
+  try {
+    if (isMcpAvailable()) {
+      const response = await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_setting',
+        args: {
+          setting: setting,
+          value: value
+        }
+      });
+
+      const result = safeJsonParse(response, {});
+      return result.success === true;
+    }
+
+    // Fallback to mock API
+    return await mockApi.updateSetting(setting, value);
+  } catch (error) {
+    // Silent error in tests
+    if (!isTestEnvironment()) {
+      console.error(`Error updating setting ${setting}:`, error);
+    }
+    return false;
+  }
+};
+
+const updateTokenBudget = async (budgetType, value) => {
+  try {
+    if (isMcpAvailable()) {
+      const response = await window.cline.callMcpFunction({
+        serverName: 'cline-dashboard',
+        toolName: 'update_token_budget',
+        args: {
+          budgetType: budgetType,
+          value: value
+        }
+      });
+
+      const result = safeJsonParse(response, {});
+      return result.success === true;
+    }
+
+    // Fallback to mock API
+    return await mockApi.updateTokenBudget(budgetType, value);
+  } catch (error) {
+    // Silent error in tests
+    if (!isTestEnvironment()) {
+      console.error(`Error updating token budget for ${budgetType}:`, error);
+    }
+    return false;
+  }
+};
+
+// Export all the functions at the end
+module.exports = {
+  __setupTestMode,
+  useMagicMcpDashboard,
+  isMcpAvailable,
+  fetchDashboardData,
+  refreshDashboardData,
+  updateSelectedModel,
+  updateSetting,
+  updateTokenBudget,
+  initializeDashboard
+};
+
+// Export internal functions for testing
+module.exports = {
+  __setupTestMode,
+  safeJsonParse,
+  isTestEnvironment,
+  isMcpAvailable,
+  useMagicMcpDashboard,
+  fetchDashboardData,
+  updateSelectedModel,
+  initializeDashboard,
+  refreshDashboardData,
+  updateSetting,
+  updateTokenBudget
 };

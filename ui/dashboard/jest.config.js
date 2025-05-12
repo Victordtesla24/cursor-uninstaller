@@ -1,5 +1,10 @@
 module.exports = {
   testEnvironment: 'jsdom',
+  rootDir: '.',
+  moduleDirectories: [
+    'node_modules',
+    '<rootDir>/node_modules'
+  ],
   moduleNameMapper: {
     '\\.(css|less|scss)$': 'identity-obj-proxy'
   },
@@ -8,17 +13,18 @@ module.exports = {
     '<rootDir>/tests/setupTests.js'
   ],
   transform: {
-    '^.+\\.(js|jsx)$': ['babel-jest', {
+    '^.+\\.jsx?$': ['babel-jest', {
       presets: [
         '@babel/preset-env',
         '@babel/preset-react'
       ],
-      plugins: []
     }]
   },
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.test.jsx'
+    '<rootDir>/tests/**/*.test.js',
+    '<rootDir>/tests/**/*.test.jsx',
+    '<rootDir>/../tests/**/*.test.js',
+    '<rootDir>/../tests/**/*.test.jsx'
   ],
   transformIgnorePatterns: [
     '/node_modules/(?!(@testing-library)/)'
