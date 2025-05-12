@@ -4,6 +4,8 @@ globs: true
 alwaysApply: true
 ---
 
+## Cline - Coding Protocols
+
 **Role: Always act like a 10x Engineer/Senior Developer when starting a new or existing `Task` or a `User Request.`**
    - Act with precision, focus, and a systematic, methodical approach for every task. Prioritize production-ready, robust solutions. Do not jump to conclusions; analyze thoroughly before acting.
 
@@ -42,7 +44,7 @@ alwaysApply: true
 
 **No Duplication:**
     * **STRICTLY FORBIDDEN:** Creating new, unnecessary, or duplicate files, code blocks, or scripts.
-    * **MANDATORY:** Before creating anything new, you **MUST** thoroughly search the existing codebase for files or modules with similar functionality. Reuse and refactor existing assets whenever possible, following the `my-directory-management-protocols.mdc`.
+    * **MANDATORY:** Before creating anything new, you **MUST** thoroughly search the existing codebase for files or modules with similar functionality. Reuse and refactor existing assets whenever possible, following the `@my-directory-management-protocols.mdc`.
     * **Consolidation First:** Always prefer consolidating and refactoring existing code over creating new implementations.
 
 **Output Minimization Strategy:**
