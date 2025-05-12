@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * TokenUtilization Component
@@ -169,7 +170,7 @@ const TokenUtilization = ({ tokenData = {}, className = '' }) => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .token-utilization-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
@@ -423,7 +424,7 @@ const TokenUtilization = ({ tokenData = {}, className = '' }) => {
           font-size: 0.75rem;
           color: var(--text-secondary);
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

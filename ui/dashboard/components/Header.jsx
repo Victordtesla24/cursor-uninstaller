@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * Header component
@@ -114,7 +115,7 @@ export const Header = ({
         </button>
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .header {
           display: flex;
           justify-content: space-between;
@@ -198,36 +199,73 @@ export const Header = ({
         }
 
         .view-option.active {
-          background-color: var(--primary-color, #4a6cf7);
+          background-color: var(--primary-color, #3b82f6);
           color: white;
         }
 
-        .refresh-button, .theme-toggle {
+        .theme-toggle,
+        .refresh-button {
           background: none;
           border: none;
-          font-size: 1.25rem;
+          font-size: 1rem;
           cursor: pointer;
-          padding: 0.25rem;
-          border-radius: var(--border-radius-sm, 4px);
+          width: 2rem;
+          height: 2rem;
           display: flex;
           align-items: center;
           justify-content: center;
+          border-radius: 50%;
           transition: background-color 0.2s;
         }
 
-        .refresh-button:hover, .theme-toggle:hover {
+        .theme-toggle:hover,
+        .refresh-button:hover {
           background-color: var(--background-color, #f1f5f9);
         }
-      `}</style>
+
+        @media (max-width: 768px) {
+          .header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+
+          .header-actions {
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 1rem;
+          }
+
+          .view-selector {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          .view-option {
+            flex: 1;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .system-status {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          .theme-toggle,
+          .refresh-button {
+            margin-left: auto;
+          }
+        }
+      `}</StyledJsx>
     </header>
   );
 };
 
 // For test compatibility
 export const __TEST_ONLY_toggleTheme = () => {
-  if (typeof window !== 'undefined') {
-    window.__TEST_ONLY_toggleTheme = window.__TEST_ONLY_toggleTheme || (() => {});
-  }
+  document.body.classList.toggle('dark-theme');
 };
 
 // Change named export to default export

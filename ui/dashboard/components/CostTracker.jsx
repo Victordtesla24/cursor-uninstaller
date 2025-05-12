@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * CostTracker Component
@@ -182,7 +183,7 @@ const CostTracker = ({ costData, className }) => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .cost-tracker-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
@@ -380,7 +381,7 @@ const CostTracker = ({ costData, className }) => {
             gap: 0.75rem;
           }
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

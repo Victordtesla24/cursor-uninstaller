@@ -5,3 +5,5 @@ module.exports = {
   ],
   plugins: []
 };
+
+console.log('babel.config.js loaded');

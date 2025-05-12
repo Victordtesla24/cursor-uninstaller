@@ -5,6 +5,7 @@ import CostTracker from './components/CostTracker';
 import UsageChart from './components/UsageChart';
 import ModelSelector from './components/ModelSelector';
 import SettingsPanel from './components/SettingsPanel';
+import StyledJsx from './components/StyledJsx';
 
 // Import API modules
 import mockApi from './mockApi';
@@ -142,12 +143,12 @@ export const Dashboard = () => {
   // Loading state
   if (isLoading && !dashboardData) {
     return (
-      <div className="dashboard-container loading">
-        <div className="loading-spinner"></div>
+      <div className="dashboard loading" data-testid="dashboard-container">
+        <div className="loader" data-testid="loading-spinner"></div>
         <div className="loading-text">Loading dashboard data...</div>
 
-        <style jsx="true">{`
-          .dashboard-container.loading {
+        <StyledJsx>{`
+          .dashboard.loading {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -155,7 +156,7 @@ export const Dashboard = () => {
             min-height: 500px;
           }
 
-          .loading-spinner {
+          .loader {
             width: 40px;
             height: 40px;
             border: 4px solid var(--border-color);
@@ -173,7 +174,7 @@ export const Dashboard = () => {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-        `}</style>
+        `}</StyledJsx>
       </div>
     );
   }
@@ -189,7 +190,7 @@ export const Dashboard = () => {
           {useMockData ? 'Try MCP Data' : 'Use Mock Data'}
         </button>
 
-        <style jsx="true">{`
+        <StyledJsx>{`
           .dashboard-container.error {
             display: flex;
             flex-direction: column;
@@ -229,13 +230,13 @@ export const Dashboard = () => {
           .retry-button:hover {
             background-color: var(--primary-hover);
           }
-        `}</style>
+        `}</StyledJsx>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container" data-testid="dashboard-container">
       <div className="dashboard-header">
         <h1>Cline AI Dashboard</h1>
         <div className="data-source-toggle">
@@ -294,7 +295,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .dashboard-container {
           display: flex;
           flex-direction: column;
@@ -406,9 +407,9 @@ export const Dashboard = () => {
             font-size: 1.5rem;
           }
         }
-      `}</style>
+      `}</StyledJsx>
 
-      <style jsx="true" global="true">{`
+      <StyledJsx global>{`
         :root {
           --primary-color: #007bff;
           --primary-hover: #0069d9;
@@ -466,7 +467,7 @@ export const Dashboard = () => {
         button, input, select, textarea {
           font-family: inherit;
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

@@ -135,7 +135,7 @@ describe('Individual Components', () => {
 
     render(<MetricsPanel metrics={metrics} className="test-class" />);
 
-    expect(screen.getByText('System Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Key Metrics')).toBeInTheDocument();
 
     // Check for Total Requests element
     expect(screen.getByText('270')).toBeInTheDocument(); // 120 + 150 requests
@@ -265,7 +265,7 @@ describe('Individual Components', () => {
     );
 
     // Look for "Settings & Budgets" instead of just "Settings"
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Settings & Budgets')).toBeInTheDocument();
 
     // Find and click on the caching toggle
     const cachingToggle = screen.getByTestId('toggle-cachingEnabled');

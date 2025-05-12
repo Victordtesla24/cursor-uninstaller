@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * UsageChart Component
@@ -7,12 +8,44 @@ import React, { useState } from 'react';
  * Includes token usage over time, usage by model, function, and file type
  * Provides filtering options and chart type selection
  */
-const UsageChart = ({ usageData }) => {
+const UsageChart = ({ usageData = {}, className = '' }) => {
   const [chartView, setChartView] = useState('daily');
   const [chartType, setChartType] = useState('line');
 
+  // Provide defaults for usageData to prevent undefined errors
+  const safeUsageData = {
+    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    activeUsers: 0,
+    averageUserTokens: 0,
+    recentActivity: [],
+    ...(usageData || {})
+  };
+
+  // Early return for completely empty data
   if (!usageData) {
-    return null;
+    return (
+      <div className={`usage-chart-panel ${className}`}>
+        <h2 className="panel-title">Usage Statistics</h2>
+        <div className="no-data-message">No usage data available</div>
+        
+        <StyledJsx>{`
+          .usage-chart-panel {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+          }
+          
+          .no-data-message {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+          }
+        `}</StyledJsx>
+      </div>
+    );
   }
 
   // Helper to format numbers with K/M suffix
@@ -30,17 +63,17 @@ const UsageChart = ({ usageData }) => {
   const getChartData = () => {
     switch (chartView) {
       case 'daily':
-        return usageData.daily;
+        return safeUsageData.daily || [];
       case 'byModel':
-        return usageData.byModel;
+        return safeUsageData.byModel || {};
       case 'byFunction':
-        return usageData.byFunction;
+        return safeUsageData.byFunction || {};
       case 'byFile':
-        return usageData.byFile;
+        return safeUsageData.byFile || {};
       case 'popularity':
-        return usageData.popularity;
+        return safeUsageData.popularity || {};
       default:
-        return usageData.daily;
+        return safeUsageData.daily || [];
     }
   };
 
@@ -59,6 +92,17 @@ const UsageChart = ({ usageData }) => {
 
   // Render a time series chart (daily usage)
   const renderTimeSeriesChart = (timeData) => {
+    // Ensure recentActivity exists and has items
+    const activity = safeUsageData.recentActivity || [];
+    
+    if (activity.length === 0) {
+      return (
+        <div className="no-data-message">
+          No activity data available for the selected period
+        </div>
+      );
+    }
+    
     const maxValue = Math.max(...timeData);
 
     return (
@@ -171,53 +215,51 @@ const UsageChart = ({ usageData }) => {
   };
 
   return (
-    <div className="usage-chart-panel">
-      <div className="panel-header">
-        <h2>Usage Statistics</h2>
-        <div className="chart-controls">
-          <div className="chart-view-selector">
-            <select
-              value={chartView}
-              onChange={(e) => setChartView(e.target.value)}
-            >
-              <option value="daily">Daily Usage</option>
-              <option value="byModel">By Model</option>
-              <option value="byFunction">By Function</option>
-              <option value="byFile">By File Type</option>
-              <option value="popularity">By Popularity</option>
-            </select>
-          </div>
-
-          {chartView === 'daily' && (
-            <div className="chart-type-toggle">
-              <button
-                className={`toggle-button ${chartType === 'line' ? 'active' : ''}`}
-                onClick={() => setChartType('line')}
-              >
-                Line
-              </button>
-              <button
-                className={`toggle-button ${chartType === 'bar' ? 'active' : ''}`}
-                onClick={() => setChartType('bar')}
-              >
-                Bar
-              </button>
-            </div>
-          )}
+    <div className={`usage-chart-panel ${className}`}>
+      <h2 className="panel-title">Usage Statistics</h2>
+      
+      <div className="chart-controls">
+        <div className="view-selector">
+          <select 
+            value={chartView} 
+            onChange={(e) => setChartView(e.target.value)}
+          >
+            <option value="daily">Daily Usage</option>
+            <option value="byModel">By Model</option>
+            <option value="byFunction">By Function</option>
+            <option value="byFile">By File Type</option>
+            <option value="popularity">By Popularity</option>
+          </select>
         </div>
+        
+        {isTimeSeries && (
+          <div className="chart-type-selector">
+            <button
+              className={`chart-type-btn ${chartType === 'line' ? 'active' : ''}`}
+              onClick={() => setChartType('line')}
+            >
+              Line
+            </button>
+            <button
+              className={`chart-type-btn ${chartType === 'bar' ? 'active' : ''}`}
+              onClick={() => setChartType('bar')}
+            >
+              Bar
+            </button>
+          </div>
+        )}
       </div>
-
-      <div className="chart-container">
+      
+      <div className="chart-container" data-testid="chart-container">
         {renderChart()}
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .usage-chart-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
-          box-shadow: var(--shadow-sm);
           padding: 1.5rem;
-          height: 100%;
+          box-shadow: var(--shadow-sm);
         }
 
         .panel-header {
@@ -241,7 +283,7 @@ const UsageChart = ({ usageData }) => {
           align-items: center;
         }
 
-        .chart-view-selector select,
+        .view-selector select,
         .chart-type-selector select {
           padding: 0.375rem 0.75rem;
           border-radius: var(--border-radius-sm);
@@ -251,14 +293,14 @@ const UsageChart = ({ usageData }) => {
           cursor: pointer;
         }
 
-        .chart-type-toggle {
+        .chart-type-selector {
           display: flex;
           border: 1px solid var(--border-color);
           border-radius: var(--border-radius-sm);
           overflow: hidden;
         }
 
-        .toggle-button {
+        .chart-type-btn {
           padding: 0.375rem 0.75rem;
           background-color: transparent;
           border: none;
@@ -267,7 +309,7 @@ const UsageChart = ({ usageData }) => {
           transition: all 0.2s;
         }
 
-        .toggle-button.active {
+        .chart-type-btn.active {
           background-color: var(--primary-color);
           color: white;
         }
@@ -415,12 +457,12 @@ const UsageChart = ({ usageData }) => {
             gap: 0.5rem;
           }
 
-          .chart-view-selector,
-          .chart-type-toggle {
+          .view-selector,
+          .chart-type-selector {
             width: 100%;
           }
 
-          .chart-type-toggle {
+          .chart-type-selector {
             display: grid;
             grid-template-columns: 1fr 1fr;
           }
@@ -429,7 +471,7 @@ const UsageChart = ({ usageData }) => {
             height: 200px;
           }
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

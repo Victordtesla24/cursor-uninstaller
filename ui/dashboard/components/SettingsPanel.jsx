@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * SettingsPanel Component
@@ -7,10 +8,17 @@ import React, { useState, useEffect } from 'react';
  * Allows users to toggle features and adjust token budgets
  * Provides tooltips with explanations for each setting
  */
-const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenBudget, onSettingChange, onBudgetChange }) => {
+const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenBudget }) => {
   const [editingBudget, setEditingBudget] = useState(null);
   const [budgetValue, setBudgetValue] = useState('');
   const [error, setError] = useState(null);
+  
+  // Ensure that checkboxes always have a defined state to avoid controlled/uncontrolled input warnings
+  useEffect(() => {
+    if (!settings) {
+      setLocalSettings(defaultSettings);
+    }
+  }, []);
 
   // Default settings for tests and initial render
   const defaultSettings = {
@@ -23,7 +31,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
   };
 
   // Create local state to mirror the settings so we can update it instantly for better UX
-  const [localSettings, setLocalSettings] = useState(settings || defaultSettings);
+  const [localSettings, setLocalSettings] = useState(settings ? {...defaultSettings, ...settings} : defaultSettings);
 
   // Update localSettings when settings prop changes
   useEffect(() => {
@@ -37,8 +45,8 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
   }, [settings]);
 
   // For compatibility with existing code and tests
-  const updateSetting = onUpdateSetting || onSettingChange || (() => {});
-  const updateTokenBudget = onUpdateTokenBudget || onBudgetChange || (() => {});
+  const updateSetting = onUpdateSetting || (() => {});
+  const updateTokenBudget = onUpdateTokenBudget || (() => {});
 
   // Handle setting toggle
   const handleToggleSetting = (settingKey) => {
@@ -54,11 +62,13 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     updateSetting(settingKey, newValue);
   };
 
-  // Start editing a token budget
+      // Start editing a token budget
   const handleStartEditBudget = (budgetType) => {
     setEditingBudget(budgetType);
     if (tokenBudgets && tokenBudgets[budgetType]) {
       setBudgetValue(tokenBudgets[budgetType].budget.toString());
+    } else {
+      setBudgetValue(''); // Initialize with empty string if no budget data available
     }
     setError(null);
   };
@@ -99,7 +109,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     setError(null);
   };
 
-  // Format large numbers with commas
+  // Format numbers with commas
   const formatNumber = (num) => {
     return num ? num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "0";
   };
@@ -118,7 +128,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     },
     {
       id: 'contextWindowOptimization',
-      label: 'Context Window Optimization',
+      label: 'Context Optimization',
       description: 'Optimize prompt size by automatically removing less relevant context'
     },
     {
@@ -128,7 +138,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     },
     {
       id: 'notifyOnLowBudget',
-      label: 'Low Budget Notifications',
+      label: 'Budget Notifications',
       description: 'Receive alerts when token budgets are close to being depleted'
     },
     {
@@ -158,17 +168,15 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
     {
       id: 'thinking',
       label: 'Thinking',
-      description: 'Budget for problem-solving and complex reasoning tasks'
+      description: 'Budget for problem solving and complex reasoning tasks'
     }
   ];
 
   return (
     <div className="settings-panel">
-      <div className="panel-header">
-        <h2>Settings</h2>
-      </div>
-
-      {/* Boolean Settings Section */}
+      <h2 className="panel-title">Settings</h2>
+      
+      {/* Feature Settings */}
       <div className="settings-section">
         <h3>Feature Settings</h3>
 
@@ -180,14 +188,14 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                 <div className="setting-description">{setting.description}</div>
               </div>
 
-              <div className="setting-control">
-                <label className="toggle-switch">
+              <div className="toggle-switch">
+                <label>
                   <input
                     type="checkbox"
                     checked={localSettings[setting.id]}
                     onChange={() => handleToggleSetting(setting.id)}
                     aria-label={setting.label}
-                    data-testid={`setting-${setting.id}`}
+                    data-testid={`toggle-${setting.id}`}
                   />
                   <span className="toggle-slider"></span>
                 </label>
@@ -197,7 +205,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
         </div>
       </div>
 
-      {/* Token Budgets Section */}
+      {/* Token Budgets */}
       {tokenBudgets && (
         <div className="settings-section">
           <h3>Token Budgets</h3>
@@ -223,19 +231,21 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                         <div className="budget-amount">
                           <span className="used">{formatNumber(budget.used)}</span>
                           <span className="separator">/</span>
-                          <span
-                            className="total"
+                          <span 
+                            className="total" 
                             onClick={() => handleStartEditBudget(category.id)}
-                            data-testid={`budget-${category.id}`}
+                            data-testid={`edit-budget-${category.id}`}
                           >
-                            {formatNumber(budget.budget)}
+                            {formatNumber(budget.budget)} tokens
+                            <span className="edit-icon">✎</span>
                           </span>
-                          <span className="edit-icon" onClick={() => handleStartEditBudget(category.id)}>✎</span>
                         </div>
+
                         <div className="budget-progress-container">
-                          <div
+                          <div 
                             className={`budget-progress ${percentUsed > 90 ? 'high' : percentUsed > 70 ? 'medium' : 'low'}`}
                             style={{ width: `${percentUsed}%` }}
+                            data-testid={`budget-progress-${category.id}`}
                           ></div>
                         </div>
                       </>
@@ -248,10 +258,23 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
                           className={error ? 'error' : ''}
                           placeholder="Enter budget"
                           autoFocus
+                          data-testid={`budget-input-${category.id}`}
                         />
                         <div className="edit-actions">
-                          <button className="save" onClick={() => handleSaveTokenBudget(category.id)}>Save</button>
-                          <button className="cancel" onClick={handleCancelEditBudget}>Cancel</button>
+                          <button 
+                            className="save" 
+                            onClick={() => handleSaveTokenBudget(category.id)}
+                            data-testid={`save-budget-${category.id}`}
+                          >
+                            Save
+                          </button>
+                          <button 
+                            className="cancel" 
+                            onClick={handleCancelEditBudget}
+                            data-testid={`cancel-budget-${category.id}`}
+                          >
+                            Cancel
+                          </button>
                         </div>
                         {error && <div className="error-message">{error}</div>}
                       </div>
@@ -276,14 +299,13 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
         </div>
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .settings-panel {
-          background-color: var(--card-background, #ffffff);
-          border-radius: var(--border-radius-md, 8px);
-          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+          background-color: var(--card-background);
+          border-radius: var(--border-radius-md);
           padding: 1.5rem;
+          box-shadow: var(--shadow-sm);
           height: 100%;
-          overflow-y: auto;
         }
 
         .panel-header {
@@ -563,7 +585,7 @@ const SettingsPanel = ({ settings, tokenBudgets, onUpdateSetting, onUpdateTokenB
             max-width: 100%;
           }
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

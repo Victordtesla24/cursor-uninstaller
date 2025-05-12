@@ -264,7 +264,7 @@ describe('Individual Components', () => {
       />
     );
 
-    // Look for "Settings & Budgets" instead of just "Settings"
+    // Look for "Settings" instead of "Settings & Budgets"
     expect(screen.getByText('Settings')).toBeInTheDocument();
 
     // Find and click on the caching toggle
@@ -322,4 +322,4 @@ describe('Dashboard Interaction Tests', () => {
     // Check that the class toggle was called
     expect(mockToggleTheme).toHaveBeenCalledWith('dark-theme');
   });
-});
+}); 

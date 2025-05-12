@@ -4,8 +4,20 @@
 TEST_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SCRIPT_PATH="$TEST_DIR/../uninstall_cursor.sh"
 
-# Set test mode environment variable
+# Ensure we're using the correct script
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "Error: Main script not found at $SCRIPT_PATH" >&2
+    exit 1
+fi
+
+# Set test mode environment variables - adding multiple flags for redundancy
+# CRITICAL FIX: Ensure all test flags are set properly to prevent test suite hang
 export CURSOR_TEST_MODE=true
+export BATS_TEST_SOURCED=1
+export TEST_MODE=true
+
+# Add a debug message to confirm test mode is set
+echo "DEBUG: Test mode flags set - CURSOR_TEST_MODE=${CURSOR_TEST_MODE}, BATS_TEST_SOURCED=${BATS_TEST_SOURCED}, TEST_MODE=${TEST_MODE}" >&2
 
 # Set up environment
 setup() {

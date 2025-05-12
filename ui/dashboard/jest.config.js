@@ -8,7 +8,13 @@ module.exports = {
     '<rootDir>/tests/setupTests.js'
   ],
   transform: {
-    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]
+    '^.+\\.(js|jsx)$': ['babel-jest', {
+      presets: [
+        '@babel/preset-env',
+        '@babel/preset-react'
+      ],
+      plugins: []
+    }]
   },
   testMatch: [
     '**/tests/**/*.test.js',

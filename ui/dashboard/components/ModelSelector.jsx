@@ -1,4 +1,5 @@
 import React from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * ModelSelector Component
@@ -74,7 +75,7 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
       </div>
 
       <div className="models-container">
-        {available && available.map((model) => {
+        {available && (Array.isArray(available) ? available : Object.values(available)).map((model, index) => {
           const isSelected = model.id === selected;
 
           // For test compatibility
@@ -87,7 +88,7 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
 
           return (
             <div
-              key={model.id}
+              key={model.id || `model-${index}`}
               data-testid={`model-card-${model.id}`}
               className={`model-card ${isSelected ? 'selected' : ''}`}
               onClick={() => handleModelChange(model.id)}
@@ -101,9 +102,9 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
               </div>
 
               <div className="model-capabilities">
-                {model.capabilities && model.capabilities.map((capability) => (
+                {model.capabilities && model.capabilities.map((capability, capIndex) => (
                   <span
-                    key={capability}
+                    key={`${model.id}-${capability}-${capIndex}`}
                     className={getCapabilityClass(capability)}
                     title={`${capability.charAt(0).toUpperCase() + capability.slice(1)} capability`}
                   >
@@ -127,8 +128,8 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
                 <div className="recommended-for">
                   <div className="recommended-label">Recommended for:</div>
                   <div className="recommended-tasks">
-                    {recommendedTasks.map(task => (
-                      <span key={task} className="recommended-task">
+                    {recommendedTasks.map((task, taskIndex) => (
+                      <span key={`${model.id}-${task}-${taskIndex}`} className="recommended-task">
                         {formatTaskName(task)}
                       </span>
                     ))}
@@ -160,7 +161,8 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
 
           <div className="recommendations-list">
             {Object.entries(recommendedFor).map(([task, modelId]) => {
-              const recommendedModel = available && available.find(model => model.id === modelId);
+              const modelArray = Array.isArray(available) ? available : Object.values(available);
+              const recommendedModel = available && modelArray.find(model => model.id === modelId);
               if (!recommendedModel) return null;
 
               return (
@@ -177,7 +179,7 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
         </div>
       )}
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .model-selector-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
@@ -443,7 +445,7 @@ const ModelSelector = ({ models, selectedModel, onModelChange, onModelSelect, mo
             font-size: 0.875rem;
           }
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };

@@ -128,9 +128,12 @@ export const subscribeToMcpUpdates = (resourceUri, callback) => {
  *
  * @param {string} serverName - The MCP server name
  * @param {string[]} uris - Array of resource URIs to fetch
+ * @param {object} options - Additional options
  * @returns {Promise<object>} - Object with URI keys and resource data values
  */
-export const batchMcpResources = async (serverName, uris) => {
+export const batchMcpResources = async (serverName, uris, options = {}) => {
+  const { logErrors = true } = options;
+  
   if (window.__MCP_CLIENT && typeof window.__MCP_CLIENT.batchResources === 'function') {
     return await window.__MCP_CLIENT.batchResources(serverName, uris);
   }
@@ -139,9 +142,12 @@ export const batchMcpResources = async (serverName, uris) => {
   const results = {};
   await Promise.all(uris.map(async (uri) => {
     try {
-      results[uri] = await access_mcp_resource(serverName, uri);
+      results[uri] = await access_mcp_resource(serverName, uri, { logErrors });
     } catch (error) {
-      console.error(`Failed to fetch resource ${uri} in batch:`, error);
+      if (logErrors) {
+        console.error(`Failed to fetch resource ${uri} in batch:`, error);
+      }
+      // Set failed requests to null
       results[uri] = null;
     }
   }));

@@ -1,4 +1,5 @@
 import React from 'react';
+import StyledJsx from './StyledJsx';
 
 /**
  * Metrics Panel Component
@@ -91,23 +92,9 @@ const MetricsPanel = ({ metrics, className }) => {
   ].filter(Boolean); // Filter out null/undefined items
 
   return (
-    <div className="metrics-panel">
-      <div className="panel-header">
-        <h2>Key Metrics</h2>
-        <div className="header-actions">
-          <button className="refresh-button" title="Refresh metrics data">
-            <span className="refresh-icon">↻</span>
-          </button>
-          <div className="time-period-selector">
-            <select defaultValue="day">
-              <option value="day">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
+    <div className={`metrics-panel ${className}`}>
+      <h2 className="panel-title">System Metrics</h2>
+      
       <div className="metrics-grid">
         {metricConfig.map((config) => {
           const value = metrics[config.id];
@@ -134,13 +121,12 @@ const MetricsPanel = ({ metrics, className }) => {
         })}
       </div>
 
-      <style jsx="true">{`
+      <StyledJsx>{`
         .metrics-panel {
           background-color: var(--card-background);
           border-radius: var(--border-radius-md);
-          box-shadow: var(--shadow-sm);
           padding: 1.5rem;
-          overflow: hidden;
+          box-shadow: var(--shadow-sm);
         }
 
         .panel-header {
@@ -279,7 +265,7 @@ const MetricsPanel = ({ metrics, className }) => {
             grid-template-columns: 1fr;
           }
         }
-      `}</style>
+      `}</StyledJsx>
     </div>
   );
 };
