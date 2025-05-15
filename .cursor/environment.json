@@ -1,7 +1,22 @@
 {
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
-  },
-  "terminals": []
+  "user": "vscode",
+  "install": "./.cursor/install.sh",
+  "start": "npm install",
+  "terminals": [
+    {
+      "name": "dashboard",
+      "command": "npm run dashboard:dev",
+      "description": "Starts the dashboard UI development server for monitoring the uninstaller tool"
+    },
+    {
+      "name": "uninstaller",
+      "command": "chmod +x ./uninstall_cursor.sh && echo 'Run ./uninstall_cursor.sh when needed'",
+      "description": "Prepares the uninstall script to be executable whenever needed"
+    },
+    {
+      "name": "tests",
+      "command": "cd tests && npm test",
+      "description": "Runs the test suite to verify uninstaller functionality"
+    }
+  ]
 }
