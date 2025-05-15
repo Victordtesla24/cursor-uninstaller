@@ -1,19 +1,28 @@
 #!/bin/bash
 
-# Installation script for cursor-uninstaller project
+# Display initial message
 echo "Setting up cursor-uninstaller environment..."
 
-# Install project dependencies
+# Install dependencies
 npm install
 
 # Install dashboard dependencies
-if [ -d "ui/dashboard" ]; then
-  echo "Installing dashboard dependencies..."
-  cd ui/dashboard && npm install
-  cd ../..
-fi
+echo "Installing dashboard dependencies..."
+cd ui/dashboard && npm install
+cd ../..
 
-# Make uninstaller script executable
+# Make sure the uninstall script is executable
 chmod +x ./uninstall_cursor.sh
 
-echo "Environment setup complete! You can now run the dashboard with 'npm run dashboard'" 
+# Setup background agent protocol directories if they don't exist
+mkdir -p .cursor/rules
+
+# Verify background agent prompt configuration
+if [ -f .cursor/background-agent-prompt.md ]; then
+  echo "Background agent prompt is configured."
+else
+  echo "Warning: Background agent prompt configuration is missing."
+fi
+
+# Display completion message
+echo "Environment setup complete! You can now run the dashboard with 'npm run dashboard'"
