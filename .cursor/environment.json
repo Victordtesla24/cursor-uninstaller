@@ -7,6 +7,11 @@
       "port": 3000,
       "name": "Dashboard",
       "description": "Dashboard UI for the uninstaller tool"
+    },
+    {
+      "port": 5173,
+      "name": "Dashboard Dev Server",
+      "description": "Vite development server for the dashboard UI"
     }
   ],
   "terminals": [
@@ -22,8 +27,8 @@
     },
     {
       "name": "tests",
-      "command": "cd tests && npm test",
-      "description": "Runs the test suite to verify uninstaller functionality"
+      "command": "cd ui/dashboard && npm test",
+      "description": "Runs the test suite to verify dashboard functionality"
     }
   ]
 }
