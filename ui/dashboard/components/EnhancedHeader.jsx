@@ -6,7 +6,7 @@ import React from 'react';
  * Implements UI elements for Cline AI dashboard navigation
  * Includes indicator for mock data usage and Magic MCP API status
  */
-export const EnhancedHeader = ({
+const EnhancedHeader = ({
   systemHealth = 'optimal',
   activeRequests = 0,
   viewMode = 'overview',

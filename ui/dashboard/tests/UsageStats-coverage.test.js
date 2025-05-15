@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { UsageStats } from '../components/UsageStats';
+// Fix to use only the default export
+import UsageStats from '../components/UsageStats.jsx';
 
 describe('UsageStats Component Comprehensive Tests', () => {
   const mockData = {

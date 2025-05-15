@@ -6,10 +6,10 @@ import UsageChart from './components/UsageChart';
 import ModelSelector from './components/ModelSelector';
 import SettingsPanel from './components/SettingsPanel';
 import StyledJsx from './components/StyledJsx';
-
-// Import API modules
+import Header from './components/Header';
 import mockApi from './mockApi';
-import mcpApi from './mcpApi';
+import * as mcpApi from './mcpApi';
+import './styles.css';
 
 /**
  * Cline AI Dashboard
@@ -18,51 +18,66 @@ import mcpApi from './mcpApi';
  * Fetches data, handles state management, and coordinates component interactions
  * Implements responsive layout with appropriate grid system
  */
+// Use named export for consistency with other components
 export const Dashboard = () => {
   // Dashboard state
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [useMockData, setUseMockData] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
 
   // Get the appropriate API based on mode
   const api = useMockData ? mockApi : mcpApi;
 
   // Fetch dashboard data
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
       setIsLoading(true);
-      setError(null);
+    }
+    setError(null);
 
-      try {
-        const data = await api.fetchDashboardData();
-        setDashboardData(data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard data. Please try again later.');
+    try {
+      const data = await api.fetchDashboardData();
+      setDashboardData(data);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again later.');
 
-        // If MCP API fails, fall back to mock data
-        if (!useMockData) {
-          try {
-            const mockData = await mockApi.fetchDashboardData();
-            setDashboardData(mockData);
-            setUseMockData(true);
-          } catch (mockError) {
-            console.error('Error fetching mock data:', mockError);
-          }
+      // If MCP API fails, fall back to mock data
+      if (!useMockData) {
+        try {
+          console.log('Falling back to mock data due to API error');
+          const mockData = await mockApi.fetchDashboardData();
+          setDashboardData(mockData);
+          setUseMockData(true);
+        } catch (mockError) {
+          console.error('Error fetching mock data:', mockError);
         }
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
 
     // Set up auto-refresh every 5 minutes
-    const refreshInterval = setInterval(fetchData, 5 * 60 * 1000);
+    const refreshInterval = setInterval(() => fetchData(true), 5 * 60 * 1000);
 
     return () => clearInterval(refreshInterval);
   }, [useMockData]);
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    fetchData(true);
+  };
 
   // Handle model selection
   const handleModelSelect = async (modelId) => {
@@ -143,38 +158,9 @@ export const Dashboard = () => {
   // Loading state
   if (isLoading && !dashboardData) {
     return (
-      <div className="dashboard loading" data-testid="dashboard-container">
-        <div className="loader" data-testid="loading-spinner"></div>
-        <div className="loading-text">Loading dashboard data...</div>
-
-        <StyledJsx>{`
-          .dashboard.loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 500px;
-          }
-
-          .loader {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
-          }
-
-          .loading-text {
-            color: var(--text-secondary);
-          }
-
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</StyledJsx>
+      <div className="flex flex-col items-center justify-center min-h-[500px] dashboard loading" data-testid="dashboard-container">
+        <div className="w-10 h-10 border-4 border-border border-t-primary rounded-full animate-spin mb-4" data-testid="loading-spinner"></div>
+        <div className="text-muted-foreground">Loading dashboard data...</div>
       </div>
     );
   }
@@ -182,102 +168,89 @@ export const Dashboard = () => {
   // Error state
   if (error && !dashboardData) {
     return (
-      <div className="dashboard-container error">
-        <div className="error-icon">⚠️</div>
-        <div className="error-title">Error Loading Dashboard</div>
-        <div className="error-message">{error}</div>
-        <button className="retry-button" onClick={() => setUseMockData(!useMockData)}>
+      <div className="flex flex-col items-center justify-center min-h-[500px] text-center">
+        <div className="text-5xl mb-4">⚠️</div>
+        <div className="text-xl font-semibold mb-2">Error Loading Dashboard</div>
+        <div className="text-muted-foreground mb-6">{error}</div>
+        <button 
+          className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors font-medium"
+          onClick={() => setUseMockData(!useMockData)}
+        >
           {useMockData ? 'Try MCP Data' : 'Use Mock Data'}
         </button>
-
-        <StyledJsx>{`
-          .dashboard-container.error {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 500px;
-            text-align: center;
-          }
-
-          .error-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-          }
-
-          .error-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-          }
-
-          .error-message {
-            color: var(--text-secondary);
-            margin-bottom: 1.5rem;
-          }
-
-          .retry-button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius-sm);
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s;
-          }
-
-          .retry-button:hover {
-            background-color: var(--primary-hover);
-          }
-        `}</StyledJsx>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-container" data-testid="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Cline AI Dashboard</h1>
-        <div className="data-source-toggle">
-          <span className="data-source-label">
-            Data Source: <strong>{useMockData ? 'Mock Data' : 'Live Data'}</strong>
-          </span>
-          <button className="toggle-button" onClick={toggleDataSource}>
-            Switch to {useMockData ? 'Live Data' : 'Mock Data'}
+    <div className="flex flex-col gap-8 p-8 max-w-[1600px] mx-auto" data-testid="dashboard-container">
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <h1 className="text-2xl font-bold m-0">Cline AI Dashboard</h1>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              {useMockData ? 'Using mock data' : 'Connected'}
+            </span>
+            <button 
+              className="bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm 
+                hover:bg-background-secondary transition-colors" 
+              onClick={toggleDataSource}
+            >
+              Switch to {useMockData ? 'Live Data' : 'Mock Data'}
+            </button>
+          </div>
+          <button 
+            className={`bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm 
+              hover:bg-background-secondary transition-colors ${refreshing ? 'opacity-70 cursor-not-allowed' : ''}`} 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
       </div>
 
+      {lastRefresh && (
+        <div className="text-xs text-muted-foreground -mt-6">
+          Last updated: {lastRefresh.toLocaleTimeString()}
+        </div>
+      )}
+
+      <div className="flex border-b border-border -mt-4 mb-4">
+        <div className="px-6 py-3 text-sm cursor-pointer border-b-2 border-primary text-primary font-medium">Overview</div>
+        <div className="px-6 py-3 text-sm cursor-pointer border-b-2 border-transparent">Usage Statistics</div>
+        <div className="px-6 py-3 text-sm cursor-pointer border-b-2 border-transparent">Settings</div>
+      </div>
+
       {/* Metrics Panel */}
-      <div className="dashboard-section metrics-section">
+      <div className="bg-card shadow-sm rounded-lg p-6">
         <MetricsPanel metrics={dashboardData?.metrics} />
       </div>
 
       {/* Two-column layout for TokenUtilization and CostTracker */}
-      <div className="dashboard-row">
-        <div className="dashboard-column">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-card shadow-sm rounded-lg p-6">
           <TokenUtilization tokenData={dashboardData?.tokens} />
         </div>
-        <div className="dashboard-column">
+        <div className="bg-card shadow-sm rounded-lg p-6">
           <CostTracker costData={dashboardData?.costs} />
         </div>
       </div>
 
       {/* Usage Chart (full width) */}
-      <div className="dashboard-section">
+      <div className="bg-card shadow-sm rounded-lg p-6">
         <UsageChart usageData={dashboardData?.usage} />
       </div>
 
       {/* Two-column layout for ModelSelector and SettingsPanel */}
-      <div className="dashboard-row">
-        <div className="dashboard-column">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-card shadow-sm rounded-lg p-6">
           <ModelSelector
             modelData={dashboardData?.models}
             onModelSelect={handleModelSelect}
           />
         </div>
-        <div className="dashboard-column">
+        <div className="bg-card shadow-sm rounded-lg p-6">
           <SettingsPanel
             settings={dashboardData?.settings}
             tokenBudgets={dashboardData?.tokens?.budgets}
@@ -288,188 +261,15 @@ export const Dashboard = () => {
       </div>
 
       {/* Footer */}
-      <div className="dashboard-footer">
-        <div className="footer-content">
-          <div className="footer-text">Cline AI Extension Dashboard</div>
-          <div className="footer-version">Version 1.0.0</div>
+      <div className="mt-4 pt-6 border-t border-border">
+        <div className="flex justify-between items-center text-muted-foreground text-sm">
+          <div>Cline AI Extension Dashboard</div>
+          <div>Version 1.0.0</div>
         </div>
       </div>
-
-      <StyledJsx>{`
-        .dashboard-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-          padding: 2rem;
-          max-width: 1600px;
-          margin: 0 auto;
-        }
-
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .dashboard-header h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: var(--text-color);
-        }
-
-        .data-source-toggle {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .data-source-label {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-        }
-
-        .toggle-button {
-          background-color: var(--background-color);
-          border: 1px solid var(--border-color);
-          color: var(--text-color);
-          padding: 0.375rem 0.75rem;
-          border-radius: var(--border-radius-sm);
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .toggle-button:hover {
-          background-color: var(--background-color-light);
-          border-color: var(--border-color-hover);
-        }
-
-        .dashboard-row {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 2rem;
-        }
-
-        .dashboard-section {
-          margin-bottom: 0;
-        }
-
-        .dashboard-footer {
-          margin-top: 1rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .footer-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: var(--text-secondary);
-          font-size: 0.875rem;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1024px) {
-          .dashboard-container {
-            padding: 1.5rem;
-            gap: 1.5rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .dashboard-row {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-          }
-
-          .dashboard-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .data-source-toggle {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .dashboard-container {
-            padding: 1rem;
-            gap: 1.25rem;
-          }
-
-          .dashboard-header h1 {
-            font-size: 1.5rem;
-          }
-        }
-      `}</StyledJsx>
-
-      <StyledJsx global>{`
-        :root {
-          --primary-color: #007bff;
-          --primary-hover: #0069d9;
-          --primary-light: rgba(0, 123, 255, 0.1);
-          --success-color: #28a745;
-          --warning-color: #ffc107;
-          --error-color: #dc3545;
-          --text-color: #212529;
-          --text-secondary: #6c757d;
-          --background-color: #f8f9fa;
-          --background-color-light: #f1f3f5;
-          --card-background: #ffffff;
-          --border-color: #dee2e6;
-          --border-color-hover: #adb5bd;
-          --border-radius-sm: 0.25rem;
-          --border-radius-md: 0.5rem;
-          --border-radius-lg: 1rem;
-          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-          --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Optional: Dark mode support */
-        @media (prefers-color-scheme: dark) {
-          :root {
-            --primary-color: #0d6efd;
-            --primary-hover: #0b5ed7;
-            --primary-light: rgba(13, 110, 253, 0.2);
-            --success-color: #198754;
-            --warning-color: #ffc107;
-            --error-color: #dc3545;
-            --text-color: #f8f9fa;
-            --text-secondary: #adb5bd;
-            --background-color: #212529;
-            --background-color-light: #2c3034;
-            --card-background: #343a40;
-            --border-color: #495057;
-            --border-color-hover: #6c757d;
-          }
-        }
-
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-            Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-          line-height: 1.5;
-          color: var(--text-color);
-          background-color: var(--background-color-light);
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-
-        button, input, select, textarea {
-          font-family: inherit;
-        }
-      `}</StyledJsx>
     </div>
   );
 };
 
+// Keep default export for backward compatibility with existing imports
 export default Dashboard;

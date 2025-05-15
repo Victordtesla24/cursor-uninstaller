@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import StyledJsx from './StyledJsx';
 
 /**
  * Header component
@@ -32,12 +31,12 @@ export const Header = ({
   const getHealthClass = () => {
     switch (systemHealth) {
       case 'warning':
-        return 'warning';
+        return 'bg-warning';
       case 'critical':
-        return 'critical';
+        return 'bg-error';
       case 'optimal':
       default:
-        return 'optimal';
+        return 'bg-success';
     }
   };
 
@@ -57,216 +56,85 @@ export const Header = ({
   };
 
   return (
-    <header className={`header ${className} ${isDarkTheme ? 'dark-theme' : ''}`}>
-      <div className="header-title-area">
-        <h1 className="header-title">Cline AI Dashboard</h1>
-        <div className="header-subtitle">Token Optimization Monitor</div>
+    <header className={`flex justify-between items-center mb-4 pb-3 border-b border-border ${className}`}>
+      <div className="flex flex-col">
+        <h1 className="text-2xl font-semibold m-0">
+          Cline AI Dashboard
+        </h1>
+        <div className="text-sm text-muted-foreground">
+          Token Usage Statistics & Performance Metrics
+        </div>
       </div>
 
-      <div className="header-actions">
-        <div className="system-status">
-          <div className={`status-indicator ${getHealthClass()}`}></div>
-          <div className="status-text">
-            System: {systemHealth} {activeRequests > 0 && `(${activeRequests} active)`}
-          </div>
-          <div className="last-updated-text">{getLastUpdatedText()}</div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className={`w-2.5 h-2.5 rounded-full ${getHealthClass()}`}></div>
+          <span className="text-sm font-medium">{systemHealth}</span>
+          {activeRequests > 0 && (
+            <span className="text-sm text-muted-foreground ml-2">
+              ({activeRequests} active {activeRequests === 1 ? 'request' : 'requests'})
+            </span>
+          )}
+          <span className="text-sm text-muted-foreground ml-3">
+            {getLastUpdatedText()}
+          </span>
         </div>
 
-        <div className="view-selector">
-          <div
-            className={`view-option ${viewMode === 'overview' ? 'active' : ''}`}
-            onClick={() => onViewModeChange && onViewModeChange('overview')}
-            data-testid="overview-view-option"
+        <div className="flex bg-card border border-border rounded-md overflow-hidden">
+          <button
+            className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
+              viewMode === 'overview' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-background'
+            }`}
+            onClick={() => onViewModeChange('overview')}
+            data-testid="overview-tab"
           >
             Overview
-          </div>
-          <div
-            className={`view-option ${viewMode === 'detailed' ? 'active' : ''}`}
-            onClick={() => onViewModeChange && onViewModeChange('detailed')}
-            data-testid="detailed-view-option"
+          </button>
+          <button
+            className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
+              viewMode === 'detailed' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-background'
+            }`}
+            onClick={() => onViewModeChange('detailed')}
+            data-testid="detailed-tab"
           >
             Detailed
-          </div>
-          <div
-            className={`view-option ${viewMode === 'settings' ? 'active' : ''}`}
-            onClick={() => onViewModeChange && onViewModeChange('settings')}
-            data-testid="settings-view-option"
+          </button>
+          <button
+            className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
+              viewMode === 'settings' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-background'
+            }`}
+            onClick={() => onViewModeChange('settings')}
+            data-testid="settings-tab"
           >
             Settings
-          </div>
+          </button>
         </div>
 
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title="Toggle dark/light theme"
-          data-testid="theme-toggle"
-        >
-          {isDarkTheme ? '☀️' : '🌙'}
-        </button>
-
-        <button
-          className="refresh-button"
-          onClick={onRefresh}
-          title="Refresh dashboard data"
-          data-testid="refresh-button"
-        >
-          🔄
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="bg-card border border-border rounded-md px-3 py-1 cursor-pointer transition-all hover:bg-background hover:shadow-sm"
+            onClick={onRefresh}
+            data-testid="refresh-button"
+          >
+            Refresh
+          </button>
+          <button
+            className="bg-primary-foreground border border-border rounded-md px-3 py-1 cursor-pointer transition-all hover:bg-primary hover:text-primary-foreground"
+            onClick={toggleTheme}
+            data-testid="theme-toggle"
+          >
+            {isDarkTheme ? 'Light Mode' : 'Dark Mode'}
+          </button>
+        </div>
       </div>
-
-      <StyledJsx>{`
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem 1.5rem;
-          background-color: var(--card-background, #ffffff);
-          border-radius: var(--border-radius-md, 8px);
-          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
-          margin-bottom: 1.5rem;
-        }
-
-        .header.dark-theme {
-          background-color: var(--dark-background, #1a1a1a);
-          color: var(--dark-text, #f5f5f5);
-        }
-
-        .header-title {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-
-        .header-subtitle {
-          font-size: 0.875rem;
-          color: var(--text-secondary, #666);
-        }
-
-        .header-actions {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .system-status {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-
-        .status-indicator {
-          width: 0.75rem;
-          height: 0.75rem;
-          border-radius: 50%;
-        }
-
-        .status-indicator.optimal {
-          background-color: var(--success-color, #10b981);
-        }
-
-        .status-indicator.warning {
-          background-color: var(--warning-color, #f59e0b);
-        }
-
-        .status-indicator.critical {
-          background-color: var(--error-color, #ef4444);
-        }
-
-        .last-updated-text {
-          font-size: 0.75rem;
-          color: var(--text-secondary, #666);
-          margin-left: 0.5rem;
-        }
-
-        .view-selector {
-          display: flex;
-          background-color: var(--background-color, #f1f5f9);
-          border-radius: var(--border-radius-md, 8px);
-          overflow: hidden;
-        }
-
-        .view-option {
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .view-option:hover {
-          background-color: rgba(0, 0, 0, 0.05);
-        }
-
-        .view-option.active {
-          background-color: var(--primary-color, #3b82f6);
-          color: white;
-        }
-
-        .theme-toggle,
-        .refresh-button {
-          background: none;
-          border: none;
-          font-size: 1rem;
-          cursor: pointer;
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          transition: background-color 0.2s;
-        }
-
-        .theme-toggle:hover,
-        .refresh-button:hover {
-          background-color: var(--background-color, #f1f5f9);
-        }
-
-        @media (max-width: 768px) {
-          .header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-
-          .header-actions {
-            width: 100%;
-            flex-wrap: wrap;
-            gap: 1rem;
-          }
-
-          .view-selector {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .view-option {
-            flex: 1;
-            text-align: center;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .system-status {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .theme-toggle,
-          .refresh-button {
-            margin-left: auto;
-          }
-        }
-      `}</StyledJsx>
     </header>
   );
 };
 
-// For test compatibility
-export const __TEST_ONLY_toggleTheme = () => {
-  document.body.classList.toggle('dark-theme');
-};
-
-// Change named export to default export
 export default Header;

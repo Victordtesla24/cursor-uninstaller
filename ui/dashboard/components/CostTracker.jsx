@@ -1,388 +1,327 @@
-import React, { useState } from 'react';
-import StyledJsx from './StyledJsx';
+import React, { useMemo } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle, 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger, 
+  Badge, 
+  Separator
+} from "./ui/index.js";
+import { 
+  TrendingDown, 
+  TrendingUp, 
+  DollarSign, 
+  CreditCard, 
+  Clock, 
+  BarChart3, 
+  AlertCircle,
+  PieChart,
+  BanknoteIcon,
+  Wallet,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Calculator
+} from "lucide-react";
 
 /**
  * CostTracker Component
- *
- * Displays cost metrics and savings information
- * Includes cost breakdown by model and savings breakdown by type
- * Provides historical cost charts
+ * 
+ * Displays AI token usage costs, monthly expenses, and provides budget visualization.
+ * Includes savings breakdowns, cost trends, and projected expenses.
+ * 
+ * @typedef {Object} CostData
+ * @property {number} [total] - Total cost incurred
+ * @property {number} [monthlyCost] - Current month's cost
+ * @property {number} [projectedMonthlyCost] - Projected cost for the current month
+ * @property {Object} [savings] - Cost savings information
+ * @property {number} [savings.total] - Total cost saved
+ * @property {number} [savings.caching] - Savings from cache hits
+ * @property {number} [savings.optimizations] - Savings from other optimizations
+ * @property {Object} [byModel] - Costs broken down by model
+ * @property {number} [averageRate] - Average cost per 1K tokens
+ * 
+ * @param {Object} props - Component props
+ * @param {CostData} [props.costData={}] - Cost and savings data
+ * @param {string} [props.className=''] - Additional CSS class names
+ * @param {boolean} [props.darkMode=false] - Whether dark mode is enabled
+ * 
+ * @returns {JSX.Element} Rendered component displaying cost tracking information
+ * 
+ * @example
+ * // Basic usage
+ * <CostTracker costData={costData} />
+ * 
+ * @example
+ * // With dark mode and custom class
+ * <CostTracker 
+ *   costData={costData} 
+ *   darkMode={true}
+ *   className="my-custom-class"
+ * />
  */
-const CostTracker = ({ costData, className }) => {
-  const [timeframe, setTimeframe] = useState('daily');
-
-  if (!costData) {
-    return null;
-  }
-
-  // Safely extract and provide defaults for all properties
-  const {
-    totalCost = 0,
-    monthlyCost = 0,
-    projectedCost = 0,
-    savings = { total: 0 },
-    byModel = {},
-    history = {}
-  } = costData;
-
-  // Get the appropriate history data based on the selected timeframe
-  const chartData = history && history[timeframe] ? history[timeframe] : [];
-
+const CostTracker = ({ costData = {}, className = '', darkMode = false }) => {
   // Format currency with 2 decimal places
-  const formatCurrency = (value) => {
-    // Handle edge cases where value is not a number
-    if (value === undefined || value === null) {
-      return '$0.00';
-    }
-
-    // Ensure value is a number
-    const numValue = typeof value === 'number' ? value : parseFloat(value);
-
-    // Check if conversion resulted in a valid number
-    if (isNaN(numValue)) {
-      return '$0.00';
-    }
-
-    return `$${numValue.toFixed(2)}`;
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return '—';
+    return `$${amount.toFixed(2)}`;
   };
 
-  // Calculate percentage saved
-  const savingsPercentage = Math.round((savings.total / (totalCost + savings.total)) * 100);
+  // Format currency with auto decimal places based on value
+  const formatCurrencyAuto = (amount) => {
+    if (amount === undefined || amount === null) return '—';
+    
+    // For very small values (less than 0.01), show more decimal places
+    if (amount < 0.01) {
+      return `$${amount.toFixed(5)}`;
+    }
+    
+    // For small values (less than 1), show 3 decimal places
+    if (amount < 1) {
+      return `$${amount.toFixed(3)}`;
+    }
+    
+    // For normal values, show 2 decimal places
+    return `$${amount.toFixed(2)}`;
+  };
+
+  // Format percentage change with sign
+  const formatPercentChange = (value) => {
+    if (value === undefined || value === null) return null;
+    return {
+      value: Math.abs(value).toFixed(1),
+      isPositive: value >= 0
+    };
+  };
+
+  // Helper to get color for cost trends
+  const getTrendColorClass = (isPositive) => {
+    // For costs, "up" is bad (red), "down" is good (green)
+    return isPositive 
+      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" 
+      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400";
+  };
+
+  // Handle empty or missing cost data
+  if (!costData || Object.keys(costData).length === 0) {
+    return (
+      <Card className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <DollarSign className="mr-2 h-5 w-5 text-primary" />
+            Cost Tracker
+          </CardTitle>
+          <CardDescription>
+            No cost data available
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-3 h-48 text-muted-foreground">
+          <AlertCircle className="h-10 w-10 text-amber-500 opacity-80" />
+          <p className="text-center max-w-[250px]">Cost tracking information will appear here when available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Extract data with defaults
+  const { 
+    daily = 0, 
+    monthly = 0, 
+    dailyChange = 0, 
+    monthlyChange = 0,
+    breakdown = {},
+    averageRate = 0
+  } = costData;
+
+  // Format changes for display
+  const formattedDailyChange = formatPercentChange(dailyChange);
+  const formattedMonthlyChange = formatPercentChange(monthlyChange);
+  
+  // Calculate total cost for breakdown chart
+  const totalCost = Object.values(breakdown).reduce((sum, curr) => sum + curr, 0);
 
   return (
-    <div className={`cost-tracker-panel ${className || ''}`}>
-      <div className="panel-header">
-        <h2>Cost Metrics</h2>
-        <div className="timeframe-selector">
-          <select
-            value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
+    <Card className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center">
+          <DollarSign className="mr-2 h-5 w-5 text-primary" />
+          Cost Tracker
+        </CardTitle>
+        <CardDescription>
+          Track and analyze your AI operation costs
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Main cost metrics with improved layout and responsive design */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in duration-300">
+          <div className="space-y-2 p-4 bg-primary/5 dark:bg-primary/10 rounded-lg">
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 text-muted-foreground mr-2" />
+              <div className="text-sm font-medium">Daily Cost</div>
+            </div>
+            <div className="text-2xl font-bold">{formatCurrency(daily)}</div>
+            
+            {formattedDailyChange && (
+              <div className="flex items-center gap-2">
+                <Badge 
+                  variant="outline" 
+                  className={`flex items-center ${getTrendColorClass(formattedDailyChange.isPositive)}`}
+                >
+                  {formattedDailyChange.isPositive ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
+                  {formattedDailyChange.value}%
+                </Badge>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">vs yesterday</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-2 p-4 bg-primary/5 dark:bg-primary/10 rounded-lg">
+            <div className="flex items-center">
+              <BanknoteIcon className="h-4 w-4 text-muted-foreground mr-2" />
+              <div className="text-sm font-medium">Monthly Cost</div>
+            </div>
+            <div className="text-2xl font-bold">{formatCurrency(monthly)}</div>
+            
+            {formattedMonthlyChange && (
+              <div className="flex items-center gap-2">
+                <Badge 
+                  variant="outline" 
+                  className={`flex items-center ${getTrendColorClass(formattedMonthlyChange.isPositive)}`}
+                >
+                  {formattedMonthlyChange.isPositive ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
+                  {formattedMonthlyChange.value}%
+                </Badge>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">vs last month</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Cost Overview */}
-      <div className="cost-overview">
-        <div className="cost-card primary">
-          <div className="cost-label">Total Cost</div>
-          <div className="cost-value">{formatCurrency(totalCost)}</div>
-        </div>
-        <div className="cost-card">
-          <div className="cost-label">Monthly Projected</div>
-          <div className="cost-value">{formatCurrency(projectedCost)}</div>
-        </div>
-        <div className="cost-card">
-          <div className="cost-label">Total Savings</div>
-          <div className="cost-value positive">{formatCurrency(savings.total)}</div>
-          <div className="savings-percentage">({savingsPercentage}% saved)</div>
-        </div>
-      </div>
-
-      {/* Cost Chart */}
-      <div className="cost-chart">
-        <h3>Cost History</h3>
-        <div className="chart-container">
-          {chartData.length > 0 ? (
-            <div className="bar-chart">
-              {chartData.map((value, index) => {
-                const maxValue = Math.max(...chartData);
-                const height = `${(value / maxValue) * 100}%`;
-
+        
+        <Separator className="my-1" />
+        
+        {/* Cost breakdown by model/category with improved visualization */}
+        {breakdown && Object.keys(breakdown).length > 0 && (
+          <div className="space-y-4 animate-in fade-in duration-300" style={{ animationDelay: "150ms" }}>
+            <div className="flex items-center">
+              <PieChart className="mr-2 h-4 w-4 text-primary" />
+              <h3 className="text-sm font-medium">Cost Breakdown</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {Object.entries(breakdown).map(([model, cost], index) => {
+                // Calculate percentage of total
+                const percentage = totalCost > 0 ? (cost / totalCost) * 100 : 0;
+                
+                // Generate a color based on the model name (for visual variety)
+                const colorVariants = [
+                  "primary/70",
+                  "blue-500/70",
+                  "emerald-500/70",
+                  "violet-500/70",
+                  "amber-500/70",
+                  "pink-500/70"
+                ];
+                const colorClass = colorVariants[index % colorVariants.length];
+                
                 return (
-                  <div key={index} className="chart-bar-container">
-                    <div
-                      className="chart-bar"
-                      style={{ height }}
-                      title={`${formatCurrency(value)}`}
-                    />
-                    <div className="chart-label">{index + 1}</div>
+                  <div 
+                    key={model} 
+                    className="relative animate-in fade-in slide-in-from-bottom-1 duration-300" 
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center">
+                        <div className={`h-3 w-3 rounded-full bg-${colorClass} mr-2`}></div>
+                        <span className="text-sm font-medium">{model}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold">{formatCurrency(cost)}</span>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
+                          {percentage.toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-${colorClass} rounded-full transition-all duration-1000 ease-out`} 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="no-data">No historical data available</div>
+          </div>
+        )}
+        
+        <Separator className="my-1" />
+        
+        {/* Rate information with improved visual design */}
+        <div className="rounded-lg bg-muted/50 dark:bg-muted/20 p-4 animate-in fade-in duration-300" style={{ animationDelay: "300ms" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" />
+              <span className="font-medium text-sm">Average Rate</span>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="font-medium">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20">
+                    {formatCurrencyAuto(averageRate)} / 1K tokens
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Average cost per 1,000 tokens across all models</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          {costData.projectedMonthlyCost && (
+            <div className="mt-4 flex flex-col space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center">
+                  <Clock className="mr-1 h-3 w-3" />
+                  Projected Monthly Cost:
+                </span>
+                <span className="font-medium text-sm">
+                  {formatCurrency(costData.projectedMonthlyCost)}
+                </span>
+              </div>
+              
+              {/* Add visual representation for projected cost */}
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary/60 rounded-full transition-all duration-1000"
+                  style={{ 
+                    width: `${Math.min(100, (costData.projectedMonthlyCost / (monthly || 1)) * 100)}%` 
+                  }}
+                ></div>
+              </div>
+              
+              <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                <span>Current: {formatCurrency(monthly)}</span>
+                <span>Projected: {formatCurrency(costData.projectedMonthlyCost)}</span>
+              </div>
+            </div>
           )}
         </div>
-      </div>
-
-      {/* Cost Breakdown */}
-      <div className="cost-breakdowns">
-        {/* Cost by Model */}
-        <div className="cost-breakdown">
-          <h3>Cost by Model</h3>
-          <div className="breakdown-items">
-            {Object.keys(byModel).length > 0 ? (
-              Object.entries(byModel).map(([model, cost]) => {
-                // Format model name for display
-                const displayName = model.split('-').pop();
-
-                // Calculate percentage of total cost
-                const percentage = totalCost > 0 ? Math.round((cost / totalCost) * 100) : 0;
-
-                return (
-                  <div key={model} className="breakdown-item">
-                    <div className="item-info">
-                      <div className="item-name">{displayName}</div>
-                      <div className="item-value">{formatCurrency(cost)}</div>
-                    </div>
-                    <div className="item-bar-container">
-                      <div
-                        className="item-bar"
-                        style={{ width: `${percentage}%` }}
-                      />
-                      <div className="item-percentage">{percentage}%</div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="no-data">No model cost data available</div>
-            )}
-          </div>
-        </div>
-
-        {/* Savings Breakdown */}
-        <div className="cost-breakdown">
-          <h3>Savings Breakdown</h3>
-          <div className="breakdown-items">
-            {savings && Object.keys(savings).filter(key => key !== 'total').length > 0 ? (
-              Object.entries(savings)
-                .filter(([key]) => key !== 'total')
-                .map(([savingType, amount]) => {
-                  // Format saving type for display
-                  const displayName = savingType.charAt(0).toUpperCase() + savingType.slice(1);
-
-                  // Calculate percentage of total savings
-                  const percentage = savings.total > 0 ? Math.round((amount / savings.total) * 100) : 0;
-
-                  return (
-                    <div key={savingType} className="breakdown-item">
-                      <div className="item-info">
-                        <div className="item-name">{displayName}</div>
-                        <div className="item-value positive">{formatCurrency(amount)}</div>
-                      </div>
-                      <div className="item-bar-container">
-                        <div
-                          className="item-bar savings"
-                          style={{ width: `${percentage}%` }}
-                        />
-                        <div className="item-percentage">{percentage}%</div>
-                      </div>
-                    </div>
-                  );
-                })
-            ) : (
-              <div className="no-data">No savings data available</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <StyledJsx>{`
-        .cost-tracker-panel {
-          background-color: var(--card-background);
-          border-radius: var(--border-radius-md);
-          box-shadow: var(--shadow-sm);
-          padding: 1.5rem;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .panel-header h2 {
-          margin: 0;
-          font-size: 1.25rem;
-          font-weight: 600;
-        }
-
-        .timeframe-selector select {
-          padding: 0.375rem 0.75rem;
-          border-radius: var(--border-radius-sm);
-          border: 1px solid var(--border-color);
-          background-color: var(--background-color);
-          font-size: 0.875rem;
-          cursor: pointer;
-        }
-
-        .cost-overview {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .cost-card {
-          padding: 1rem;
-          background-color: var(--background-color);
-          border-radius: var(--border-radius-sm);
-          text-align: center;
-        }
-
-        .cost-card.primary {
-          background-color: var(--primary-light);
-        }
-
-        .cost-label {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          margin-bottom: 0.5rem;
-        }
-
-        .cost-value {
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-
-        .cost-value.positive {
-          color: var(--success-color);
-        }
-
-        .savings-percentage {
-          font-size: 0.75rem;
-          color: var(--success-color);
-          margin-top: 0.25rem;
-        }
-
-        .cost-chart {
-          margin-bottom: 1.5rem;
-        }
-
-        h3 {
-          font-size: 1rem;
-          font-weight: 500;
-          margin: 0 0 1rem 0;
-        }
-
-        .chart-container {
-          height: 8rem;
-          padding: 0.5rem 0;
-        }
-
-        .bar-chart {
-          display: flex;
-          align-items: flex-end;
-          height: 100%;
-          gap: 0.25rem;
-        }
-
-        .chart-bar-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          height: 100%;
-        }
-
-        .chart-bar {
-          width: 100%;
-          background-color: var(--primary-color);
-          border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
-          transition: height 0.3s ease;
-          min-height: 4px;
-        }
-
-        .chart-label {
-          font-size: 0.625rem;
-          color: var(--text-secondary);
-          margin-top: 0.25rem;
-        }
-
-        .no-data {
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-secondary);
-          font-size: 0.875rem;
-        }
-
-        .cost-breakdowns {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1.5rem;
-        }
-
-        .breakdown-items {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .breakdown-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .item-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: baseline;
-        }
-
-        .item-name {
-          font-size: 0.875rem;
-        }
-
-        .item-value {
-          font-size: 0.875rem;
-          font-weight: 500;
-        }
-
-        .item-value.positive {
-          color: var(--success-color);
-        }
-
-        .item-bar-container {
-          height: 0.5rem;
-          background-color: var(--background-color);
-          border-radius: var(--border-radius-sm);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .item-bar {
-          height: 100%;
-          background-color: var(--primary-color);
-          border-radius: var(--border-radius-sm);
-          transition: width 0.3s ease;
-        }
-
-        .item-bar.savings {
-          background-color: var(--success-color);
-        }
-
-        .item-percentage {
-          position: absolute;
-          right: 0.25rem;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 0.625rem;
-          font-weight: 600;
-          color: var(--text-color);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .cost-overview {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-          }
-        }
-      `}</StyledJsx>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

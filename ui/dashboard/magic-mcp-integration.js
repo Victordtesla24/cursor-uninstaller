@@ -579,20 +579,57 @@ const updateTokenBudget = async (budgetType, value) => {
   }
 };
 
-// Export all the functions at the end
-module.exports = {
-  __setupTestMode,
-  useMagicMcpDashboard,
-  isMcpAvailable,
-  fetchDashboardData,
-  refreshDashboardData,
-  updateSelectedModel,
-  updateSetting,
-  updateTokenBudget,
-  initializeDashboard
+/**
+ * Helper function to use Puppeteer MCP server
+ * @param {string} toolName - The Puppeteer tool to use
+ * @param {object} args - Arguments to pass to the tool
+ * @returns {Promise<any>} Result of the tool call
+ */
+const usePuppeteerMcp = async (toolName, args) => {
+  try {
+    if (!window.__MCP_CLIENT) {
+      throw new Error("MCP client not available");
+    }
+
+    console.log(`Using Puppeteer MCP tool: ${toolName}`, args);
+    const result = await window.__MCP_CLIENT.useTool('puppeteer', toolName, args);
+    return result;
+  } catch (error) {
+    console.error(`Error using Puppeteer MCP tool ${toolName}:`, error);
+    throw error;
+  }
 };
 
-// Export internal functions for testing
+/**
+ * Take a screenshot of the current page or an element
+ * @param {object} options - Screenshot options (name, selector, width, height)
+ * @returns {Promise<string>} Screenshot data URL
+ */
+const takeScreenshot = async (options = {}) => {
+  try {
+    return await usePuppeteerMcp('puppeteer_screenshot', options);
+  } catch (error) {
+    console.error('Error taking screenshot:', error);
+    throw error;
+  }
+};
+
+/**
+ * Navigate to a URL using Puppeteer
+ * @param {string} url - URL to navigate to
+ * @returns {Promise<boolean>} Success status
+ */
+const navigateToUrl = async (url) => {
+  try {
+    await usePuppeteerMcp('puppeteer_navigate', { url });
+    return true;
+  } catch (error) {
+    console.error(`Error navigating to ${url}:`, error);
+    return false;
+  }
+};
+
+// Export all the functions 
 module.exports = {
   __setupTestMode,
   safeJsonParse,
@@ -604,5 +641,8 @@ module.exports = {
   initializeDashboard,
   refreshDashboardData,
   updateSetting,
-  updateTokenBudget
+  updateTokenBudget,
+  usePuppeteerMcp,
+  takeScreenshot,
+  navigateToUrl
 };

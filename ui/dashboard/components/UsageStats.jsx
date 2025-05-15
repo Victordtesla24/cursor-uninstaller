@@ -7,7 +7,7 @@ import React, { useState } from 'react';
  * Shows historical data, usage breakdowns, and usage patterns
  * Implements interactive charts and data visualizations
  */
-export const UsageStats = ({ usageData = {}, className = '' }) => {
+export default function UsageStats({ usageData = {}, className = '' }) {
   const [viewMode, setViewMode] = useState('daily');
 
   // Format large numbers with comma separators
@@ -569,6 +569,4 @@ export const UsageStats = ({ usageData = {}, className = '' }) => {
       `}</style>
     </div>
   );
-};
-
-export default UsageStats;
+}

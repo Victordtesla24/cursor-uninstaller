@@ -1,332 +1,631 @@
 import {
+  refreshData,
+  updateSelectedModel,
+  updateSetting,
+  updateTokenBudget,
+  addEventListener,
+  removeEventListener,
+  cleanup,
+  delay,
+  safeCheckMcp,
   use_mcp_tool,
   access_mcp_resource,
   subscribeToMcpUpdates,
   batchMcpResources,
   isMcpAvailable,
-  initializeMcpClient
+  initializeMcpClient,
+  initialize
 } from '../lib/enhancedDashboardApi';
 
-// Mock the actual implementation to avoid async delays
-jest.mock('../lib/enhancedDashboardApi', () => {
-  // Get the actual implementation
-  const actualModule = jest.requireActual('../lib/enhancedDashboardApi');
+import * as dashboardApi from '../lib/enhancedDashboardApi';
 
-  // Override delay function to make tests run faster
-  const mockDelay = jest.fn(() => Promise.resolve());
-
-  return {
-    ...actualModule,
-    delay: mockDelay
-  };
+// Mock the fetch API
+global.fetch = jest.fn().mockResolvedValue({
+  ok: true, 
+  json: jest.fn().mockResolvedValue({})
 });
 
-// Spy on console methods to reduce noise
-beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
-});
+// Create mock data for testing
+const mockDashboardData = {
+  tokens: {
+    total: { used: 100000, saved: 50000, budgeted: 200000 }
+  },
+  models: {
+    selected: 'test-model',
+    available: [{ id: 'test-model', name: 'Test Model' }]
+  },
+  settings: {
+    darkMode: false
+  }
+};
 
-afterAll(() => {
-  jest.restoreAllMocks();
-});
+// Mock the mockApi module
+jest.mock('../mockApi.js', () => ({
+  mockApi: {
+    fetchDashboardData: jest.fn().mockResolvedValue(mockDashboardData),
+    updateSelectedModel: jest.fn().mockResolvedValue(true),
+    updateSetting: jest.fn().mockResolvedValue(true),
+    updateTokenBudget: jest.fn().mockResolvedValue(true),
+  }
+}));
 
-describe('Enhanced Dashboard API', () => {
-  // Store original window object
-  const originalWindow = global.window;
-  let mockMcpClient;
+// Import the mocked version
+import * as mockApiModule from '../mockApi.js';
+
+// Mock window object and MCP client
+const originalWindow = { ...window };
+const mockMcpClient = {
+  useTool: jest.fn().mockResolvedValue({ success: true, data: 'tool_data' }),
+  accessResource: jest.fn().mockResolvedValue({ result: mockDashboardData }),
+  subscribe: jest.fn().mockReturnValue(() => {}),
+  unsubscribe: jest.fn(),
+  batchResources: jest.fn().mockResolvedValue({
+    '/api/data1': { result: 'data1' },
+    '/api/data2': { result: 'data2' }
+  }),
+  dispose: jest.fn()
+};
+
+describe('Dashboard API Tests', () => {
+  let originalMCPClient;
+  let delaySpy;
+
+  beforeAll(() => {
+    originalMCPClient = window.__MCP_CLIENT;
+  });
 
   beforeEach(() => {
-    // Create fresh mock for each test
-    mockMcpClient = {
-      useTool: jest.fn().mockResolvedValue({ data: 'test-result' }),
-      accessResource: jest.fn().mockResolvedValue({ data: 'resource-data' }),
-      subscribe: jest.fn().mockReturnValue(() => {}),
-      batchResources: jest.fn().mockResolvedValue({
-        'test://uri1': { data: 'data1' },
-        'test://uri2': { data: 'data2' }
-      })
-    };
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    
+    // Explicitly reset mockApiModule functions to their default mocked state
+    // This is crucial because jest.restoreAllMocks() might not fully reset 
+    // the state of jest.fn()s defined within jest.mock declarations for all scenarios.
+    if (mockApiModule && mockApiModule.mockApi) {
+      if (mockApiModule.mockApi.fetchDashboardData) {
+        mockApiModule.mockApi.fetchDashboardData.mockReset().mockResolvedValue(mockDashboardData);
+      }
+      if (mockApiModule.mockApi.updateSelectedModel) {
+        mockApiModule.mockApi.updateSelectedModel.mockReset().mockResolvedValue(true);
+      }
+      if (mockApiModule.mockApi.updateSetting) {
+        mockApiModule.mockApi.updateSetting.mockReset().mockResolvedValue(true);
+      }
+      if (mockApiModule.mockApi.updateTokenBudget) {
+        mockApiModule.mockApi.updateTokenBudget.mockReset().mockResolvedValue(true);
+      }
+    }
 
-    // Set up window object before each test - ensure it's created as a new object
-    global.window = Object.create(null);
-    global.window.__MCP_CLIENT = mockMcpClient;
-    global.window.__MCP_INIT = jest.fn().mockResolvedValue(mockMcpClient);
+    const importedApiFunctions = { delay };
+    delaySpy = jest.spyOn(importedApiFunctions, 'delay').mockResolvedValue(undefined);
+
+    mockMcpClient.useTool.mockReset().mockResolvedValue({ success: true, data: 'tool_data' });
+    mockMcpClient.accessResource.mockReset().mockResolvedValue({ result: mockDashboardData });
+    mockMcpClient.subscribe.mockReset().mockReturnValue(() => {});
+    mockMcpClient.unsubscribe.mockReset();
+    
+    if (typeof mockMcpClient.batchResources !== 'function' || typeof mockMcpClient.batchResources.mockReset !== 'function') {
+      console.warn('mockMcpClient.batchResources was not a valid mock function, re-initializing in beforeEach. Type was: ' + typeof mockMcpClient.batchResources);
+      mockMcpClient.batchResources = jest.fn(); // Ensure it's a fresh Jest mock
+    }
+    mockMcpClient.batchResources.mockReset().mockResolvedValue({
+      '/api/data1': { result: 'data1' },
+      '/api/data2': { result: 'data2' }
+    });
+    mockMcpClient.dispose.mockReset();
+
+    if (typeof window !== 'undefined') {
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: mockMcpClient,
+        writable: true,
+        configurable: true,
+      });
+    } else {
+    }
+
+    jest.useFakeTimers();
   });
 
-  afterEach(() => {
-    // Restore window to its original state
-    global.window = originalWindow;
+  afterEach(async () => {
+    jest.clearAllTimers(); 
+    jest.useRealTimers();
+
+    if (typeof window !== 'undefined') {
+      if (originalMCPClient !== undefined) {
+        window.__MCP_CLIENT = originalMCPClient;
+      } else {
+        delete window.__MCP_CLIENT;
+      }
+    }
+    
+    if (delaySpy) {
+      delaySpy.mockRestore();
+    }
   });
 
-  describe('use_mcp_tool', () => {
-    test('successfully calls MCP tool', async () => {
-      // Re-mock the function to ensure it returns correct data
-      window.__MCP_CLIENT.useTool.mockResolvedValueOnce({ data: 'test-result' });
-
-      const result = await use_mcp_tool('test-server', 'test-tool', { param: 'value' });
-
-      expect(window.__MCP_CLIENT.useTool).toHaveBeenCalledWith('test-server', 'test-tool', { param: 'value' });
-      expect(result).toEqual({ data: 'test-result' });
-    });
-
-    test('retries when MCP tool fails', async () => {
-      // Mock implementation to fail once then succeed
-      window.__MCP_CLIENT.useTool
-        .mockRejectedValueOnce(new Error('Test error'))
-        .mockResolvedValueOnce({ data: 'retry-success' });
-
-      const result = await use_mcp_tool('test-server', 'test-tool', { param: 'value' });
-
-      expect(window.__MCP_CLIENT.useTool).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ data: 'retry-success' });
-    });
-
-    test('throws after max retries', async () => {
-      // Always reject
-      window.__MCP_CLIENT.useTool.mockRejectedValue(new Error('Persistent error'));
-
-      // Should throw after MAX_RETRIES attempts
-      await expect(use_mcp_tool('test-server', 'test-tool', { param: 'value' }))
-        .rejects.toThrow(/failed after/);
-    });
-
-    test('throws when MCP client not available', async () => {
-      // Temporarily remove MCP client
-      const tempClient = window.__MCP_CLIENT;
-      window.__MCP_CLIENT = undefined;
-
-      await expect(use_mcp_tool('test-server', 'test-tool', { param: 'value' }))
-        .rejects.toThrow('MCP client not available');
-
-      // Restore client for other tests
-      window.__MCP_CLIENT = tempClient;
-    });
-  });
-
-  describe('access_mcp_resource', () => {
-    test('successfully accesses MCP resource', async () => {
-      // Re-mock to ensure it returns correct data
-      window.__MCP_CLIENT.accessResource.mockResolvedValueOnce({ data: 'resource-data' });
-
-      const result = await access_mcp_resource('test-server', 'test://resource');
-
-      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledWith('test-server', 'test://resource');
-      expect(result).toEqual({ data: 'resource-data' });
-    });
-
-    test('retries when resource access fails', async () => {
-      // Mock implementation to fail once then succeed
-      window.__MCP_CLIENT.accessResource
-        .mockRejectedValueOnce(new Error('Test error'))
-        .mockResolvedValueOnce({ data: 'retry-success' });
-
-      const result = await access_mcp_resource('test-server', 'test://resource');
-
-      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ data: 'retry-success' });
-    });
-
-    test('throws after max retries', async () => {
-      // Always reject
-      window.__MCP_CLIENT.accessResource.mockRejectedValue(new Error('Persistent error'));
-
-      // Should throw after MAX_RETRIES attempts
-      await expect(access_mcp_resource('test-server', 'test://resource'))
-        .rejects.toThrow(/failed after/);
-    });
-
-    test('throws when MCP client not available', async () => {
-      // Temporarily remove MCP client
-      const tempClient = window.__MCP_CLIENT;
-      window.__MCP_CLIENT = undefined;
-
-      await expect(access_mcp_resource('test-server', 'test://resource'))
-        .rejects.toThrow('MCP client not available');
-
-      // Restore client for other tests
-      window.__MCP_CLIENT = tempClient;
-    });
-  });
-
-  describe('subscribeToMcpUpdates', () => {
-    test('subscribes to MCP updates', () => {
-      const callback = jest.fn();
-      const unsubscribe = subscribeToMcpUpdates('test://resource', callback);
-
-      expect(window.__MCP_CLIENT.subscribe).toHaveBeenCalledWith('test://resource', callback);
-      expect(typeof unsubscribe).toBe('function');
-    });
-
-    test('returns no-op function when MCP client not available', () => {
-      // Temporarily remove MCP client
-      const tempClient = window.__MCP_CLIENT;
-      window.__MCP_CLIENT = undefined;
-
-      const callback = jest.fn();
-      const unsubscribe = subscribeToMcpUpdates('test://resource', callback);
-
-      expect(typeof unsubscribe).toBe('function');
-      expect(() => unsubscribe()).not.toThrow();
-
-      // Restore client for other tests
-      window.__MCP_CLIENT = tempClient;
-    });
-  });
-
-  describe('batchMcpResources', () => {
-    test('batches multiple resource requests', async () => {
-      // Re-mock to ensure it returns correct data
-      window.__MCP_CLIENT.batchResources.mockResolvedValueOnce({
-        'test://uri1': { data: 'data1' },
-        'test://uri2': { data: 'data2' }
+  describe('MCP Utility Functions', () => {
+    describe('delay function', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
       });
 
-      const uris = ['test://uri1', 'test://uri2'];
-      const result = await batchMcpResources('test-server', uris);
-
-      expect(window.__MCP_CLIENT.batchResources).toHaveBeenCalledWith('test-server', uris);
-      expect(result).toEqual({
-        'test://uri1': { data: 'data1' },
-        'test://uri2': { data: 'data2' }
-      });
-    });
-
-    test('falls back to individual requests when batch function not available', async () => {
-      // Create a temporary client without batchResources
-      const tempClient = { ...window.__MCP_CLIENT };
-      delete tempClient.batchResources;
-
-      // Replace the client with our modified version
-      window.__MCP_CLIENT = tempClient;
-
-      // Mock individual resource access
-      window.__MCP_CLIENT.accessResource
-        .mockImplementation((server, uri) => {
-          if (uri === 'test://uri1') return Promise.resolve({ data: 'data1' });
-          if (uri === 'test://uri2') return Promise.resolve({ data: 'data2' });
-          return Promise.reject(new Error('Unknown URI'));
-        });
-
-      const uris = ['test://uri1', 'test://uri2'];
-      const result = await batchMcpResources('test-server', uris);
-
-      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({
-        'test://uri1': { data: 'data1' },
-        'test://uri2': { data: 'data2' }
+      test('delay creates a promise that resolves after specified time', async () => {
+        const mockFn = jest.fn();
+        const delayPromise = delay(100).then(mockFn);
+        
+        expect(mockFn).not.toHaveBeenCalled();
+        
+        await jest.advanceTimersByTimeAsync(100);
+        
+        expect(mockFn).toHaveBeenCalled();
       });
 
-      // Restore the original client
-      window.__MCP_CLIENT = mockMcpClient;
-    });
-
-    test('handles individual request failures in fallback mode', async () => {
-      // Create a temporary client without batchResources
-      const tempClient = { ...window.__MCP_CLIENT };
-      delete tempClient.batchResources;
-
-      // Replace the client with our modified version
-      window.__MCP_CLIENT = tempClient;
-
-      // Mock one request to fail
-      window.__MCP_CLIENT.accessResource
-        .mockImplementation((server, uri) => {
-          if (uri === 'test://uri1') return Promise.resolve({ data: 'data1' });
-          if (uri === 'test://uri2') return Promise.reject(new Error('Test error'));
-          return Promise.reject(new Error('Unknown URI'));
-        });
-
-      const uris = ['test://uri1', 'test://uri2'];
-      const result = await batchMcpResources('test-server', uris);
-
-      // The fallback mode should set failed requests to null
-      expect(result).toEqual({
-        'test://uri1': { data: 'data1' },
-        'test://uri2': null
+      afterEach(() => {
+        jest.useRealTimers();
       });
-
-      // Restore the original client
-      window.__MCP_CLIENT = mockMcpClient;
     });
-  });
+    
+    test('safeCheckMcp returns true when MCP client is available', () => {
+      const originalClient = window.__MCP_CLIENT;
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true, configurable: true });
+      expect(safeCheckMcp()).toBe(true);
+      Object.defineProperty(window, '__MCP_CLIENT', { value: originalClient, writable: true, configurable: true });
+    });
+    
+    test('safeCheckMcp returns false when MCP client is unavailable', () => {
+      const originalClient = window.__MCP_CLIENT;
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
+      expect(safeCheckMcp()).toBe(false);
+      if (originalClient !== undefined) {
+        Object.defineProperty(window, '__MCP_CLIENT', { value: originalClient, writable: true, configurable: true });
+      } else {
+        delete window.__MCP_CLIENT;
+      }
+    });
+    
+    test('safeCheckMcp handles errors gracefully', () => {
+      const originalClient = window.__MCP_CLIENT;
+      const throwingClient = {
+        get useTool() { throw new Error('Simulated useTool access error'); },
+        get accessResource() { throw new Error('Simulated accessResource access error'); }
+      };
 
-  describe('isMcpAvailable', () => {
-    test('returns true when MCP client is available', () => {
-      // Ensure the client is properly set up
-      expect(window.__MCP_CLIENT).toBeDefined();
-      expect(typeof window.__MCP_CLIENT.useTool).toBe('function');
-      expect(typeof window.__MCP_CLIENT.accessResource).toBe('function');
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: throwingClient,
+        writable: true,
+        configurable: true
+      });
+      
+      expect(safeCheckMcp()).toBe(false);
 
-      // Now test the function
+      if (originalClient !== undefined) {
+        Object.defineProperty(window, '__MCP_CLIENT', { value: originalClient, writable: true, configurable: true });
+      } else {
+        delete window.__MCP_CLIENT;
+      }
+    });
+    
+    test('isMcpAvailable returns true when MCP client is available', () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true, configurable: true });
       expect(isMcpAvailable()).toBe(true);
     });
-
-    test('returns false when MCP client is not available', () => {
-      // Temporarily remove MCP client
-      const tempClient = window.__MCP_CLIENT;
-      window.__MCP_CLIENT = undefined;
-
+    
+    test('isMcpAvailable returns false when MCP client is unavailable', () => {
+      const originalClient = window.__MCP_CLIENT;
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
       expect(isMcpAvailable()).toBe(false);
-
-      // Restore client for other tests
-      window.__MCP_CLIENT = tempClient;
+      if (originalClient !== undefined) {
+        Object.defineProperty(window, '__MCP_CLIENT', { value: originalClient, writable: true, configurable: true });
+      } else {
+        delete window.__MCP_CLIENT;
+      }
+    });
+    
+    test('initializeMcpClient initializes MCP client successfully', async () => {
+      const originalMCPInit = window.__MCP_INIT;
+      window.__MCP_INIT = jest.fn().mockResolvedValue(mockMcpClient);
+      
+      const result = await initializeMcpClient();
+      
+      expect(window.__MCP_INIT).toHaveBeenCalled();
+      expect(result).toBe(true);
+      window.__MCP_INIT = originalMCPInit;
+    });
+    
+    test('initializeMcpClient handles initialization failure', async () => {
+      const originalMCPInit = window.__MCP_INIT;
+      window.__MCP_INIT = jest.fn().mockRejectedValueOnce(new Error('Init error'));
+      
+      const result = await initializeMcpClient();
+      
+      expect(result).toBe(false);
+      window.__MCP_INIT = originalMCPInit;
+    });
+    
+    test('initializeMcpClient handles missing initialization function', async () => {
+      const originalMCPInit = window.__MCP_INIT;
+      Object.defineProperty(window, '__MCP_INIT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
+      
+      const result = await initializeMcpClient();
+      
+      expect(result).toBe(false);
+      window.__MCP_INIT = originalMCPInit;
+    });
+  });
+  
+  describe('MCP Tool Functions', () => {
+    beforeEach(() => {
+      const importedApiFunctions = { delay };
+      delaySpy = jest.spyOn(importedApiFunctions, 'delay');
+      delaySpy.mockResolvedValue(undefined);
+      jest.useFakeTimers();
     });
 
-    test('returns false when MCP client lacks required methods', () => {
-      // Create a client without the required methods
-      const tempClient = { ...window.__MCP_CLIENT };
-      delete tempClient.useTool;
+    afterEach(() => {
+      if (delaySpy) {
+        delaySpy.mockRestore();
+        delaySpy = null;
+      }
+      jest.useRealTimers();
+    });
 
-      // Replace the client with our modified version
-      window.__MCP_CLIENT = tempClient;
+    test('use_mcp_tool calls the MCP client with correct parameters', async () => {
+      const args = { param1: 'value1' };
+      mockMcpClient.useTool.mockResolvedValue({ success: true, data: 'tool_data' });
+      await use_mcp_tool('server.tool', args);
+      expect(mockMcpClient.useTool).toHaveBeenCalledWith('server.tool', args, expect.anything());
+    });
+    
+    test('use_mcp_tool throws error when MCP client is unavailable', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
+      
+      await expect(use_mcp_tool('server', 'tool', {})).rejects.toThrow('MCP client not available');
+    });
+    
+    test('use_mcp_tool retries on failure', async () => {
+      jest.setTimeout(15000);
+      window.__MCP_CLIENT.useTool
+        .mockRejectedValueOnce(new Error('Test error attempt 1'))
+        .mockRejectedValueOnce(new Error('Test error attempt 2'))
+        .mockResolvedValueOnce({ success: true, data: 'final_data' });
 
-      expect(isMcpAvailable()).toBe(false);
+      const resultPromise = use_mcp_tool('server.tool', { param: 'value' });
+      
+      await jest.advanceTimersByTimeAsync(500);
+      await jest.advanceTimersByTimeAsync(1000);
+      
+      const result = await resultPromise;
 
-      // Restore the original client
-      window.__MCP_CLIENT = mockMcpClient;
+      expect(result).toEqual({ success: true, data: 'final_data' });
+      expect(window.__MCP_CLIENT.useTool).toHaveBeenCalledTimes(3);
+      if(delaySpy) expect(delaySpy).toHaveBeenCalledTimes(2);
+    });
+    
+    test('use_mcp_tool throws after max retries', async () => {
+      jest.setTimeout(15000);
+      const error1 = new Error('Retry 1');
+      const error2 = new Error('Retry 2');
+      const error3 = new Error('Retry 3');
+      
+      window.__MCP_CLIENT.useTool
+        .mockRejectedValueOnce(error1)
+        .mockRejectedValueOnce(error2)
+        .mockRejectedValueOnce(error3);
+
+      const toolPromise = use_mcp_tool('server.tool', { param: 'value' });
+
+      await jest.advanceTimersByTimeAsync(500 * 3);
+
+      await expect(toolPromise).rejects.toThrow('Retry 3');
+      expect(window.__MCP_CLIENT.useTool).toHaveBeenCalledTimes(3);
+      if(delaySpy) expect(delaySpy).toHaveBeenCalledTimes(2);
+    });
+    
+    test('access_mcp_resource calls the MCP client with correct parameters', async () => {
+      await access_mcp_resource('server', '/uri');
+      
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledWith('server', '/uri');
+    });
+    
+    test('access_mcp_resource throws error when MCP client is unavailable', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
+      
+      await expect(access_mcp_resource('server', '/uri')).rejects.toThrow('MCP client not available');
+    });
+    
+    test('subscribeToMcpUpdates returns unsubscribe function', () => {
+      const callback = jest.fn();
+      const unsubscribe = subscribeToMcpUpdates('/resource', callback);
+      
+      expect(typeof unsubscribe).toBe('function');
+      expect(window.__MCP_CLIENT.subscribe).toHaveBeenCalledWith('/resource', callback);
+    });
+    
+    test('subscribeToMcpUpdates handles unavailable MCP client', () => {
+      Object.defineProperty(window, '__MCP_CLIENT', {
+        value: undefined,
+        writable: true,
+        configurable: true
+      });
+      
+      const callback = jest.fn();
+      const unsubscribe = subscribeToMcpUpdates('/resource', callback);
+      
+      expect(typeof unsubscribe).toBe('function');
+      unsubscribe();
+    });
+    
+    test('batchMcpResources uses native batch when available', async () => {
+      mockMcpClient.batchResources.mockResolvedValue({
+        '/api/data1': { result: 'data1' },
+        '/api/data2': { result: 'data2' }
+      });
+      
+      const result = await batchMcpResources('server', ['/uri1', '/uri2']);
+      
+      expect(window.__MCP_CLIENT.batchResources).toHaveBeenCalledWith('server', ['/uri1', '/uri2']);
+      expect(result).toEqual({
+        '/api/data1': { result: 'data1' },
+        '/api/data2': { result: 'data2' }
+      });
+    });
+    
+    test('batchMcpResources falls back to individual requests', async () => {
+      const originalBatchResources = window.__MCP_CLIENT.batchResources;
+      delete window.__MCP_CLIENT.batchResources;
+      
+      await batchMcpResources('server', ['/uri1', '/uri2']);
+      
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledTimes(2);
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledWith('server', '/uri1');
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledWith('server', '/uri2');
+      
+      window.__MCP_CLIENT.batchResources = originalBatchResources;
+    });
+    
+    test('batchMcpResources handles errors in individual requests', async () => {
+      jest.setTimeout(20000);
+      
+      const originalBatchResourcesFn = window.__MCP_CLIENT.batchResources;
+      delete window.__MCP_CLIENT.batchResources;
+
+      const resources = ['/uri1', '/uri2', '/uri3'];
+      
+      window.__MCP_CLIENT.accessResource
+        .mockResolvedValueOnce({ result: { data: 'data1' } })
+        .mockRejectedValueOnce(new Error('Resource 2 failed'))
+        .mockResolvedValueOnce({ result: { data: 'data3' } });
+      
+      const results = await batchMcpResources('server', resources);
+
+      expect(results['/uri1']).toEqual({ data: 'data1' });
+      expect(results['/uri2'] instanceof Error).toBe(true);
+      expect(results['/uri2'].message).toBe('Resource 2 failed');
+      expect(results['/uri3']).toEqual({ data: 'data3' });
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledTimes(3);
+
+      window.__MCP_CLIENT.batchResources = originalBatchResourcesFn;
+      
+      jest.setTimeout(10000);
     });
   });
 
-  describe('initializeMcpClient', () => {
-    test('initializes MCP client successfully', async () => {
-      // Temporarily remove MCP client to test initialization
-      window.__MCP_CLIENT = undefined;
+  describe('Core API Functions', () => {
+    test('refreshData uses MCP client when connected', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.accessResource.mockResolvedValue({ result: { mcpData: 'from_mcp' } });
+      
+      const data = await refreshData(false);
+      
+      expect(mockMcpClient.accessResource).toHaveBeenCalledWith('cline-dashboard', '/api/dashboard/data');
+      expect(mockApiModule.mockApi.fetchDashboardData).not.toHaveBeenCalled();
+      expect(data).toEqual({ mcpData: 'from_mcp' });
+    });
+    
+    test('refreshData uses mock data when requested', async () => {
+      mockApiModule.mockApi.fetchDashboardData.mockResolvedValue({ mockData: 'from_mock' });
+      
+      const data = await refreshData(true);
+      
+      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalled();
+      expect(mockMcpClient.accessResource).not.toHaveBeenCalled();
+      expect(data).toEqual({ mockData: 'from_mock' });
+    });
+    
+    test('refreshData uses cache when available and fresh', async () => {
+      mockMcpClient.accessResource.mockResolvedValue({ result: { data: 'cached_mcp_data' } });
+      
+      console.log('Cache Test - Before first refreshData, safeCheckMcp():', safeCheckMcp()); // DIAGNOSTIC
+      
+      // Call 1: Prime cache
+      await refreshData(false); 
+      
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1); // Check priming call
+      expect(mockMcpClient.accessResource).toHaveBeenCalledWith('cline-dashboard', '/api/dashboard/data'); // Verify details
+      // At this point, cache should contain { data: 'cached_mcp_data' }
+      
+      mockMcpClient.accessResource.mockClear(); 
+      mockApiModule.mockApi.fetchDashboardData.mockClear(); // Clear calls, not the mockResolvedValue above
 
-      // Mock the initialization function to return our mock client
-      window.__MCP_INIT.mockResolvedValueOnce(mockMcpClient);
+      const data = await refreshData(false); // Get from cache
+      
+      expect(mockMcpClient.accessResource).not.toHaveBeenCalled();
+      expect(mockApiModule.mockApi.fetchDashboardData).not.toHaveBeenCalled(); 
+      expect(data).toEqual({ data: 'cached_mcp_data' }); 
+    });
+    
+    test('refreshData refreshes when cache is stale', async () => {
+      jest.useFakeTimers();
+      mockMcpClient.accessResource.mockResolvedValueOnce({ result: { data: 'initial_mcp_data' } });
+      await refreshData(false);
+      
+      jest.advanceTimersByTime(300001); 
+      
+      mockMcpClient.accessResource.mockResolvedValueOnce({ result: { data: 'refreshed_mcp_data' } });
+      const data = await refreshData(false);
+      
+      expect(mockMcpClient.accessResource).toHaveBeenCalledWith('cline-dashboard', '/api/dashboard/data');
+      expect(data).toEqual({ data: 'refreshed_mcp_data' });
+      jest.useRealTimers();
+    });
+    
+    test('updateSelectedModel calls the MCP client', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.useTool.mockResolvedValue({ success: true, data: { updated: true } });
+      
+      const result = await updateSelectedModel('new-model-id', false);
+      
+      expect(mockMcpClient.useTool).toHaveBeenCalledWith('cline-dashboard', 'update_model', { modelId: 'new-model-id' });
+      expect(mockApiModule.mockApi.updateSelectedModel).not.toHaveBeenCalled();
+      expect(result).toEqual({ updated: true });
+    });
+    
+    test('updateSetting calls the MCP client', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.useTool.mockResolvedValue({ success: true, data: { updated: true } });
 
-      const result = await initializeMcpClient({ apiKey: 'test-key' });
+      const result = await updateSetting('darkMode', true, false);
 
-      expect(window.__MCP_INIT).toHaveBeenCalledWith({ apiKey: 'test-key' });
+      expect(mockMcpClient.useTool).toHaveBeenCalledWith('cline-dashboard', 'update_setting', { setting: 'darkMode', value: true });
+      expect(mockApiModule.mockApi.updateSetting).not.toHaveBeenCalled();
+      expect(result).toEqual({ updated: true });
+    });
+    
+    test('updateTokenBudget calls the MCP client', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.useTool.mockResolvedValue({ success: true, data: { updated: true } });
+
+      const result = await updateTokenBudget('completion', 50000, false);
+      
+      expect(mockMcpClient.useTool).toHaveBeenCalledWith('cline-dashboard', 'update_budget', { budgetType: 'completion', value: 50000 });
+      expect(mockApiModule.mockApi.updateTokenBudget).not.toHaveBeenCalled();
+      expect(result).toEqual({ updated: true });
+    });
+    
+    test('addEventListener registers and removeEventListener unregisters a listener', () => {
+      const mockListener = jest.fn();
+      const eventType = 'dataRefreshed';
+
+      const unsubscribe = addEventListener(eventType, mockListener);
+      expect(typeof unsubscribe).toBe('function');
+
+      removeEventListener(eventType, mockListener);
+    });
+    
+    test('cleanup disposes MCP client and clears refresh interval', () => {
+      jest.useFakeTimers();
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      initialize(1000);
+      
+      cleanup();
+      
+      if (typeof mockMcpClient.dispose === 'function') {
+          expect(mockMcpClient.dispose).toHaveBeenCalledTimes(1);
+      }
+      jest.useRealTimers();
+    });
+    
+    test('initialize sets up refresh interval', async () => {
+      jest.useFakeTimers();
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.accessResource.mockResolvedValue({ result: { mcpData: 'initial_load' }});
+
+      initialize(10000);
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1);
+
+      mockMcpClient.accessResource.mockResolvedValue({ result: { mcpData: 'refreshed_data' }});
+      jest.advanceTimersByTime(10000);
+      await Promise.resolve();
+
+      expect(mockMcpClient.accessResource.mock.calls.length).toBeGreaterThanOrEqual(2);
+      
+      cleanup();
+      jest.useRealTimers();
+    });
+
+    test('initialize with 0 interval does not set up auto-refresh', async () => {
+      jest.useFakeTimers();
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.accessResource.mockResolvedValue({ result: { mcpData: 'initial_load' }});
+
+      initialize(0);
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1);
+
+      mockMcpClient.accessResource.mockClear();
+      jest.advanceTimersByTime(20000);
+      await Promise.resolve(); 
+      
+      expect(mockMcpClient.accessResource).not.toHaveBeenCalled();
+      
+      cleanup();
+      jest.useRealTimers();
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('refreshData falls back to mock data when MCP fails', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.accessResource.mockRejectedValue(new Error('MCP Down'));
+      mockApiModule.mockApi.fetchDashboardData.mockResolvedValue({ mockData: 'fallback_data' });
+
+      const data = await refreshData(false);
+
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1);
+      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalledTimes(1);
+      expect(data).toEqual({ mockData: 'fallback_data' });
+    });
+    
+    test('refreshData returns cached data when all sources fail', async () => {
+      mockMcpClient.accessResource.mockResolvedValueOnce({ result: { data: 'good_cached_data' }});
+      await refreshData(false);
+      mockMcpClient.accessResource.mockClear();
+
+      mockMcpClient.accessResource.mockRejectedValue(new Error('MCP Down Again'));
+      mockApiModule.mockApi.fetchDashboardData.mockRejectedValue(new Error('Mock API Down'));
+
+      const data = await refreshData(false);
+      expect(data).toEqual({ data: 'good_cached_data' });
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1);
+      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalledTimes(1);
+    });
+    
+    test('refreshData throws when all sources fail and no cache', async () => {
+      mockMcpClient.accessResource.mockRejectedValue(new Error('MCP Down'));
+      mockApiModule.mockApi.fetchDashboardData.mockRejectedValue(new Error('Mock API Down'));
+
+      await expect(refreshData(false)).rejects.toThrow('Failed to fetch dashboard data from all sources.');
+    });
+    
+    test('updateSelectedModel falls back to mock when MCP fails', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.useTool.mockRejectedValue(new Error('MCP update failed'));
+      mockApiModule.mockApi.updateSelectedModel.mockResolvedValue(true);
+
+      const result = await updateSelectedModel('model-x', false);
+
+      expect(mockMcpClient.useTool).toHaveBeenCalledTimes(1);
+      expect(mockApiModule.mockApi.updateSelectedModel).toHaveBeenCalledWith('model-x');
       expect(result).toBe(true);
-      expect(window.__MCP_CLIENT).toBeDefined();
-    });
-
-    test('returns false when initialization fails', async () => {
-      // Temporarily remove MCP client to test initialization
-      window.__MCP_CLIENT = undefined;
-
-      // Make the initialization fail
-      window.__MCP_INIT.mockRejectedValueOnce(new Error('Init failed'));
-
-      const result = await initializeMcpClient({ apiKey: 'test-key' });
-
-      expect(result).toBe(false);
-    });
-
-    test('returns false when MCP_INIT is not available', async () => {
-      // Temporarily remove MCP client and init function
-      window.__MCP_CLIENT = undefined;
-      const tempInit = window.__MCP_INIT;
-      window.__MCP_INIT = undefined;
-
-      const result = await initializeMcpClient({ apiKey: 'test-key' });
-
-      expect(result).toBe(false);
-
-      // Restore init function
-      window.__MCP_INIT = tempInit;
     });
   });
 });

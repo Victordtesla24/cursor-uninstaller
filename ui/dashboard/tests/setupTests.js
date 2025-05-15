@@ -1,6 +1,7 @@
 import { TextEncoder } from "util";
 import React from "react";
 import "@testing-library/jest-dom";
+import * as componentMocks from "./mocks/componentMocks";
 
 // Create a mock for the act function in a way that doesn't reference React directly
 const mockAct = (callback) => {
@@ -68,6 +69,80 @@ jest.mock("react-dom", () => {
   return originalModule;
 });
 
+// Mock UI components from @/components/ui/...
+jest.mock("../../../components/ui/card", () => {
+  const Card = ({ className, children, ...props }) => (
+    <div className={`mock-card ${className || ''}`} {...props}>{children}</div>
+  );
+  const CardHeader = ({ className, children, ...props }) => (
+    <div className={`mock-card-header ${className || ''}`} {...props}>{children}</div>
+  );
+  const CardTitle = ({ className, children, ...props }) => (
+    <h3 className={`mock-card-title ${className || ''}`} {...props}>{children}</h3>
+  );
+  const CardDescription = ({ className, children, ...props }) => (
+    <p className={`mock-card-description ${className || ''}`} {...props}>{children}</p>
+  );
+  const CardContent = ({ className, children, ...props }) => (
+    <div className={`mock-card-content ${className || ''}`} {...props}>{children}</div>
+  );
+  const CardFooter = ({ className, children, ...props }) => (
+    <div className={`mock-card-footer ${className || ''}`} {...props}>{children}</div>
+  );
+  return { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+});
+
+jest.mock("../../../components/ui/tooltip", () => {
+  const TooltipProvider = ({ children }) => <>{children}</>;
+  const Tooltip = ({ children }) => <>{children}</>;
+  const TooltipTrigger = ({ className, children, ...props }) => <span className={`mock-tooltip-trigger ${className || ''}`} {...props}>{children}</span>;
+  const TooltipContent = ({ className, children, ...props }) => <div className={`mock-tooltip-content ${className || ''}`} {...props}>{children}</div>;
+  return { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent };
+});
+
+jest.mock("../../../components/ui/badge", () => ({
+  Badge: ({ className, children, ...props }) => <div className={`mock-badge ${className || ''}`} {...props}>{children}</div>
+}));
+
+jest.mock("../../../components/ui/separator", () => ({
+  Separator: ({ className, ...props }) => <hr className={`mock-separator ${className || ''}`} {...props} />
+}));
+
+jest.mock("../../../components/ui/button", () => ({
+  Button: ({ className, children, ...props }) => <button className={`mock-button ${className || ''}`} {...props}>{children}</button>
+}));
+
+jest.mock("../../../components/ui/progress", () => ({
+  Progress: ({ className, value, ...props }) => <div className={`mock-progress ${className || ''}`} role="progressbar" aria-valuenow={value} {...props}>Progress: {value}%</div>
+}));
+
+jest.mock("../../../components/ui/switch", () => ({
+  Switch: ({ className, checked, ...props }) => <input type="checkbox" className={`mock-switch ${className || ''}`} defaultChecked={checked} {...props} />
+}));
+
+jest.mock("../../../components/ui/input", () => ({
+  Input: ({ className, ...props }) => <input className={`mock-input ${className || ''}`} {...props} />
+}));
+
+jest.mock("../../../components/ui/label", () => ({
+  Label: ({ className, children, ...props }) => <label className={`mock-label ${className || ''}`} {...props}>{children}</label>
+}));
+
+jest.mock("../../../components/ui/collapsible", () => {
+  const Collapsible = ({ className, children, ...props }) => <div className={`mock-collapsible ${className || ''}`} {...props}>{children}</div>;
+  const CollapsibleTrigger = ({ className, children, ...props }) => <button className={`mock-collapsible-trigger ${className || ''}`} {...props}>{children}</button>;
+  const CollapsibleContent = ({ className, children, ...props }) => <div className={`mock-collapsible-content ${className || ''}`} {...props}>{children}</div>;
+  return { Collapsible, CollapsibleTrigger, CollapsibleContent };
+});
+
+jest.mock("../../../components/ui/accordion", () => {
+   const Accordion = ({ className, children, ...props }) => <div className={`mock-accordion ${className || ''}`} {...props}>{children}</div>;
+   const AccordionItem = ({ className, children, ...props }) => <div className={`mock-accordion-item ${className || ''}`} {...props}>{children}</div>;
+   const AccordionTrigger = ({ className, children, ...props }) => <button className={`mock-accordion-trigger ${className || ''}`} {...props}>{children}</button>;
+   const AccordionContent = ({ className, children, ...props }) => <div className={`mock-accordion-content ${className || ''}`} {...props}>{children}</div>;
+   return { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+});
+
 // Mock TextEncoder if not available
 if (typeof global.TextEncoder === "undefined") {
   global.TextEncoder = TextEncoder;
@@ -125,7 +200,9 @@ console.error = (...args) => {
       args[0].includes("Error fetching dashboard data:") ||
       args[0].includes("Error fetching mock data:") ||
       args[0].includes("Error loading dashboard data:") ||
-      args[0].includes("Failed to load dashboard data"))
+      args[0].includes("Failed to load dashboard data") ||
+      // Filter pretty-format error for the SettingsPanel test
+      args[0].includes("pretty-format: Unknown option \"maxWidth\""))
   ) {
     // Suppress these specific warnings
     return;
@@ -136,13 +213,12 @@ console.error = (...args) => {
 // Mock console.warn for specific warnings
 const originalConsoleWarn = console.warn;
 console.warn = (...args) => {
-  // Filter out specific warnings that come from mock API fallbacks
-  if (
-    args[0]?.includes &&
-    (args[0].includes("Failed to fetch complete dashboard data") ||
-      args[0].includes("Failed to parse MCP response"))
-  ) {
-    // These are expected in tests, so don't output them
+  // Suppress specific warnings during tests
+  const suppressList = [
+    'Using kebab-case for css properties in objects is not supported.',
+    'Suppressed pretty-format error' // This will be removed, but good to keep the general suppression pattern if needed for other things
+  ];
+  if (suppressList.some(warning => args.some(arg => typeof arg === 'string' && arg.includes(warning)))) {
     return;
   }
   originalConsoleWarn(...args);
@@ -151,16 +227,16 @@ console.warn = (...args) => {
 // Mock console.log for specific test logs
 const originalConsoleLog = console.log;
 console.log = (...args) => {
-  // Filter out specific log messages from tests
-  if (
-    typeof args[0] === "string" &&
-    (args[0].includes("Could not find token budget edit controls") ||
-      args[0].includes("Data source toggle not found") ||
-      args[0].includes("Toggle button not found in current component state") ||
-      args[0].includes("Theme toggle not available in loading state") ||
-      args[0].includes("View tabs not available in loading state"))
-  ) {
-    // These are expected in tests, so don't output them
+  // Suppress specific logs if necessary or modify them
+  // For example, to avoid cluttering test output with routine logs
+  const suppressPatterns = [
+    /Data fetched from MCP/,
+    /MCP client initialized successfully/,
+    /Attempt \d+ to use MCP tool/,
+    /Attempt \d+ to access MCP resource/,
+    /Mock data used for/
+  ];
+  if (suppressPatterns.some(pattern => args.some(arg => typeof arg === 'string' && pattern.test(arg)))) {
     return;
   }
   originalConsoleLog(...args);
@@ -233,6 +309,9 @@ afterEach(() => {
   global.__MOCK_MCP_RESPONSE = {};
 });
 
-// jest.spyOn(console, 'log').mockImplementation(() => {});
-// jest.spyOn(console, 'error').mockImplementation(() => {});
-// jest.spyOn(console, 'warn').mockImplementation(() => {});
+// Global mocks
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));

@@ -1,109 +1,91 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TokenUtilization from '../components/TokenUtilization';
 
 describe('TokenUtilization Component', () => {
   const mockTokenData = {
-    total: {
-      used: 528000,
-      saved: 312450,
-      budgeted: 750000
-    },
-    daily: {
-      used: 18450,
-      saved: 10320,
-      budgeted: 25000
-    },
+    usage: { total: 528000 },
     budgets: {
-      codeCompletion: {
-        used: 275420,
-        budget: 300000,
-        remaining: 24580
-      },
-      errorResolution: {
-        used: 125640,
-        budget: 200000,
-        remaining: 74360
-      },
-      architecture: {
-        used: 89430,
-        budget: 150000,
-        remaining: 60570
-      },
-      thinking: {
-        used: 37400,
-        budget: 100000,
-        remaining: 62600
-      }
+      total: 750000,
+      codeCompletion: 300000,
+      errorResolution: 200000,
+      architecture: 150000,
+      thinking: 100000
     },
-    cacheEfficiency: {
-      hitRate: 0.68,
-      missRate: 0.32,
-      totalCached: 4250,
-      totalHits: 2890
-    }
+    cacheEfficiency: 0.68
   };
 
-  test('renders token budget utilization correctly', () => {
-    render(<TokenUtilization tokenData={mockTokenData} />);
+  const mockCostData = {
+    averageRate: 0.002
+  };
 
-    // Check for component title
-    expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-
-    // Check for view options
-    expect(screen.getByText('Budget')).toBeInTheDocument();
-    expect(screen.getByText('Usage')).toBeInTheDocument();
-
-    // Check for budget section header
-    expect(screen.getByText('Token Budget Utilization')).toBeInTheDocument();
-
-    // Check specific token values using test IDs
-    expect(screen.getByTestId('token-used')).toHaveTextContent('528');
-    expect(screen.getByTestId('token-budget')).toHaveTextContent('750');
-
-    // Progress indicators
-    expect(screen.getByText('70%')).toBeInTheDocument(); // Progress percentage
-
-    // Check budget categories
-    expect(screen.getByText('Code Completion')).toBeInTheDocument();
-    expect(screen.getByText('Error Resolution')).toBeInTheDocument();
-    expect(screen.getByText('Architecture')).toBeInTheDocument();
-    expect(screen.getByText('Thinking')).toBeInTheDocument();
-
-    // Check cache section
-    expect(screen.getByText('Cache Efficiency')).toBeInTheDocument();
-    expect(screen.getByText('68%')).toBeInTheDocument(); // Hit rate
-  });
-
-  test('toggles between budget and usage views', () => {
-    render(<TokenUtilization tokenData={mockTokenData} />);
-
-    // Initial state is budget view
-    expect(screen.getByText('Token Budget Utilization')).toBeInTheDocument();
-
-    // Click the usage tab
-    const usageTab = screen.getByText('Usage');
-    fireEvent.click(usageTab);
-
-    // Now we should have usage view (no need to check content)
-
-    // Click back to budget tab
-    const budgetTab = screen.getByText('Budget');
-    fireEvent.click(budgetTab);
-
-    // Should be back to budget view
-    expect(screen.getByText('Token Budget Utilization')).toBeInTheDocument();
-  });
-
-  test('handles empty or undefined data gracefully', () => {
+  test('renders empty state when no data is provided', () => {
     render(<TokenUtilization tokenData={{}} />);
 
-    // Component should render without errors even with empty data
+    // Component should render title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    expect(screen.getByText('Token Budget Utilization')).toBeInTheDocument();
+    
+    // Should show no data message
+    expect(screen.getByText('No token usage data available')).toBeInTheDocument();
+  });
 
-    // Progress indicators should be safe values - use the progress bar instead of text
-    expect(screen.getByTestId('token-used')).toHaveTextContent('0');
+  test('renders token utilization with data', () => {
+    render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
+
+    // Check component title
+    expect(screen.getByText('Token Utilization')).toBeInTheDocument();
+    
+    // Check for the description text
+    expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
+    
+    // Check for "Overall Budget" with a function to detect the text that might be split across elements
+    expect(screen.getByText((content, element) => {
+      return element.tagName.toLowerCase() === 'h3' && content.includes('Overall Budget');
+    })).toBeInTheDocument();
+    
+    // Check for "Budget Categories" heading
+    expect(screen.getByText('Budget Categories')).toBeInTheDocument();
+    
+    // Check for cache efficiency
+    expect(screen.getByText('Cache Efficiency')).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('Tokens saved through caching'))).toBeInTheDocument();
+  });
+
+  test('renders with minimal data', () => {
+    // This test uses the most minimal data structure that will not trigger the empty state
+    const minimalData = {
+      usage: { total: 150000 },
+      budgets: { total: 200000 }
+    };
+
+    const { container } = render(<TokenUtilization tokenData={minimalData} />);
+
+    // Should render the main component
+    expect(screen.getByText('Token Utilization')).toBeInTheDocument();
+    
+    // Check for the description text which means we're not seeing the empty state
+    expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
+    
+    // Look for the usage numbers in the container's text content
+    expect(container.textContent).toContain('150,000');
+    expect(container.textContent).toContain('200,000');
+  });
+
+  test('handles missing data properties gracefully', () => {
+    // Data with just enough to avoid the empty state but missing some properties
+    const incompleteData = {
+      usage: { total: 100 }
+      // No budgets or cacheEfficiency
+    };
+
+    const { container } = render(<TokenUtilization tokenData={incompleteData} />);
+
+    // Should render the component (not the empty state)
+    expect(screen.getByText('Token Utilization')).toBeInTheDocument();
+    expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
+    
+    // Container should include the usage number
+    expect(container.textContent).toContain('100');
   });
 });

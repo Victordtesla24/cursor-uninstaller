@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Debug</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      #log-container {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 400px;
+        overflow: auto;
+        margin-bottom: 20px;
+        background-color: #f8f8f8;
+        font-family: monospace;
+      }
+      .error {
+        color: red;
+      }
+      .warn {
+        color: orange;
+      }
+      .info {
+        color: blue;
+      }
+      button {
+        margin-right: 10px;
+        padding: 8px 16px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Dashboard Debug Console</h1>
+    <div id="log-container"></div>
+    <div>
+      <button onclick="checkWindowObject()">Check Window Object</button>
+      <button onclick="checkReactRoot()">Check React Root</button>
+      <button onclick="checkMcpClient()">Check MCP Client</button>
+      <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <script>
+      // Override console methods to capture logs
+      const originalConsole = {
+        log: console.log,
+        error: console.error,
+        warn: console.warn,
+        info: console.info,
+      };
+
+      const logContainer = document.getElementById("log-container");
+
+      // Function to add a log entry to the container
+      function addLogEntry(type, args) {
+        const logEntry = document.createElement("div");
+        logEntry.className = type;
+
+        // Convert arguments to string
+        const message = Array.from(args)
+          .map((arg) => {
+            if (typeof arg === "object") {
+              try {
+                return JSON.stringify(arg, null, 2);
+              } catch (e) {
+                return String(arg);
+              }
+            }
+            return String(arg);
+          })
+          .join(" ");
+
+        logEntry.textContent = `[${type}] ${new Date().toISOString()}: ${message}`;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+
+        // Also call the original console method
+        originalConsole[type].apply(console, args);
+      }
+
+      // Override console methods
+      console.log = function () {
+        addLogEntry("log", arguments);
+      };
+      console.error = function () {
+        addLogEntry("error", arguments);
+      };
+      console.warn = function () {
+        addLogEntry("warn", arguments);
+      };
+      console.info = function () {
+        addLogEntry("info", arguments);
+      };
+
+      // Debug functions
+      function checkWindowObject() {
+        console.log("Window object keys:", Object.keys(window));
+
+        // Check for React-related properties
+        if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+          console.log("React DevTools hook is present");
+        } else {
+          console.warn("React DevTools hook is not present");
+        }
+      }
+
+      function checkReactRoot() {
+        const rootElement = document.getElementById("root");
+        if (rootElement) {
+          console.log("Root element found:", rootElement);
+          console.log("Root element children:", rootElement.children.length);
+          console.log("Root element HTML:", rootElement.innerHTML);
+        } else {
+          console.error("Root element not found!");
+        }
+      }
+
+      function checkMcpClient() {
+        if (window.__MCP_CLIENT) {
+          console.log("MCP client found:", Object.keys(window.__MCP_CLIENT));
+        } else {
+          console.warn("MCP client not found in window object");
+        }
+
+        if (window.__MCP_INIT) {
+          console.log("MCP init function found");
+        } else {
+          console.warn("MCP init function not found");
+        }
+      }
+
+      function clearLogs() {
+        logContainer.innerHTML = "";
+      }
+
+      // Log initial state
+      console.log("Debug page loaded");
+
+      // Try to load the main application manually
+      function loadApp() {
+        try {
+          console.log("Attempting to manually initialize app...");
+          const script = document.createElement("script");
+          script.type = "module";
+          script.src = "./main.jsx";
+          script.onerror = (error) => {
+            console.error("Error loading main.jsx:", error);
+          };
+          document.body.appendChild(script);
+          console.log("Script tag added to body");
+        } catch (err) {
+          console.error("Error initializing app:", err);
+        }
+      }
+
+      // Add a root element if not already present
+      if (!document.getElementById("root")) {
+        const root = document.createElement("div");
+        root.id = "root";
+        document.body.appendChild(root);
+        console.log("Added root element to document");
+      }
+
+      // Wait for DOM to be fully loaded
+      window.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM fully loaded");
+        loadApp();
+      });
+    </script>
+  </body>
+</html>

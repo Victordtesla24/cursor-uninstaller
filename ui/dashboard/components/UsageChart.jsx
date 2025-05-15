@@ -1,5 +1,31 @@
-import React, { useState } from 'react';
-import StyledJsx from './StyledJsx';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Separator,
+  Badge,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '../../../components/ui';
+import { 
+  BarChart3, 
+  LineChart, 
+  PieChart, 
+  LayoutGrid, 
+  Calendar, 
+  Layers, 
+  FileType, 
+  Code, 
+  ActivityIcon,
+  Info
+} from 'lucide-react';
+import Chart from 'chart.js/auto';
 
 /**
  * UsageChart Component
@@ -7,10 +33,17 @@ import StyledJsx from './StyledJsx';
  * Displays usage statistics in various chart formats
  * Includes token usage over time, usage by model, function, and file type
  * Provides filtering options and chart type selection
+ * 
+ * @param {Object} props Component props
+ * @param {Object} props.usageData Token usage data
+ * @param {String} props.className Additional CSS classes
+ * @param {Boolean} props.darkMode Whether dark mode is enabled
  */
-const UsageChart = ({ usageData = {}, className = '' }) => {
+const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
   const [chartView, setChartView] = useState('daily');
   const [chartType, setChartType] = useState('line');
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
 
   // Provide defaults for usageData to prevent undefined errors
   const safeUsageData = {
@@ -20,33 +53,9 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
     activeUsers: 0,
     averageUserTokens: 0,
     recentActivity: [],
+    daily: [],
     ...(usageData || {})
   };
-
-  // Early return for completely empty data
-  if (!usageData) {
-    return (
-      <div className={`usage-chart-panel ${className}`}>
-        <h2 className="panel-title">Usage Statistics</h2>
-        <div className="no-data-message">No usage data available</div>
-
-        <StyledJsx>{`
-          .usage-chart-panel {
-            background-color: var(--card-background);
-            border-radius: var(--border-radius-md);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-          }
-
-          .no-data-message {
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-secondary);
-          }
-        `}</StyledJsx>
-      </div>
-    );
-  }
 
   // Helper to format numbers with K/M suffix
   const formatNumber = (num) => {
@@ -77,402 +86,286 @@ const UsageChart = ({ usageData = {}, className = '' }) => {
     }
   };
 
-  const data = getChartData();
-  const isTimeSeries = chartView === 'daily';
-  const isBarChart = !isTimeSeries || chartType === 'bar';
+  // Get chart colors that work in both light/dark modes
+  const getChartColors = (count = 8) => {
+    const baseColors = [
+      { light: 'rgba(59, 130, 246, 0.7)', dark: 'rgba(96, 165, 250, 0.7)' }, // blue
+      { light: 'rgba(16, 185, 129, 0.7)', dark: 'rgba(52, 211, 153, 0.7)' }, // emerald
+      { light: 'rgba(249, 115, 22, 0.7)', dark: 'rgba(251, 146, 60, 0.7)' }, // orange
+      { light: 'rgba(139, 92, 246, 0.7)', dark: 'rgba(167, 139, 250, 0.7)' }, // purple
+      { light: 'rgba(236, 72, 153, 0.7)', dark: 'rgba(244, 114, 182, 0.7)' }, // pink
+      { light: 'rgba(6, 182, 212, 0.7)', dark: 'rgba(34, 211, 238, 0.7)' },  // cyan
+      { light: 'rgba(245, 158, 11, 0.7)', dark: 'rgba(251, 191, 36, 0.7)' }, // amber
+      { light: 'rgba(239, 68, 68, 0.7)', dark: 'rgba(248, 113, 113, 0.7)' }  // red
+    ];
 
-  // Render chart based on the data type
-  const renderChart = () => {
+    // Return the appropriate color array based on dark mode
+    return Array(count).fill().map((_, i) => 
+      darkMode ? baseColors[i % baseColors.length].dark : baseColors[i % baseColors.length].light
+    );
+  };
+
+  // Get relevant icon based on the chart view
+  const getViewIcon = () => {
+    switch (chartView) {
+      case 'daily':
+        return <Calendar className="h-4 w-4" />;
+      case 'byModel':
+        return <Layers className="h-4 w-4" />;
+      case 'byFunction':
+        return <Code className="h-4 w-4" />;
+      case 'byFile':
+        return <FileType className="h-4 w-4" />;
+      case 'popularity':
+        return <ActivityIcon className="h-4 w-4" />;
+      default:
+        return <BarChart3 className="h-4 w-4" />;
+    }
+  };
+
+  // Early return for completely empty data
+  if (!usageData) {
+    return (
+      <Card className={`${className} shadow-sm`}>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BarChart3 className="mr-2 h-5 w-5 text-primary" />
+            Usage Statistics
+          </CardTitle>
+          <CardDescription>
+            Token usage trends and patterns
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-3 h-48 text-muted-foreground">
+          <Info className="h-10 w-10 text-amber-500 opacity-80" />
+          <p className="text-center">No usage data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Render the appropriate chart when component mounts or data changes
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    // If a chart already exists, destroy it
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    const data = getChartData();
+    const isTimeSeries = chartView === 'daily';
+    const ctx = chartRef.current.getContext('2d');
+    const colors = getChartColors();
+
+    // Configure different chart types
     if (isTimeSeries) {
-      return renderTimeSeriesChart(data);
-    } else {
-      return renderCategoryChart(data);
-    }
-  };
-
-  // Render a time series chart (daily usage)
-  const renderTimeSeriesChart = (timeData) => {
-    // Ensure recentActivity exists and has items
-    const activity = safeUsageData.recentActivity || [];
-
-    if (activity.length === 0) {
-      return (
-        <div className="no-data-message">
-          No activity data available for the selected period
-        </div>
-      );
-    }
-
-    const maxValue = Math.max(...timeData);
-
-    return (
-      <div className={`chart ${chartType}-chart time-series`}>
-        {chartType === 'line' ? (
-          // Line chart with area
-          <svg className="line-chart-svg" viewBox={`0 0 ${timeData.length} 100`}>
-            {/* Area under the line */}
-            <defs>
-              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="var(--primary-color)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--primary-color)" stopOpacity="0.05" />
-              </linearGradient>
-            </defs>
-
-            {/* Line */}
-            <polyline
-              className="line"
-              points={timeData.map((val, i) => `${i}, ${100 - (val / maxValue) * 95}`).join(' ')}
-            />
-
-            {/* Area under the line */}
-            <polygon
-              className="area"
-              points={`
-                0,100
-                ${timeData.map((val, i) => `${i},${100 - (val / maxValue) * 95}`).join(' ')}
-                ${timeData.length - 1},100
-              `}
-              fill="url(#areaGradient)"
-            />
-
-            {/* Data points */}
-            {timeData.map((val, i) => (
-              <circle
-                key={i}
-                cx={i}
-                cy={100 - (val / maxValue) * 95}
-                r="1.5"
-                className="data-point"
-                data-tooltip={`Day ${i + 1}: ${formatNumber(val)} tokens`}
-              />
-            ))}
-          </svg>
-        ) : (
-          // Bar chart for time series
-          <div className="bar-chart">
-            {timeData.map((value, index) => {
-              const height = `${(value / maxValue) * 100}%`;
-
-              return (
-                <div key={index} className="chart-bar-container">
-                  <div
-                    className="chart-bar"
-                    style={{ height }}
-                    title={`Day ${index + 1}: ${formatNumber(value)} tokens`}
-                  />
-                  {index % 5 === 0 && (
-                    <div className="chart-label">{index + 1}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Render a category chart (by model, function, file type)
-  const renderCategoryChart = (categoryData) => {
-    const entries = Object.entries(categoryData);
-    const maxValue = Math.max(...entries.map(([_, value]) => value));
-
-    // For the popularity chart, we want to sort by value
-    const sortedEntries = chartView === 'popularity'
-      ? entries.sort((a, b) => b[1] - a[1])
-      : entries;
-
-    // Take only the top items for cleaner visualization
-    const displayEntries = sortedEntries.slice(0, 8);
-
-    return (
-      <div className="bar-chart horizontal">
-        {displayEntries.map(([category, value], index) => {
-          const width = `${(value / maxValue) * 100}%`;
-
-          // Format category name for display
-          let displayName = category;
-          if (chartView === 'byModel') {
-            displayName = category.split('-').pop(); // Get the last part of the model name
+      // Time series data (daily)
+      const labels = data.map((_, i) => `Day ${i + 1}`);
+      
+      chartInstance.current = new Chart(ctx, {
+        type: chartType,
+        data: {
+          labels,
+          datasets: [{
+            label: 'Token Usage',
+            data,
+            backgroundColor: colors[0],
+            borderColor: colors[0].replace('0.7', '1'),
+            borderWidth: 1,
+            tension: 0.3,
+            fill: chartType === 'line',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${formatNumber(context.raw)} tokens`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => formatNumber(value)
+              }
+            }
+          },
+          animation: {
+            duration: 1000
           }
+        }
+      });
+    } else {
+      // Category data (models, functions, file types, popularity)
+      const entries = Object.entries(data);
+      
+      // For the popularity chart, sort by value
+      const sortedEntries = chartView === 'popularity'
+        ? entries.sort((a, b) => b[1] - a[1])
+        : entries;
+      
+      // Take top entries for cleaner visualization
+      const topEntries = sortedEntries.slice(0, 8);
+      const labels = topEntries.map(([label]) => label);
+      const values = topEntries.map(([_, value]) => value);
+      
+      chartInstance.current = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Usage',
+            data: values,
+            backgroundColor: colors.slice(0, values.length),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${formatNumber(context.raw)} tokens`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => formatNumber(value)
+              }
+            }
+          },
+          animation: {
+            duration: 700
+          }
+        }
+      });
+    }
 
-          return (
-            <div key={category} className="chart-bar-row">
-              <div className="category-label">{displayName}</div>
-              <div className="bar-container">
-                <div
-                  className="bar"
-                  style={{ width }}
-                  title={`${displayName}: ${formatNumber(value)} tokens`}
-                />
-                <span className="bar-value">{formatNumber(value)}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
+    // Clean up on unmount
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [chartView, chartType, usageData, darkMode]);
 
   return (
-    <div className={`usage-chart-panel ${className}`}>
-      <h2 className="panel-title">Usage Statistics</h2>
+    <Card className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center">
+          <BarChart3 className="mr-2 h-5 w-5 text-primary" />
+          Usage Statistics
+        </CardTitle>
+        <CardDescription>
+          Token usage trends and patterns
+        </CardDescription>
+      </CardHeader>
 
-      <div className="chart-controls">
-        <div className="view-selector">
-          <select
-            value={chartView}
-            onChange={(e) => setChartView(e.target.value)}
-          >
-            <option value="daily">Daily Usage</option>
-            <option value="byModel">By Model</option>
-            <option value="byFunction">By Function</option>
-            <option value="byFile">By File Type</option>
-            <option value="popularity">By Popularity</option>
-          </select>
+      <CardContent className="space-y-4">
+        {/* Chart Controls */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="flex items-center gap-2">
+            {getViewIcon()}
+            <select
+              value={chartView}
+              onChange={(e) => setChartView(e.target.value)}
+              className="bg-transparent border border-input rounded-md px-2 py-1 text-sm focus-visible:ring-1 focus-visible:ring-primary"
+            >
+              <option value="daily">Daily Usage</option>
+              <option value="byModel">By Model</option>
+              <option value="byFunction">By Function</option>
+              <option value="byFile">By File Type</option>
+              <option value="popularity">By Popularity</option>
+            </select>
+          </div>
+
+          {chartView === 'daily' && (
+            <div className="flex items-center gap-1 border border-input rounded-md overflow-hidden">
+              <Button
+                variant={chartType === 'line' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="p-1 h-8"
+                onClick={() => setChartType('line')}
+              >
+                <LineChart className="h-4 w-4" />
+                <span className="ml-1.5 text-xs">Line</span>
+              </Button>
+              <Button
+                variant={chartType === 'bar' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="p-1 h-8"
+                onClick={() => setChartType('bar')}
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="ml-1.5 text-xs">Bar</span>
+              </Button>
+            </div>
+          )}
         </div>
 
-        {isTimeSeries && (
-          <div className="chart-type-selector">
-            <button
-              className={`chart-type-btn ${chartType === 'line' ? 'active' : ''}`}
-              onClick={() => setChartType('line')}
-            >
-              Line
-            </button>
-            <button
-              className={`chart-type-btn ${chartType === 'bar' ? 'active' : ''}`}
-              onClick={() => setChartType('bar')}
-            >
-              Bar
-            </button>
+        <Separator className="my-1" />
+
+        {/* Usage Summary Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
+          <div className="text-center p-2">
+            <div className="text-xs text-muted-foreground mb-1">Total Tokens</div>
+            <div className="text-lg font-bold">{formatNumber(safeUsageData.totalTokens || 0)}</div>
+          </div>
+          <div className="text-center p-2">
+            <div className="text-xs text-muted-foreground mb-1">Input Tokens</div>
+            <div className="text-lg font-bold">{formatNumber(safeUsageData.inputTokens || 0)}</div>
+          </div>
+          <div className="text-center p-2">
+            <div className="text-xs text-muted-foreground mb-1">Output Tokens</div>
+            <div className="text-lg font-bold">{formatNumber(safeUsageData.outputTokens || 0)}</div>
+          </div>
+          <div className="text-center p-2">
+            <div className="text-xs text-muted-foreground mb-1">Active Users</div>
+            <div className="text-lg font-bold">{formatNumber(safeUsageData.activeUsers || 0)}</div>
+          </div>
+        </div>
+        
+        {/* Chart Canvas */}
+        <div className="relative h-[300px] w-full">
+          <canvas ref={chartRef} />
+        </div>
+
+        {/* Legend for categorical data */}
+        {chartView !== 'daily' && (
+          <div className="flex flex-wrap gap-2 justify-center mt-2">
+            {Object.entries(getChartData()).slice(0, 8).map(([category, _], index) => (
+              <Badge 
+                key={category} 
+                variant="outline"
+                className="flex items-center gap-1.5"
+              >
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: getChartColors()[index % 8] }}
+                />
+                <span className="text-xs">{category}</span>
+              </Badge>
+            ))}
           </div>
         )}
-      </div>
-
-      <div className="chart-container" data-testid="chart-container">
-        {renderChart()}
-      </div>
-
-      <StyledJsx>{`
-        .usage-chart-panel {
-          background-color: var(--card-background);
-          border-radius: var(--border-radius-md);
-          padding: 1.5rem;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .panel-header h2 {
-          margin: 0;
-          font-size: 1.25rem;
-          font-weight: 600;
-        }
-
-        .chart-controls {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-        }
-
-        .view-selector select,
-        .chart-type-selector select {
-          padding: 0.375rem 0.75rem;
-          border-radius: var(--border-radius-sm);
-          border: 1px solid var(--border-color);
-          background-color: var(--background-color);
-          font-size: 0.875rem;
-          cursor: pointer;
-        }
-
-        .chart-type-selector {
-          display: flex;
-          border: 1px solid var(--border-color);
-          border-radius: var(--border-radius-sm);
-          overflow: hidden;
-        }
-
-        .chart-type-btn {
-          padding: 0.375rem 0.75rem;
-          background-color: transparent;
-          border: none;
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .chart-type-btn.active {
-          background-color: var(--primary-color);
-          color: white;
-        }
-
-        .chart-container {
-          height: 300px;
-          position: relative;
-        }
-
-        .chart {
-          width: 100%;
-          height: 100%;
-        }
-
-        /* Line Chart Styles */
-        .line-chart-svg {
-          width: 100%;
-          height: 100%;
-          overflow: visible;
-        }
-
-        .line {
-          fill: none;
-          stroke: var(--primary-color);
-          stroke-width: 2;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-
-        .data-point {
-          fill: var(--primary-color);
-          cursor: pointer;
-        }
-
-        .data-point:hover {
-          fill: var(--primary-hover);
-          r: 3;
-        }
-
-        /* Bar Chart Styles */
-        .bar-chart {
-          display: flex;
-          align-items: flex-end;
-          height: 100%;
-          gap: 0.25rem;
-        }
-
-        .chart-bar-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          height: 100%;
-        }
-
-        .chart-bar {
-          width: 100%;
-          background-color: var(--primary-color);
-          border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
-          transition: height 0.3s ease;
-          min-height: 4px;
-        }
-
-        .chart-label {
-          font-size: 0.625rem;
-          color: var(--text-secondary);
-          margin-top: 0.25rem;
-        }
-
-        /* Horizontal Bar Chart */
-        .bar-chart.horizontal {
-          flex-direction: column;
-          gap: 0.75rem;
-          height: 100%;
-          justify-content: flex-start;
-        }
-
-        .chart-bar-row {
-          display: flex;
-          align-items: center;
-          width: 100%;
-          height: 2rem;
-        }
-
-        .category-label {
-          width: 5rem;
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          padding-right: 1rem;
-        }
-
-        .bar-container {
-          flex: 1;
-          height: 1rem;
-          background-color: var(--background-color);
-          border-radius: var(--border-radius-sm);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .bar {
-          height: 100%;
-          background-color: var(--primary-color);
-          border-radius: var(--border-radius-sm);
-          transition: width 0.3s ease;
-        }
-
-        .bar-value {
-          position: absolute;
-          right: 0.5rem;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .panel-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .chart-controls {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .chart-container {
-            height: 250px;
-          }
-
-          .category-label {
-            width: 4rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .chart-controls {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
-
-          .view-selector,
-          .chart-type-selector {
-            width: 100%;
-          }
-
-          .chart-type-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .chart-container {
-            height: 200px;
-          }
-        }
-      `}</StyledJsx>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -10,6 +10,9 @@
         "zeshuaro.vscode-python-poetry",
         "teticio.python-envy",
         "bradlc.vscode-tailwindcss",
-        "saoudrizwan.claude-dev"
+        "saoudrizwan.claude-dev",
+        "github.vscode-github-actions",
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker"
     ]
 }

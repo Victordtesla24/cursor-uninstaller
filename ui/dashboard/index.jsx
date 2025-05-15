@@ -268,5 +268,5 @@ export const Dashboard = () => {
   );
 };
 
-// Add default export for tests
+// Keep default export for backward compatibility with existing tests
 export default Dashboard;
