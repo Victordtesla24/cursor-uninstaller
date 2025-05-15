@@ -2,6 +2,13 @@
   "user": "vscode",
   "install": "./.cursor/install.sh",
   "start": "npm install",
+  "ports": [
+    {
+      "port": 3000,
+      "name": "Dashboard",
+      "description": "Dashboard UI for the uninstaller tool"
+    }
+  ],
   "terminals": [
     {
       "name": "dashboard",
