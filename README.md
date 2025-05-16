@@ -2,6 +2,30 @@
 
 A comprehensive macOS tool for managing, optimizing, configuring, and installing the Cursor AI Editor, with specific enhancements for Apple Silicon (M-series) chips. This script provides robust features for uninstallation, optimization, project environment setup, and fresh installation.
 
+## Dependencies
+
+### Project Dependencies
+- Node.js and npm (Node Package Manager)
+- React and React DOM for the dashboard UI
+- Vite for frontend build and development server
+- Jest for testing the dashboard components
+
+### Dev Dependencies
+- Bats for Bash script testing
+- Babel for JavaScript transpilation
+- Testing libraries for React components
+
+### Installation
+To install all required dependencies:
+
+```bash
+# Install root project dependencies
+npm install
+
+# Install dashboard dependencies
+cd ui/dashboard && npm install
+```
+
 ## Key Features
 
 ### Path Management & Shared Configuration
