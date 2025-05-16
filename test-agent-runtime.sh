@@ -55,29 +55,46 @@ if [ "$error_count" -gt 0 ]; then
 fi
 
 if $jq_available; then
-  AGENT_USER=$(jq -r '.user' "$ENV_JSON_PATH")
-  INSTALL_COMMAND=$(jq -r '.install' "$ENV_JSON_PATH")
-  FIRST_TERMINAL_COMMAND=$(jq -r '.terminals[0].command' "$ENV_JSON_PATH") # Assuming at least one terminal
-  VITE_PORT_FROM_CMD=$(echo "$FIRST_TERMINAL_COMMAND" | awk -F'--port[[:space:]]+' '{if (NF>1) {split($2,a,/[^0-9]/); print a[1]}}')
-  if [ -z "$VITE_PORT_FROM_CMD" ]; then # if port not specified with --port, check vite.config.js (default or actual)
-      if [ -f "$REPO_ROOT/ui/dashboard/vite.config.js" ]; then
-          VITE_PORT_CONFIG=$(awk -F'[: ,]+' '/port:/ {print $2; exit}' "$REPO_ROOT/ui/dashboard/vite.config.js" || echo "3000")
-          VITE_PORT=${VITE_PORT_CONFIG:-3000} # Default to 3000 if not found
-      else
-          VITE_PORT="3000" # Default if vite.config.js not found
+  AGENT_USER_JSON=$(jq -r '.user // "node"' "$ENV_JSON_PATH")
+  INSTALL_COMMAND_JSON=$(jq -r '.install // ""' "$ENV_JSON_PATH")
+  FIRST_TERMINAL_COMMAND_JSON=$(jq -r '.terminals[0].command // empty' "$ENV_JSON_PATH")
+
+  if [ "$AGENT_USER_JSON" != "node" ]; then print_error "$ENV_JSON_PATH: 'user' is not 'node' (current: $AGENT_USER_JSON)."; fi
+  if [ "$INSTALL_COMMAND_JSON" != "$INSTALL_SH_PATH_RELATIVE" ]; then print_error "$ENV_JSON_PATH: 'install' command is not '$INSTALL_SH_PATH_RELATIVE'."; fi
+  if [ -z "$FIRST_TERMINAL_COMMAND_JSON" ]; then print_error "$ENV_JSON_PATH: No terminal commands configured."; fi
+
+  AGENT_USER="$AGENT_USER_JSON"
+  INSTALL_COMMAND="$INSTALL_COMMAND_JSON"
+  FIRST_TERMINAL_COMMAND="$FIRST_TERMINAL_COMMAND_JSON"
+
+  # Determine VITE_PORT
+  VITE_PORT=""
+  # Try to extract from command: e.g., npm run dev -- --port 3001
+  if [ -n "$FIRST_TERMINAL_COMMAND" ]; then
+    VITE_PORT_FROM_CMD=$(echo "$FIRST_TERMINAL_COMMAND" | sed -n 's/.*--port[[:space:]]\{1,\}\([0-9]\{4,5\}\).*/\1/p')
+  fi
+
+  if [ -n "$VITE_PORT_FROM_CMD" ]; then
+      VITE_PORT="$VITE_PORT_FROM_CMD"
+  elif [ -f "$REPO_ROOT/ui/dashboard/vite.config.js" ]; then
+      # Try to extract from vite.config.js: e.g., server: { port: 3000 }
+      VITE_PORT_FROM_CONFIG=$(grep 'port:' "$REPO_ROOT/ui/dashboard/vite.config.js" | sed -n 's/.*port:[[:space:]]*\([0-9]\{4,5\}\).*/\1/p' | head -n 1)
+      if [ -n "$VITE_PORT_FROM_CONFIG" ]; then
+          VITE_PORT="$VITE_PORT_FROM_CONFIG"
       fi
   fi
-  print_info "Determined Vite port to be: $VITE_PORT"
-
-  if [ "$AGENT_USER" != "node" ]; then print_error "$ENV_JSON_PATH: 'user' is not 'node' (current: $AGENT_USER)."; fi
-  if [ "$INSTALL_COMMAND" != "$INSTALL_SH_PATH_RELATIVE" ]; then print_error "$ENV_JSON_PATH: 'install' command is not '$INSTALL_SH_PATH_RELATIVE'."; fi
-  if [ -z "$FIRST_TERMINAL_COMMAND" ]; then print_error "$ENV_JSON_PATH: No terminal commands configured."; fi
 else
-  print_info "jq not found. Skipping some environment.json validations."
-  AGENT_USER="node" # Assume node user if jq not present
-  FIRST_TERMINAL_COMMAND="cd ui/dashboard && npm run dev -- --host --no-open" # Assume default if jq not present
-  VITE_PORT="3000" # Assume default port
+  print_info "jq not found. Using default assumptions for environment.json values and skipping detailed validation."
+  AGENT_USER="node"
+  FIRST_TERMINAL_COMMAND="cd ui/dashboard && npx vite optimize --force && npm run dev -- --host --no-open"
 fi
+
+# Default if not found or jq not available
+if [ -z "$VITE_PORT" ]; then
+    print_info "Vite port not explicitly found in command or vite.config.js, defaulting to 3000."
+    VITE_PORT="3000"
+fi
+print_info "Will use Vite port: $VITE_PORT for checks."
 
 if [ "$error_count" -gt 0 ]; then
   print_error "Static configuration validation failed. Aborting runtime test."

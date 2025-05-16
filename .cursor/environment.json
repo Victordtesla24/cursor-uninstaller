@@ -11,5 +11,6 @@
       "command": "cd ui/dashboard && npx vite optimize --force && npm run dev -- --host --no-open",
       "description": "Runs the main dashboard application using Vite dev server (with pre-optimization), accessible externally and without opening browser."
     }
-  ]
+  ],
+  "start": "./install.sh"
 }
