@@ -58,10 +58,10 @@ if $jq_available; then
   AGENT_USER=$(jq -r '.user' "$ENV_JSON_PATH")
   INSTALL_COMMAND=$(jq -r '.install' "$ENV_JSON_PATH")
   FIRST_TERMINAL_COMMAND=$(jq -r '.terminals[0].command' "$ENV_JSON_PATH") # Assuming at least one terminal
-  VITE_PORT=$(echo "$FIRST_TERMINAL_COMMAND" | grep -oP 'npm run dev(?: -- --port (\d+))?' | sed 's/npm run dev -- --port //g')
-  if [ -z "$VITE_PORT" ]; then # if port not specified with --port, check vite.config.js (default or actual)
+  VITE_PORT_FROM_CMD=$(echo "$FIRST_TERMINAL_COMMAND" | awk -F'--port[[:space:]]+' '{if (NF>1) {split($2,a,/[^0-9]/); print a[1]}}')
+  if [ -z "$VITE_PORT_FROM_CMD" ]; then # if port not specified with --port, check vite.config.js (default or actual)
       if [ -f "$REPO_ROOT/ui/dashboard/vite.config.js" ]; then
-          VITE_PORT_CONFIG=$(grep -oP 'port: \K([0-9]+)' "$REPO_ROOT/ui/dashboard/vite.config.js" || echo "3000")
+          VITE_PORT_CONFIG=$(awk -F'[: ,]+' '/port:/ {print $2; exit}' "$REPO_ROOT/ui/dashboard/vite.config.js" || echo "3000")
           VITE_PORT=${VITE_PORT_CONFIG:-3000} # Default to 3000 if not found
       else
           VITE_PORT="3000" # Default if vite.config.js not found

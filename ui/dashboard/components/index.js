@@ -4,28 +4,28 @@
  */
 
 // UI components
-export { default as Card } from './ui/card';
-export { default as Button } from './ui/button';
-export { default as Separator } from './ui/separator';
-export { default as Badge } from './ui/badge';
-export { default as Tabs } from './ui/tabs';
-export { default as Progress } from './ui/progress';
-export { default as Switch } from './ui/switch';
-export { default as Select } from './ui/select';
+export { default as Card } from './ui/card.jsx';
+export { default as Button } from './ui/button.jsx';
+export { default as Separator } from './ui/separator.jsx';
+export { default as Badge } from './ui/badge.jsx';
+export { default as Tabs } from './ui/tabs.jsx';
+export { default as Progress } from './ui/progress.jsx';
+export { default as Switch } from './ui/switch.jsx';
+export { default as Select } from './ui/select.jsx';
 
 // Dashboard components
-export { default as TokenUtilization } from './TokenUtilization';
-export { default as CostTracker } from './CostTracker';
-export { default as UsageChart } from './UsageChart';
-export { default as SettingsPanel } from './SettingsPanel';
-export { default as ModelSelector } from './ModelSelector';
-export { default as MetricsPanel } from './MetricsPanel';
-export { default as UsageStats } from './UsageStats';
+export { default as TokenUtilization } from './TokenUtilization.jsx';
+export { default as CostTracker } from './CostTracker.jsx';
+export { default as UsageChart } from './UsageChart.jsx';
+export { default as SettingsPanel } from './SettingsPanel.jsx';
+export { default as ModelSelector } from './ModelSelector.jsx';
+export { default as MetricsPanel } from './MetricsPanel.jsx';
+export { default as UsageStats } from './UsageStats.jsx';
 
 // Feature components
-export { default as TokenBudgetRecommendations } from './features/TokenBudgetRecommendations';
-export { default as EnhancedAnalyticsDashboard } from './features/EnhancedAnalyticsDashboard';
-export { default as ModelPerformanceComparison } from './features/ModelPerformanceComparison';
+export { default as TokenBudgetRecommendations } from './features/TokenBudgetRecommendations.jsx';
+export { default as EnhancedAnalyticsDashboard } from './features/EnhancedAnalyticsDashboard.jsx';
+export { default as ModelPerformanceComparison } from './features/ModelPerformanceComparison.jsx';
 
 // Shadcn UI components - standardized to use local ui directory
 export {
