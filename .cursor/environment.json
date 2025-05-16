@@ -2,6 +2,7 @@
   "terminals": [],
   "runtime": {
     "base_image": "node:18-alpine",
+    "workdir": "/app",
     "ports": [5173, 3000],
     "exposed_port": 5173,
     "setup_cmd": [
