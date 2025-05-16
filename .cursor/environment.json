@@ -4,7 +4,7 @@
     "context": "."
   },
   "user": "node",
-  "install": "./.cursor/install.sh",
+  "install": ".cursor/install.sh",
   "terminals": [
     {
       "name": "Dashboard",
