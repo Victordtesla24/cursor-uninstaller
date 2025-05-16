@@ -7,9 +7,6 @@ RUN apk add --no-cache git
 # The agent will clone the repository into this directory.
 WORKDIR /agent_workspace
 
-# Set environment variables if needed globally for the agent's environment
-ENV NODE_ENV=production
-
 # Expose ports if the processes started by the agent need to be accessed
 EXPOSE 5173
 EXPOSE 3000
