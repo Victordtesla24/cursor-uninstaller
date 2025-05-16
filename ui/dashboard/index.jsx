@@ -6,7 +6,9 @@ import UsageStats from './components/UsageStats.jsx';
 import ModelSelector from './components/ModelSelector.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import Header from './components/Header.jsx';
+import UninstallerDashboard from './components/features/UninstallerDashboard.jsx';
 import './styles.css';
+import './components/features/UninstallerDashboard.css';
 
 /**
  * Main dashboard component for Cline AI extension
@@ -18,7 +20,7 @@ export const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('overview');
+  const [viewMode, setViewMode] = useState('uninstaller');  // Default to uninstaller view
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sessionTime, setSessionTime] = useState(0);
@@ -183,6 +185,39 @@ export const Dashboard = () => {
     setIsDarkMode(!isDarkMode);
   };
 
+  // Custom Header component for the uninstaller view
+  const UninstallerHeader = () => (
+    <div className="uninstaller-header">
+      <h1>Cursor AI Editor Uninstaller</h1>
+      <div className="view-selector">
+        <button 
+          className={`view-option ${viewMode === 'uninstaller' ? 'active' : ''}`} 
+          onClick={() => setViewMode('uninstaller')}
+        >
+          Uninstaller
+        </button>
+        <button 
+          className={`view-option ${viewMode === 'overview' ? 'active' : ''}`} 
+          onClick={() => setViewMode('overview')}
+        >
+          Overview
+        </button>
+        <button 
+          className={`view-option ${viewMode === 'detailed' ? 'active' : ''}`} 
+          onClick={() => setViewMode('detailed')}
+        >
+          Detailed
+        </button>
+        <button 
+          className={`view-option ${viewMode === 'settings' ? 'active' : ''}`} 
+          onClick={() => setViewMode('settings')}
+        >
+          Settings
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-mode' : 'light-mode'}`} data-testid="dashboard-container">
       {error && (
@@ -192,18 +227,25 @@ export const Dashboard = () => {
         </div>
       )}
 
-      <Header
-        systemHealth={metrics.systemHealth}
-        activeRequests={metrics.activeRequests}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onRefresh={handleRefresh}
-        lastUpdated={lastUpdated}
-        appName="Cline AI Dashboard"
-        isDarkMode={isDarkMode}
-        onThemeToggle={toggleTheme}
-        sessionTime={sessionTime}
-      />
+      {viewMode === 'uninstaller' ? (
+        <>
+          <UninstallerHeader />
+          <UninstallerDashboard />
+        </>
+      ) : (
+        <Header
+          systemHealth={metrics.systemHealth}
+          activeRequests={metrics.activeRequests}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onRefresh={handleRefresh}
+          lastUpdated={lastUpdated}
+          appName="Cline AI Dashboard"
+          isDarkMode={isDarkMode}
+          onThemeToggle={toggleTheme}
+          sessionTime={sessionTime}
+        />
+      )}
 
       {viewMode === 'overview' && (
         <div className="dashboard-overview">
@@ -253,17 +295,19 @@ export const Dashboard = () => {
         </div>
       )}
 
-      <div className="dashboard-footer">
-        <div className="footer-info">
-          Cline AI Dashboard v1.0.0
-        </div>
-        {loading && (
-          <div className="updating-indicator">
-            <div className="updating-spinner"></div>
-            <span>Updating...</span>
+      {viewMode !== 'uninstaller' && (
+        <div className="dashboard-footer">
+          <div className="footer-info">
+            Cursor AI Dashboard v1.0.0
           </div>
-        )}
-      </div>
+          {loading && (
+            <div className="updating-indicator">
+              <div className="updating-spinner"></div>
+              <span>Updating...</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
