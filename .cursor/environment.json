@@ -1,18 +1,7 @@
 {
-  "terminals": [],
-  "runtime": {
-    "base_image": "node:18-alpine",
-    "workdir": "/app",
-    "ports": [5173, 3000],
-    "exposed_port": 5173,
-    "setup_cmd": [
-      "npm install",
-      "cd ui/dashboard && npm install",
-      "chmod +x ./uninstall_cursor.sh"
-    ],
-    "start_cmd": "npm run dashboard",
-    "environment_variables": {
-      "NODE_ENV": "production"
-    }
-  }
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "terminals": []
 }
