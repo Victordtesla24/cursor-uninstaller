@@ -37,4 +37,5 @@ export { default as TooltipTrigger } from './tooltip-trigger.jsx';
 
 // Miscellaneous components
 export { default as Badge } from './badge.jsx';
-export { default as Separator } from './separator.jsx'; 
+export { default as Separator } from './separator.jsx';
+export { Progress } from './progress.jsx'; 
