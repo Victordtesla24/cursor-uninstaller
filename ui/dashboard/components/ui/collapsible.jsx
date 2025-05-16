@@ -35,6 +35,7 @@ const Collapsible = ({
       <div 
         className={`${className}`}
         data-state={isOpen ? 'open' : 'closed'}
+        data-open={isOpen}
         {...props}
       >
         {children}

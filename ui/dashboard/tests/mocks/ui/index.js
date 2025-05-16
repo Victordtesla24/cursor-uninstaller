@@ -138,3 +138,14 @@ export const Badge = ({ className = '', children, ...props }) => (
 export const Separator = ({ className = '', ...props }) => (
   <hr className={`mock-separator ${className}`} data-testid="mock-separator" {...props} />
 );
+
+// Mock implementation of Progress component
+const Progress = ({ value, className, ...props }) => (
+  <div data-testid="mock-progress" className={className} role="progressbar" aria-valuenow={value} {...props}>
+    <div style={{ width: `${value}%` }}></div>
+  </div>
+);
+
+export {
+  Progress
+};

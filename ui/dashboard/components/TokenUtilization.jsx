@@ -10,9 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Badge,
-  Separator
+  Separator,
+  Progress
 } from "./ui/index.js";
-import { Progress } from "../../../components/ui/progress";
 import { 
   Database, 
   Info, 
