@@ -1,25 +1,31 @@
 FROM node:18-alpine AS dashboard_prep
+# Copy the entire ui/dashboard directory first
+COPY ui/dashboard /temp_dashboard_files
 WORKDIR /source_files
-COPY ui/dashboard/package.json ./dashboard_package.json
-COPY ui/dashboard/package-lock.json ./dashboard_package-lock.json
+# Now, move the specific files from the copied directory
+RUN mv /temp_dashboard_files/package.json ./dashboard_package.json && \
+    mv /temp_dashboard_files/package-lock.json ./dashboard_package-lock.json && \
+    rm -rf /temp_dashboard_files
 RUN echo "--- Contents of /source_files in dashboard_prep stage ---" && ls -la /source_files
 
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy package.json files
+# Copy root package files and install root dependencies
 COPY package*.json ./
-# Explicitly create destination directory for dashboard packages
+RUN npm install
+
+# Create dashboard directory and copy prepped package files
 RUN mkdir -p ./ui/dashboard
-# Copy dashboard package files individually using explicit relative paths
 COPY --from=dashboard_prep /source_files/dashboard_package.json ./ui/dashboard/package.json
 COPY --from=dashboard_prep /source_files/dashboard_package-lock.json ./ui/dashboard/package-lock.json
 
-# Install dependencies
-RUN npm install
+RUN echo "--- Contents of /app/ui/dashboard in main stage after COPY --from ---" && ls -la ./ui/dashboard
+
+# Install dashboard dependencies
 RUN cd ui/dashboard && npm install
 
-# Copy project files
+# Copy the rest of the project files
 COPY . .
 
 # Make the uninstall script executable
