@@ -1,11 +1,15 @@
 FROM node:18-alpine AS dashboard_prep
-# Copy the entire ui/dashboard directory first
-COPY ui/dashboard /temp_dashboard_files
+# Set WORKDIR to root for the initial copy of ui/dashboard contents
+WORKDIR /
+# Copy the entire ui/dashboard directory contents to a uniquely named directory at the root
+COPY ui/dashboard /temp_dashboard_ui_dashboard_files
+
+# Switch WORKDIR to where we want the package files to end up
 WORKDIR /source_files
-# Now, move the specific files from the copied directory
-RUN mv /temp_dashboard_files/package.json ./dashboard_package.json && \
-    mv /temp_dashboard_files/package-lock.json ./dashboard_package-lock.json && \
-    rm -rf /temp_dashboard_files
+# Now, move the specific files from the copied directory at the root
+RUN mv /temp_dashboard_ui_dashboard_files/package.json ./dashboard_package.json && \
+    mv /temp_dashboard_ui_dashboard_files/package-lock.json ./dashboard_package-lock.json && \
+    rm -rf /temp_dashboard_ui_dashboard_files
 RUN echo "--- Contents of /source_files in dashboard_prep stage ---" && ls -la /source_files
 
 FROM node:18-alpine
