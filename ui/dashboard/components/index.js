@@ -4,6 +4,7 @@
  */
 
 // UI components from ./ui/index.js (which itself barrels individual .jsx files)
+// Only re-export components that are actually defined within ui/dashboard/components/ui/
 export {
   Card,
   CardHeader,
@@ -14,7 +15,6 @@ export {
   Button,
   Separator,
   Badge,
-  Progress,
   Switch,
   Tooltip,
   TooltipTrigger,
