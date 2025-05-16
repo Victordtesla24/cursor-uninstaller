@@ -140,12 +140,8 @@ export const Separator = ({ className = '', ...props }) => (
 );
 
 // Mock implementation of Progress component
-const Progress = ({ value, className, ...props }) => (
+export const Progress = ({ value, className, ...props }) => (
   <div data-testid="mock-progress" className={className} role="progressbar" aria-valuenow={value} {...props}>
     <div style={{ width: `${value}%` }}></div>
   </div>
 );
-
-export {
-  Progress
-};
