@@ -8,8 +8,8 @@
   "terminals": [
     {
       "name": "Dashboard",
-      "command": "npm run dashboard",
-      "description": "Runs the main dashboard application."
+      "command": "cd ui/dashboard && npm run dashboard",
+      "description": "Runs the main dashboard application from its subdirectory."
     }
   ]
 }
