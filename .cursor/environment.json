@@ -8,8 +8,8 @@
   "terminals": [
     {
       "name": "Dashboard",
-      "command": "cd ui/dashboard && npm run dev",
-      "description": "Runs the main dashboard application using Vite dev server."
+      "command": "cd ui/dashboard && npm run dev -- --host --no-open",
+      "description": "Runs the main dashboard application using Vite dev server, accessible externally and without opening browser."
     }
   ]
 }
