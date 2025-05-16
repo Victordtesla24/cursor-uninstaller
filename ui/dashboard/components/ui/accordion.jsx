@@ -8,15 +8,15 @@ const AccordionContext = createContext(null);
  *
  * A vertically stacked set of interactive headings that reveal/hide associated content.
  */
-const Accordion = ({ 
-  children, 
-  type = 'single', 
+const Accordion = ({
+  children,
+  type = 'single',
   collapsible = false,
   defaultValue,
   value,
   onValueChange,
   className = '',
-  ...props 
+  ...props
 }) => {
   // Use either controlled (value prop) or uncontrolled (internal state) mode
   const [valueState, setValueState] = useState(defaultValue);
@@ -24,7 +24,7 @@ const Accordion = ({
 
   const handleValueChange = (itemValue) => {
     let newValue;
-    
+
     if (type === 'single') {
       // In single mode, clicking the open item closes it if collapsible is true
       if (itemValue === activeValue && collapsible) {
@@ -44,12 +44,12 @@ const Accordion = ({
         }
       }
     }
-    
+
     // Update internal state if uncontrolled
     if (value === undefined) {
       setValueState(newValue);
     }
-    
+
     // Call callback if provided
     if (onValueChange) {
       onValueChange(newValue);
@@ -58,7 +58,7 @@ const Accordion = ({
 
   return (
     <AccordionContext.Provider value={{ value: activeValue, type, onValueChange: handleValueChange }}>
-      <div 
+      <div
         className={`${className}`}
         {...props}
       >
@@ -77,4 +77,4 @@ export const useAccordion = () => {
     throw new Error('useAccordion must be used within an Accordion component');
   }
   return context;
-}; 
+};

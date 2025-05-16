@@ -5,7 +5,7 @@ import React from 'react';
 export const MockTokenUtilization = ({ tokenData = {}, costData = {}, className = '', darkMode = false }) => {
   // Simple mock that handles null and undefined gracefully
   return (
-    <div 
+    <div
       data-testid="mock-token-utilization"
       data-dark-mode={darkMode ? 'true' : 'false'}
       className={className}
@@ -27,7 +27,7 @@ export const MockTokenUtilization = ({ tokenData = {}, costData = {}, className 
           <div>
             Est. Cost: ${((tokenData.usage.total / 1000) * (costData?.averageRate || 0.002)).toFixed(2)}
           </div>
-          
+
           {/* Mock trends if available */}
           {tokenData.trends && Object.keys(tokenData.trends).map(key => (
             <div key={key}>{key}: {tokenData.trends[key]}%</div>

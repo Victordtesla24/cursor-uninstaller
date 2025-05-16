@@ -172,12 +172,12 @@
             debugContainer.style.maxWidth = '400px';
             debugContainer.style.maxHeight = '80vh';
             debugContainer.style.overflow = 'auto';
-            
+
             const title = document.createElement('h3');
             title.textContent = 'Dashboard Debug';
             title.style.margin = '0 0 10px 0';
             debugContainer.appendChild(title);
-            
+
             // Add console dump
             const consoleOutput = document.createElement('div');
             consoleOutput.style.fontSize = '12px';
@@ -187,7 +187,7 @@
             consoleOutput.style.overflow = 'auto';
             consoleOutput.textContent = 'Console output will appear here.';
             debugContainer.appendChild(consoleOutput);
-            
+
             // Add info about the environment
             const envInfo = document.createElement('div');
             envInfo.style.marginTop = '10px';
@@ -198,7 +198,7 @@
                 <div>React: ${window.React ? window.React.version : 'Not found in window object'}</div>
             `;
             debugContainer.appendChild(envInfo);
-            
+
             // Add a close button
             const closeButton = document.createElement('button');
             closeButton.textContent = 'Close';
@@ -211,14 +211,14 @@
             closeButton.style.cursor = 'pointer';
             closeButton.onclick = () => document.body.removeChild(debugContainer);
             debugContainer.appendChild(closeButton);
-            
+
             document.body.appendChild(debugContainer);
 
             // Override console to capture output
             const originalLog = console.log;
             const originalError = console.error;
             const originalWarn = console.warn;
-            
+
             function captureLog(method, args) {
                 const message = Array.from(args).map(arg => {
                     try {
@@ -227,26 +227,26 @@
                         return String(arg);
                     }
                 }).join(' ');
-                
+
                 consoleOutput.textContent += `\n[${method}] ${message}`;
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
             }
-            
+
             console.log = function() {
                 captureLog('log', arguments);
                 originalLog.apply(console, arguments);
             };
-            
+
             console.error = function() {
                 captureLog('error', arguments);
                 originalError.apply(console, arguments);
             };
-            
+
             console.warn = function() {
                 captureLog('warn', arguments);
                 originalWarn.apply(console, arguments);
             };
-            
+
             return debugContainer;
         }
 
@@ -269,20 +269,20 @@
                         <div class="fallback-title">Cline AI Dashboard (Fallback Mode)</div>
                         <button class="debug-button" onclick="window.location.reload()">Reload Dashboard</button>
                     </div>
-                    
+
                     <div class="fallback-panel">
                         <h3>Dashboard Status</h3>
                         <p>The dashboard is currently running in fallback mode due to an error loading the React application.</p>
                         <p>Please check the browser console for more detailed error information or click the "Show Debug Info" button.</p>
                     </div>
-                    
+
                     <div class="fallback-panel">
                         <h3>Mock Metrics</h3>
                         <p>Total Tokens: 450,000</p>
                         <p>Estimated Cost: $45.20</p>
                         <p>Active Models: 3</p>
                     </div>
-                    
+
                     <div class="fallback-panel">
                         <h3>Token Usage</h3>
                         <ul>
@@ -292,7 +292,7 @@
                             <li>Thinking: 20,000 tokens</li>
                         </ul>
                     </div>
-                    
+
                     <div class="fallback-panel">
                         <h3>Actions</h3>
                         <button class="debug-button" onclick="window.showDashboardDebug && window.showDashboardDebug()">

@@ -23,4 +23,4 @@ ENV NODE_ENV=production
 EXPOSE 5173
 
 # Command to run
-CMD ["npm", "run", "dashboard"] 
+CMD ["npm", "run", "dashboard"]

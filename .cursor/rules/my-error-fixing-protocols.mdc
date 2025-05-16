@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
 ## Error Fixing Protocol
@@ -335,7 +335,7 @@ def handle_error(error_context, attempt=1, max_internal_attempts=2):
 | END: Import Error Resolved                 |
 +--------------------------------------------+
 ```
-  
+
 > **Critical Constraints (Mandatory Adherence)**
 >   - **Atomicity:** Each fix attempt must be the smallest possible change to resolve the identified root cause or implement the chosen solution. Adhere to the Single Responsibility Principle (SRP).
 >   - **Targeted Changes:** No functionality or code must be lost, added, or removed beyond the specific, necessary change required by the fix. Do not refactor unrelated code.

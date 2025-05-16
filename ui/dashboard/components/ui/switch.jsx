@@ -5,13 +5,13 @@ import React from 'react';
  *
  * A toggle switch input component.
  */
-const Switch = ({ 
-  checked = false, 
-  onCheckedChange, 
-  className = '', 
+const Switch = ({
+  checked = false,
+  onCheckedChange,
+  className = '',
   disabled = false,
   id,
-  ...props 
+  ...props
 }) => {
   const handleClick = () => {
     if (onCheckedChange && !disabled) {
@@ -20,7 +20,7 @@ const Switch = ({
   };
 
   return (
-    <button 
+    <button
       type="button"
       role="switch"
       aria-checked={checked}
@@ -31,7 +31,7 @@ const Switch = ({
       disabled={disabled}
       {...props}
     >
-      <span 
+      <span
         data-state={checked ? 'checked' : 'unchecked'}
         className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
       />
@@ -39,4 +39,4 @@ const Switch = ({
   );
 };
 
-export default Switch; 
+export default Switch;

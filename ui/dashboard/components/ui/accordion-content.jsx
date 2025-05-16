@@ -14,7 +14,7 @@ const AccordionContent = ({ children, className = '', ...props }) => {
   }
 
   return (
-    <div 
+    <div
       className={`${className}`}
       data-state={isOpen ? 'open' : 'closed'}
       {...props}
@@ -24,4 +24,4 @@ const AccordionContent = ({ children, className = '', ...props }) => {
   );
 };
 
-export default AccordionContent; 
+export default AccordionContent;

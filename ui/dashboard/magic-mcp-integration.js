@@ -629,7 +629,7 @@ const navigateToUrl = async (url) => {
   }
 };
 
-// Export all the functions 
+// Export all the functions
 module.exports = {
   __setupTestMode,
   safeJsonParse,

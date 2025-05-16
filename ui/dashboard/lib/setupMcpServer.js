@@ -12,9 +12,9 @@ const waitForGlobal = (name, timeout = 5000) => {
     if (window[name] !== undefined) {
       return resolve(window[name]);
     }
-    
+
     const startTime = Date.now();
-    
+
     const interval = setInterval(() => {
       if (window[name] !== undefined) {
         clearInterval(interval);
@@ -90,14 +90,14 @@ const setupPuppeteerServer = async () => {
   try {
     // Check if Puppeteer MCP server is accessible
     console.log('Setting up Puppeteer MCP server...');
-    
+
     // Try to connect to the Puppeteer server directly
     try {
       const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3333/mcp/status`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         // Set a global flag to indicate Puppeteer MCP server is available
         window.PUPPETEER_MCP_AVAILABLE = true;
@@ -111,7 +111,7 @@ const setupPuppeteerServer = async () => {
     } catch (connectionError) {
       console.warn('Unable to connect to Puppeteer MCP server:', connectionError);
       window.PUPPETEER_MCP_AVAILABLE = false;
-      
+
       // Try the MCP client as a fallback
       if (window.__MCP_CLIENT) {
         try {
@@ -125,7 +125,7 @@ const setupPuppeteerServer = async () => {
           return false;
         }
       }
-      
+
       return false;
     }
   } catch (error) {

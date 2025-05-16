@@ -41,22 +41,22 @@ describe('TokenUtilization Component', () => {
 
   test('renders with full token usage data', () => {
     const { container } = render(
-      <TokenUtilization 
-        tokenData={mockTokenData} 
-        costData={mockCostData} 
+      <TokenUtilization
+        tokenData={mockTokenData}
+        costData={mockCostData}
       />
     );
-    
+
     // Check component title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Check description is present
     expect(screen.getByText(/Token usage across/)).toBeInTheDocument();
-    
+
     // Check if budgets are displayed - using a more reliable approach
     const progressBars = container.querySelectorAll('[role="progressbar"]');
     expect(progressBars.length).toBeGreaterThan(0);
-    
+
     // Check cost estimation is displayed
     expect(container.textContent).toContain('Est. Cost');
   });
@@ -66,7 +66,7 @@ describe('TokenUtilization Component', () => {
 
     // Component should render title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Should show no data message
     expect(screen.getByText('No token usage data available')).toBeInTheDocument();
   });
@@ -83,7 +83,7 @@ describe('TokenUtilization Component', () => {
     // Should render the component (not the empty state)
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
     expect(screen.getByText(/Token usage across/)).toBeInTheDocument();
-    
+
     // Container should include the usage number
     expect(container.textContent).toContain('100');
   });
@@ -91,7 +91,7 @@ describe('TokenUtilization Component', () => {
   test('handles undefined tokenData', () => {
     // Test with undefined
     const { container } = render(<TokenUtilization />);
-    
+
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
     expect(screen.getByText('No token usage data available')).toBeInTheDocument();
   });
@@ -100,19 +100,19 @@ describe('TokenUtilization Component', () => {
     // The component has a default empty object for tokenData
     // so we should mock its internal checks correctly
     const { container } = render(<TokenUtilization tokenData={{}} />);
-    
+
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
     expect(screen.getByText('No token usage data available')).toBeInTheDocument();
   });
 
   test('displays cache efficiency correctly', () => {
     const { container } = render(
-      <TokenUtilization 
-        tokenData={mockTokenData} 
-        costData={mockCostData} 
+      <TokenUtilization
+        tokenData={mockTokenData}
+        costData={mockCostData}
       />
     );
-    
+
     // Check for cache efficiency section and value
     expect(container.textContent).toContain('Cache Efficiency');
     expect(container.textContent).toContain('68%');
@@ -120,10 +120,10 @@ describe('TokenUtilization Component', () => {
 
   test('renders trend indicators correctly', () => {
     render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
-    
+
     // Check for trend indicators - using textContent since they could be formatted in different ways
     const containerText = screen.getByText('Token Utilization').closest('div').textContent;
-    
+
     expect(containerText).toContain('-5.2%');
     expect(containerText).toContain('3.7%');
   });
@@ -131,13 +131,13 @@ describe('TokenUtilization Component', () => {
   test('applies custom class name when provided', () => {
     // Custom class name should be applied to the component
     const { container } = render(
-      <TokenUtilization 
-        tokenData={mockTokenData} 
-        costData={mockCostData} 
+      <TokenUtilization
+        tokenData={mockTokenData}
+        costData={mockCostData}
         className="custom-test-class"
       />
     );
-    
+
     // Verify the class is applied to the top-level element
     expect(container.firstChild).toHaveClass('custom-test-class');
   });
@@ -155,12 +155,12 @@ describe('TokenUtilization Component', () => {
         chat: 500,
       }
     };
-    
+
     const { container } = render(<TokenUtilization tokenData={zeroData} />);
-    
+
     // Should handle zero values gracefully
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Should show 0% usage
     expect(container.textContent).toContain('0%');
   });
@@ -174,9 +174,9 @@ describe('TokenUtilization Component', () => {
         total: 1000
       }
     };
-    
+
     const { container } = render(<TokenUtilization tokenData={data} />);
-    
+
     // Should calculate correct percentage
     expect(container.textContent).toContain('10%');
   });
@@ -190,20 +190,20 @@ describe('TokenUtilization Component', () => {
         total: 1000
       }
     };
-    
+
     const { container } = render(<TokenUtilization tokenData={data} />);
-    
+
     // Should indicate over budget (implementation-specific, but should render)
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Either 100% or >100% or some visual indicator
     const containerText = container.textContent;
-    const hasOverBudgetIndicator = 
-      containerText.includes('100%') || 
+    const hasOverBudgetIndicator =
+      containerText.includes('100%') ||
       containerText.includes('>100%') ||
       containerText.includes('150%') ||
       containerText.includes('Over budget');
-    
+
     expect(hasOverBudgetIndicator).toBe(true);
   });
 });

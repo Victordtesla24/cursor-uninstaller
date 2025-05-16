@@ -32,20 +32,20 @@ describe('SettingsPanel Component', () => {
 
   test('renders settings correctly', () => {
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
       />
     );
 
     // Check if the heading is rendered
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    
+
     // Check if settings items are rendered
     Object.keys(settings).forEach(key => {
       expect(screen.getByText(key)).toBeInTheDocument();
     });
-    
+
     // Check if token budgets are rendered
     Object.keys(tokenBudgets).forEach(key => {
       expect(screen.getByText(key)).toBeInTheDocument();
@@ -54,10 +54,10 @@ describe('SettingsPanel Component', () => {
 
   test('calls onSettingChange when toggle is clicked', () => {
     const handleSettingChange = jest.fn();
-    
+
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         onSettingChange={handleSettingChange}
       />
@@ -73,10 +73,10 @@ describe('SettingsPanel Component', () => {
 
   test('edits token budget when edit icon is clicked', () => {
     const handleBudgetChange = jest.fn();
-    
+
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         onBudgetChange={handleBudgetChange}
       />
@@ -92,10 +92,10 @@ describe('SettingsPanel Component', () => {
 
   test('handles cancel when editing budget', () => {
     const handleBudgetChange = jest.fn();
-    
+
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         onBudgetChange={handleBudgetChange}
       />

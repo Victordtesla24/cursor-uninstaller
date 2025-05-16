@@ -12,11 +12,11 @@ jest.mock('../components/ui', () => ({
   CardTitle: ({ children, className }) => <div data-testid="card-title" className={className}>{children}</div>,
   CardFooter: ({ children, className }) => <div data-testid="card-footer" className={className}>{children}</div>,
   Button: ({ children, variant, size, onClick, className, disabled }) => (
-    <button 
-      data-testid="button" 
-      data-variant={variant} 
-      data-size={size} 
-      onClick={onClick} 
+    <button
+      data-testid="button"
+      data-variant={variant}
+      data-size={size}
+      onClick={onClick}
       className={className}
       disabled={disabled}
     >
@@ -52,7 +52,7 @@ jest.mock('../components/MetricsPanel', () => ({ metrics, darkMode }) => (
 jest.mock('lucide-react', () => {
   // Create a generic icon mock function
   const createIconMock = (name) => () => <span data-testid={`icon-${name.toLowerCase()}`}>{name} Icon</span>;
-  
+
   // Return an object with all the icons used in the component
   return {
     BarChart3: createIconMock('BarChart3'),
@@ -127,7 +127,7 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Basic rendering test
   test('renders with title and description', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
         metrics={mockMetricsData}
@@ -137,7 +137,7 @@ describe('EnhancedAnalyticsDashboard Component', () => {
     // Check for basic elements
     expect(screen.getByText('Enhanced Analytics')).toBeInTheDocument();
     expect(screen.getByText('Advanced analytics and reporting tools')).toBeInTheDocument();
-    
+
     // Check that navigation tabs are rendered
     expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText('Detailed')).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   test('toggles dark mode correctly', () => {
     // Test with dark mode off initially
     const { rerender } = render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
         metrics={mockMetricsData}
@@ -159,17 +159,17 @@ describe('EnhancedAnalyticsDashboard Component', () => {
     // Check that card doesn't have dark mode class
     const card = screen.getByTestId('card');
     expect(card.className).not.toContain('bg-card/95');
-    
+
     // Re-render with dark mode on
     rerender(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
         metrics={mockMetricsData}
         darkMode={true}
       />
     );
-    
+
     // Check that dark mode class is applied to card
     expect(screen.getByTestId('card').className).toContain('bg-card/95');
   });
@@ -177,17 +177,17 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Time range filtering tests
   test('renders time range filter buttons', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Check for time range filter buttons
     expect(screen.getByText('Day')).toBeInTheDocument();
     expect(screen.getByText('Week')).toBeInTheDocument();
     expect(screen.getByText('Month')).toBeInTheDocument();
-    
+
     // Week should be selected by default
     const weekButton = screen.getByText('Week').closest('button');
     expect(weekButton.className).toContain('bg-primary');
@@ -195,19 +195,19 @@ describe('EnhancedAnalyticsDashboard Component', () => {
 
   test('changes time range when filter buttons are clicked', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Click on the Day button
     fireEvent.click(screen.getByText('Day'));
-    
+
     // Day button should now be selected
     const dayButton = screen.getByText('Day').closest('button');
     expect(dayButton.className).toContain('bg-primary');
-    
+
     // Week button should no longer be selected
     const weekButton = screen.getByText('Week').closest('button');
     expect(weekButton.className).not.toContain('bg-primary');
@@ -217,20 +217,20 @@ describe('EnhancedAnalyticsDashboard Component', () => {
     // For this test we'll mock the implementation of date pickers
     // In a real test, you would need to mock the date picker component
     const { container } = render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Click on "Custom" button if it exists
-    const customButtons = screen.getAllByRole('button').filter(button => 
+    const customButtons = screen.getAllByRole('button').filter(button =>
       button.textContent.includes('Custom')
     );
-    
+
     if (customButtons.length > 0) {
       fireEvent.click(customButtons[0]);
-      
+
       // Custom should now be selected
       expect(customButtons[0].className).toContain('bg-primary');
     }
@@ -239,28 +239,28 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Filter tests
   test('applies model filters when selected', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Find and click the filter button
-    const filterButtons = screen.getAllByRole('button').filter(button => 
-      button.textContent.includes('Filter') || 
+    const filterButtons = screen.getAllByRole('button').filter(button =>
+      button.textContent.includes('Filter') ||
       button.innerHTML.includes('filter')
     );
-    
+
     if (filterButtons.length > 0) {
       fireEvent.click(filterButtons[0]);
-      
+
       // Check if filter options appear
       // This depends on the actual implementation
-      const modelFilterButtons = screen.getAllByRole('button').filter(button => 
-        button.textContent.includes('Claude') || 
+      const modelFilterButtons = screen.getAllByRole('button').filter(button =>
+        button.textContent.includes('Claude') ||
         button.textContent.includes('Gemini')
       );
-      
+
       if (modelFilterButtons.length > 0) {
         fireEvent.click(modelFilterButtons[0]);
         // The component should update its state
@@ -272,27 +272,27 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Comparison functionality tests
   test('enables comparison mode when compare button clicked', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Find and click the compare button
-    const compareButtons = screen.getAllByRole('button').filter(button => 
+    const compareButtons = screen.getAllByRole('button').filter(button =>
       button.textContent.includes('Compare')
     );
-    
+
     if (compareButtons.length > 0) {
       fireEvent.click(compareButtons[0]);
-      
+
       // Check if comparison options appear
       // This depends on the actual implementation
-      const periodButtons = screen.getAllByRole('button').filter(button => 
-        button.textContent.includes('Previous') || 
+      const periodButtons = screen.getAllByRole('button').filter(button =>
+        button.textContent.includes('Previous') ||
         button.textContent.includes('Same')
       );
-      
+
       expect(periodButtons.length).toBeGreaterThan(0);
     }
   });
@@ -300,58 +300,58 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Export functionality tests
   test('shows export options when export button clicked', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Find and click the export button
-    const exportButtons = screen.getAllByRole('button').filter(button => 
+    const exportButtons = screen.getAllByRole('button').filter(button =>
       button.textContent.includes('Export')
     );
-    
+
     if (exportButtons.length > 0) {
       fireEvent.click(exportButtons[0]);
-      
+
       // Check if export options appear
-      const formatButtons = screen.getAllByRole('button').filter(button => 
-        button.textContent.includes('PDF') || 
+      const formatButtons = screen.getAllByRole('button').filter(button =>
+        button.textContent.includes('PDF') ||
         button.textContent.includes('CSV') ||
         button.textContent.includes('Excel')
       );
-      
+
       expect(formatButtons.length).toBeGreaterThan(0);
     }
   });
 
   test('calls onExport callback when export format is selected', () => {
     const mockExportCallback = jest.fn();
-    
+
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
         onExport={mockExportCallback}
       />
     );
-    
+
     // Find and click the export button
-    const exportButtons = screen.getAllByRole('button').filter(button => 
+    const exportButtons = screen.getAllByRole('button').filter(button =>
       button.textContent.includes('Export')
     );
-    
+
     if (exportButtons.length > 0) {
       fireEvent.click(exportButtons[0]);
-      
+
       // Find and click a format button
-      const pdfButtons = screen.getAllByRole('button').filter(button => 
+      const pdfButtons = screen.getAllByRole('button').filter(button =>
         button.textContent.includes('PDF')
       );
-      
+
       if (pdfButtons.length > 0) {
         fireEvent.click(pdfButtons[0]);
-        
+
         // Check if the callback was called
         expect(mockExportCallback).toHaveBeenCalled();
       }
@@ -361,29 +361,29 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // View tests
   test('switches between overview and detailed views', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Find and click the detailed view button
     const detailedViewButton = screen.getByText('Detailed');
     fireEvent.click(detailedViewButton);
-    
+
     // Detailed should now be selected
     expect(detailedViewButton.className).toContain('bg-primary');
-    
+
     // Overview should no longer be selected
     const overviewButton = screen.getByText('Overview');
     expect(overviewButton.className).not.toContain('bg-primary');
-    
+
     // Switch back to overview
     fireEvent.click(overviewButton);
-    
+
     // Overview should now be selected
     expect(overviewButton.className).toContain('bg-primary');
-    
+
     // Detailed should no longer be selected
     expect(detailedViewButton.className).not.toContain('bg-primary');
   });
@@ -391,25 +391,25 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Reset filters test
   test('resets all filters when reset button clicked', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
       />
     );
-    
+
     // Find and click the reset button
-    const resetButtons = screen.getAllByRole('button').filter(button => 
+    const resetButtons = screen.getAllByRole('button').filter(button =>
       button.textContent.includes('Reset')
     );
-    
+
     if (resetButtons.length > 0) {
       // First apply some filters
       const dayButton = screen.getByText('Day');
       fireEvent.click(dayButton);
-      
+
       // Then reset
       fireEvent.click(resetButtons[0]);
-      
+
       // Week should be selected again (default)
       const weekButton = screen.getByText('Week').closest('button');
       expect(weekButton.className).toContain('bg-primary');
@@ -419,12 +419,12 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Empty state test
   test('renders loading state with empty data', () => {
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={{}}
         modelsData={{}}
       />
     );
-    
+
     // Check for loading indicator
     expect(screen.getByText('Loading analytics data...')).toBeInTheDocument();
   });
@@ -432,18 +432,18 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   // Filter callback test
   test('calls onFilterChange callback when filters change', () => {
     const mockFilterCallback = jest.fn();
-    
+
     render(
-      <EnhancedAnalyticsDashboard 
+      <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
         modelsData={mockModelsData}
         onFilterChange={mockFilterCallback}
       />
     );
-    
+
     // Click on the Day button to change the time range
     fireEvent.click(screen.getByText('Day'));
-    
+
     // Check if the callback was called
     expect(mockFilterCallback).toHaveBeenCalled();
   });

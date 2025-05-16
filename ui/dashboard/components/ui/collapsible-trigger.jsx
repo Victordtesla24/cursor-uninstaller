@@ -10,7 +10,7 @@ const CollapsibleTrigger = ({ children, className = '', asChild, ...props }) => 
   const { toggle } = useCollapsible();
 
   return (
-    <button 
+    <button
       type="button"
       className={`${className}`}
       onClick={toggle}
@@ -22,4 +22,4 @@ const CollapsibleTrigger = ({ children, className = '', asChild, ...props }) => 
   );
 };
 
-export default CollapsibleTrigger; 
+export default CollapsibleTrigger;

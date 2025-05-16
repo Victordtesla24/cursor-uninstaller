@@ -68,7 +68,7 @@ const FallbackStyle = () => (
 
 /**
  * FallbackDashboard component
- * 
+ *
  * This component serves as a reliable fallback when the main dashboard encounters errors
  * It uses minimal dependencies and provides basic information while diagnostic tools run
  */
@@ -98,7 +98,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
         }}>
           Cline AI Dashboard (Fallback Mode)
         </div>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           style={{
             padding: '8px 16px',
@@ -112,7 +112,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
           Reload Dashboard
         </button>
       </div>
-      
+
       <div style={{
         backgroundColor: 'white',
         borderRadius: '6px',
@@ -123,7 +123,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
         <h3 style={{ marginTop: 0, fontSize: '18px', color: '#334155' }}>Dashboard Status</h3>
         <p>The dashboard is currently running in fallback mode due to an error loading the main application.</p>
         <p>Please check the browser console for more detailed error information or click the "Show Debug Info" button.</p>
-        
+
         {errorDetails && (
           <div style={{
             backgroundColor: '#fee2e2',
@@ -148,7 +148,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
           </div>
         )}
       </div>
-      
+
       <div style={{
         backgroundColor: 'white',
         borderRadius: '6px',
@@ -161,7 +161,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
         <p>Estimated Cost: $45.20</p>
         <p>Active Models: 3</p>
       </div>
-      
+
       <div style={{
         backgroundColor: 'white',
         borderRadius: '6px',
@@ -177,7 +177,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
           <li>Thinking: 20,000 tokens</li>
         </ul>
       </div>
-      
+
       <div style={{
         backgroundColor: 'white',
         borderRadius: '6px',
@@ -186,7 +186,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
       }}>
         <h3 style={{ marginTop: 0, fontSize: '18px', color: '#334155' }}>Actions</h3>
-        <button 
+        <button
           onClick={() => window.showDashboardDebug && window.showDashboardDebug()}
           style={{
             padding: '8px 16px',
@@ -200,7 +200,7 @@ const FallbackDashboard = ({ errorDetails = null }) => {
         >
           Show Debug Info
         </button>
-        <button 
+        <button
           onClick={() => window.location.href = 'debug-test.html'}
           style={{
             padding: '8px 16px',

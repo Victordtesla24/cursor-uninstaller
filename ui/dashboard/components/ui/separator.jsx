@@ -7,7 +7,7 @@ import React from 'react';
  */
 const Separator = ({ orientation = 'horizontal', className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`shrink-0 bg-muted ${orientation === 'horizontal' ? 'h-[1px] w-full' : 'h-full w-[1px]'} ${className}`}
       role="none"
       {...props}
@@ -15,4 +15,4 @@ const Separator = ({ orientation = 'horizontal', className = '', ...props }) => 
   );
 };
 
-export default Separator; 
+export default Separator;

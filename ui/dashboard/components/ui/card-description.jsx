@@ -7,7 +7,7 @@ import React from 'react';
  */
 const CardDescription = ({ children, className = '', ...props }) => {
   return (
-    <p 
+    <p
       className={`text-sm text-muted-foreground ${className}`}
       {...props}
     >

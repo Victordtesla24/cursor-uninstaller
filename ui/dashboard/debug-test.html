@@ -13,12 +13,12 @@
       margin: 0 auto;
       padding: 20px;
     }
-    
+
     h1 {
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
     }
-    
+
     #console-output {
       background-color: #f8f8f8;
       border: 1px solid #ddd;
@@ -31,12 +31,12 @@
       white-space: pre-wrap;
       font-size: 14px;
     }
-    
+
     .log { color: #333; }
     .error { color: #e53e3e; }
     .success { color: #38a169; }
     .warning { color: #d69e2e; }
-    
+
     button {
       background-color: #4299e1;
       color: white;
@@ -48,15 +48,15 @@
       cursor: pointer;
       font-size: 14px;
     }
-    
+
     button:hover {
       background-color: #3182ce;
     }
-    
+
     .test-section {
       margin-bottom: 30px;
     }
-    
+
     #root {
       border: 1px dashed #ccc;
       padding: 20px;
@@ -64,7 +64,7 @@
       min-height: 100px;
       border-radius: 4px;
     }
-    
+
     .network-section {
       margin-top: 30px;
       padding: 20px;
@@ -72,7 +72,7 @@
       border-radius: 4px;
       border: 1px solid #bee3f8;
     }
-    
+
     .network-output {
       margin-top: 15px;
       padding: 10px;
@@ -88,7 +88,7 @@
 </head>
 <body>
   <h1>Dashboard Debug Tests</h1>
-  
+
   <div class="test-section">
     <h2>Test Controls</h2>
     <button id="run-all-tests">Run All Tests</button>
@@ -98,17 +98,17 @@
     <button id="clear-console">Clear Console</button>
     <button id="reset-root">Reset Root Element</button>
   </div>
-  
+
   <div class="test-section">
     <h2>Console Output</h2>
     <div id="console-output"></div>
   </div>
-  
+
   <div class="test-section">
     <h2>Render Target</h2>
     <div id="root"></div>
   </div>
-  
+
   <div class="network-section">
     <h2>Network Diagnostics</h2>
     <p>Test the network connectivity and server response:</p>
@@ -119,7 +119,7 @@
     </div>
     <div class="network-output" id="network-output">Network test results will appear here...</div>
   </div>
-  
+
   <!-- Override console methods to capture output -->
   <script>
     const consoleOutput = document.getElementById('console-output');
@@ -129,12 +129,12 @@
       warn: console.warn,
       info: console.info
     };
-    
+
     // Function to add a log entry to the console output
     function addLogEntry(type, args) {
       const logEntry = document.createElement('div');
       logEntry.className = type;
-      
+
       // Convert arguments to string
       const message = Array.from(args).map(arg => {
         if (typeof arg === 'object') {
@@ -146,62 +146,62 @@
         }
         return String(arg);
       }).join(' ');
-      
+
       logEntry.textContent = `[${type}] ${message}`;
       consoleOutput.appendChild(logEntry);
       consoleOutput.scrollTop = consoleOutput.scrollHeight;
-      
+
       // Also log to the original console
       originalConsole[type](...args);
     }
-    
+
     // Override console methods
     console.log = function() { addLogEntry('log', arguments); };
     console.error = function() { addLogEntry('error', arguments); };
     console.warn = function() { addLogEntry('warning', arguments); };
     console.info = function() { addLogEntry('success', arguments); };
   </script>
-  
+
   <!-- Import and run the debug tests -->
   <script type="module">
     import { testImports, testDomRendering, testReactRendering, runAllTests } from './debug-test.js';
-    
+
     // Set up button event listeners
     document.getElementById('run-all-tests').addEventListener('click', runAllTests);
     document.getElementById('test-imports').addEventListener('click', testImports);
     document.getElementById('test-dom').addEventListener('click', testDomRendering);
     document.getElementById('test-react').addEventListener('click', testReactRendering);
-    
+
     document.getElementById('clear-console').addEventListener('click', () => {
       document.getElementById('console-output').innerHTML = '';
       console.log('Console cleared');
     });
-    
+
     document.getElementById('reset-root').addEventListener('click', () => {
       document.getElementById('root').innerHTML = '';
       console.log('Root element reset');
     });
-    
+
     // Network test functions
     document.getElementById('test-curl').addEventListener('click', async () => {
       const networkOutput = document.getElementById('network-output');
       const url = document.getElementById('url-input').value || 'http://localhost:3000/';
-      
+
       networkOutput.textContent = `Testing server response for ${url} using curl...`;
-      
+
       try {
         // This simulates a curl request - in reality we'd need server-side support
         // For demonstration, we'll use fetch but display it as if it were curl
-        const response = await fetch(url, { 
+        const response = await fetch(url, {
           method: 'GET',
           headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
-        
+
         const text = await response.text();
         const headers = Array.from(response.headers.entries())
           .map(([key, value]) => `${key}: ${value}`)
           .join('\n');
-        
+
         networkOutput.textContent = `$ curl -v ${url}\n\n` +
           `> GET / HTTP/1.1\n` +
           `> Host: ${new URL(url).host}\n` +
@@ -210,50 +210,50 @@
           `>\n` +
           `< HTTP/1.1 ${response.status} ${response.statusText}\n` +
           `${headers}\n` +
-          `<\n` + 
+          `<\n` +
           `${text.length > 500 ? text.substring(0, 500) + '...\n[truncated]' : text}`;
-        
+
         console.log(`Server responded with status: ${response.status}`);
       } catch (error) {
         networkOutput.textContent = `$ curl -v ${url}\n\n` +
           `Error: ${error.message}\n\n` +
           `This could indicate that the server is not running or is not accessible.`;
-        
+
         console.error('Network test error:', error);
       }
     });
-    
+
     document.getElementById('test-fetch').addEventListener('click', async () => {
       const networkOutput = document.getElementById('network-output');
       const url = document.getElementById('url-input').value || 'http://localhost:3000/';
-      
+
       networkOutput.textContent = `Testing server response for ${url} using fetch...`;
-      
+
       try {
         console.time('fetch');
         const response = await fetch(url);
         console.timeEnd('fetch');
-        
+
         const text = await response.text();
-        
+
         networkOutput.textContent = `// Fetch request to ${url}\n` +
           `// Status: ${response.status} ${response.statusText}\n` +
           `// Time: ${performance.now().toFixed(2)}ms\n\n` +
           `// Headers:\n${JSON.stringify(Object.fromEntries([...response.headers]), null, 2)}\n\n` +
           `// Response (first 500 chars):\n${text.length > 500 ? text.substring(0, 500) + '...\n[truncated]' : text}`;
-        
+
         console.log(`Server responded with status: ${response.status}`);
       } catch (error) {
         networkOutput.textContent = `// Fetch request to ${url}\n` +
           `// Error: ${error.message}\n\n` +
           `This could indicate that the server is not running or is not accessible.`;
-        
+
         console.error('Network test error:', error);
       }
     });
-    
+
     // Log page load
     console.log('Debug test page loaded');
   </script>
 </body>
-</html> 
+</html>

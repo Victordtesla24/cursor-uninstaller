@@ -35,8 +35,8 @@ const safeJsonParse = (jsonString, fallback = null) => {
 // Check if MCP is available - improved detection logic
 const isMcpAvailable = () => {
   try {
-    return typeof window !== 'undefined' && 
-           window?.cline?.callMcpFunction !== undefined && 
+    return typeof window !== 'undefined' &&
+           window?.cline?.callMcpFunction !== undefined &&
            typeof window.cline.callMcpFunction === 'function';
   } catch (e) {
     return false;
@@ -53,7 +53,7 @@ const safeMcpCall = async (operation, callback, fallback) => {
       console.warn(`MCP not available for operation: ${operation}`);
       return fallback();
     }
-    
+
     return await callback();
   } catch (error) {
     console.error(`Error in MCP operation (${operation}):`, error);

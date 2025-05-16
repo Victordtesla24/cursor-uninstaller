@@ -1,6 +1,6 @@
 /**
  * Debug Utilities for Cline AI Dashboard
- * 
+ *
  * Provides debugging tools and utilities for real-time diagnostics
  * and troubleshooting of the dashboard application.
  */
@@ -51,20 +51,20 @@ export const showDebugInfo = () => {
   debugContainer.style.maxWidth = '400px';
   debugContainer.style.maxHeight = '80vh';
   debugContainer.style.overflow = 'auto';
-  
+
   // Add heading
   const title = document.createElement('h3');
   title.textContent = 'Dashboard Debug';
   title.style.margin = '0 0 10px 0';
   debugContainer.appendChild(title);
-  
+
   // Try to detect Puppeteer MCP availability
   const puppeteerStatus = document.createElement('div');
   puppeteerStatus.style.marginBottom = '10px';
   puppeteerStatus.style.padding = '5px';
   puppeteerStatus.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
   puppeteerStatus.style.borderRadius = '3px';
-  
+
   // Check Puppeteer availability using imported function
   // Use the cached value to avoid potential recursion
   const puppeteerAvailable = window.PUPPETEER_MCP_AVAILABLE === true;
@@ -94,7 +94,7 @@ export const showDebugInfo = () => {
     const reactInfo = document.createElement('div');
     reactInfo.style.marginTop = '10px';
     reactInfo.innerHTML = '<div style="margin-bottom: 5px; font-weight: bold;">React Components</div>';
-    
+
     try {
       const reactInstances = Array.from(document.querySelectorAll('[data-reactroot]'));
       if (reactInstances.length > 0) {
@@ -108,15 +108,15 @@ export const showDebugInfo = () => {
     } catch (e) {
       reactInfo.innerHTML += `<div>Error inspecting React: ${e.message}</div>`;
     }
-    
+
     debugContainer.appendChild(reactInfo);
   }
-  
+
   // Add console output capture
   const consoleOutput = document.createElement('div');
   consoleOutput.style.marginTop = '10px';
   consoleOutput.innerHTML = '<div style="margin-bottom: 5px; font-weight: bold;">Console Output</div>';
-  
+
   const consoleLog = document.createElement('div');
   consoleLog.style.backgroundColor = '#111';
   consoleLog.style.padding = '5px';
@@ -127,15 +127,15 @@ export const showDebugInfo = () => {
   consoleLog.style.maxHeight = '200px';
   consoleLog.style.overflow = 'auto';
   consoleLog.textContent = 'Console output will appear here.';
-  
+
   consoleOutput.appendChild(consoleLog);
   debugContainer.appendChild(consoleOutput);
-  
+
   // Add actions section
   const actions = document.createElement('div');
   actions.style.marginTop = '15px';
   actions.innerHTML = '<div style="margin-bottom: 5px; font-weight: bold;">Actions</div>';
-  
+
   // Create action buttons
   const refreshButton = document.createElement('button');
   refreshButton.textContent = 'Refresh Dashboard';
@@ -148,7 +148,7 @@ export const showDebugInfo = () => {
   refreshButton.style.cursor = 'pointer';
   refreshButton.onclick = () => window.location.reload();
   actions.appendChild(refreshButton);
-  
+
   const diagButton = document.createElement('button');
   diagButton.textContent = 'Run Diagnostic Tests';
   diagButton.style.padding = '5px 10px';
@@ -161,7 +161,7 @@ export const showDebugInfo = () => {
     window.location.href = 'debug-test.html';
   };
   actions.appendChild(diagButton);
-  
+
   // Use cached value instead of calling isPuppeteerAvailable
   // to avoid potential recursion
   if (window.PUPPETEER_MCP_AVAILABLE === true) {
@@ -178,18 +178,18 @@ export const showDebugInfo = () => {
       try {
         console.log('Running Puppeteer diagnostic test...');
         const results = await runDiagnosticTest();
-        
+
         // Add results to console output
         consoleLog.innerHTML += `\n<div style="color: ${results.success ? '#4ade80' : '#f87171'}">
           Puppeteer Diagnostics: ${results.message}
         </div>`;
-        
+
         results.results.forEach(result => {
           consoleLog.innerHTML += `\n<div style="color: ${result.success ? '#4ade80' : '#f87171'}">
             - ${result.name}: ${result.details}
           </div>`;
         });
-        
+
         consoleLog.scrollTop = consoleLog.scrollHeight;
       } catch (error) {
         console.error('Error running Puppeteer diagnostics:', error);
@@ -201,9 +201,9 @@ export const showDebugInfo = () => {
     };
     actions.appendChild(puppeteerButton);
   }
-  
+
   debugContainer.appendChild(actions);
-  
+
   // Add close button
   const closeButton = document.createElement('button');
   closeButton.textContent = 'Close';
@@ -217,14 +217,14 @@ export const showDebugInfo = () => {
   closeButton.style.cursor = 'pointer';
   closeButton.onclick = () => document.body.removeChild(debugContainer);
   debugContainer.appendChild(closeButton);
-  
+
   document.body.appendChild(debugContainer);
 
   // Override console to capture output
   const originalLog = console.log;
   const originalError = console.error;
   const originalWarn = console.warn;
-  
+
   function captureLog(method, args) {
     const message = Array.from(args).map(arg => {
       try {
@@ -233,37 +233,37 @@ export const showDebugInfo = () => {
         return String(arg);
       }
     }).join(' ');
-    
+
     consoleLog.innerHTML += `\n<div style="color: ${
-      method === 'error' ? '#f87171' : 
-      method === 'warn' ? '#fbbf24' : 
+      method === 'error' ? '#f87171' :
+      method === 'warn' ? '#fbbf24' :
       '#a8c8ff'
     }">[${method}] ${message}</div>`;
     consoleLog.scrollTop = consoleLog.scrollHeight;
   }
-  
+
   console.log = function() {
     captureLog('log', arguments);
     originalLog.apply(console, arguments);
   };
-  
+
   console.error = function() {
     captureLog('error', arguments);
     originalError.apply(console, arguments);
   };
-  
+
   console.warn = function() {
     captureLog('warn', arguments);
     originalWarn.apply(console, arguments);
   };
-  
+
   // Restore original console when debug panel is closed
   closeButton.addEventListener('click', () => {
     console.log = originalLog;
     console.error = originalError;
     console.warn = originalWarn;
   });
-  
+
   return debugContainer;
 };
 
@@ -275,7 +275,7 @@ export const showDebugInfo = () => {
 export const initDebugPanel = (renderDebugPanel) => {
   // Store the render function globally for access from console
   window.__renderDebugPanel = renderDebugPanel;
-  
+
   // Add keyboard shortcut (Ctrl+Shift+D) to toggle debug panel
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'D') {
@@ -288,7 +288,7 @@ export const initDebugPanel = (renderDebugPanel) => {
       }
     }
   });
-  
+
   console.log('Debug panel initialized (press Ctrl+Shift+D to show)');
 };
 
@@ -304,11 +304,11 @@ export const captureScreenshot = async (name = 'dashboard', selector = null) => 
     console.error('Puppeteer not available for screenshot');
     return null;
   }
-  
+
   try {
     const options = { name };
     if (selector) options.selector = selector;
-    
+
     return await takeScreenshot(options);
   } catch (error) {
     console.error('Error capturing screenshot:', error);

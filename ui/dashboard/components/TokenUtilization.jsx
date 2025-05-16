@@ -13,15 +13,15 @@ import {
   Separator
 } from "./ui/index.js";
 import { Progress } from "../../../components/ui/progress";
-import { 
-  Database, 
-  Info, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  CheckCircle, 
-  Shield, 
-  Zap, 
+import {
+  Database,
+  Info,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
+  Shield,
+  Zap,
   Sparkles,
   BarChart3,
   CreditCard
@@ -29,9 +29,9 @@ import {
 
 /**
  * TokenUtilization Component
- * 
+ *
  * Displays token usage metrics and budgets with visual indicators and accessibility features
- * 
+ *
  * @param {Object} props Component props
  * @param {Object} props.tokenData Token usage and budget data
  * @param {Object} props.tokenData.usage Current token usage stats by category
@@ -41,9 +41,9 @@ import {
  * @param {String} props.className Additional CSS classes
  * @param {Boolean} props.darkMode Whether dark mode is enabled
  */
-const TokenUtilization = ({ 
-  tokenData = {}, 
-  costData = {}, 
+const TokenUtilization = ({
+  tokenData = {},
+  costData = {},
   className = '',
   darkMode = false
 }) => {
@@ -98,12 +98,12 @@ const TokenUtilization = ({
   }, [categoryIconMap]);
 
   // Get categories excluding 'total'
-  const categories = useMemo(() => 
+  const categories = useMemo(() =>
     Object.keys(budgets).filter(key => key !== 'total'),
   [budgets]);
-  
+
   // Memoized total percentage calculation
-  const totalPercentage = useMemo(() => 
+  const totalPercentage = useMemo(() =>
     calculatePercentage(usage.total || 0, budgets.total || 0),
   [usage.total, budgets.total]);
 
@@ -118,11 +118,11 @@ const TokenUtilization = ({
     if (cacheEfficiency === undefined) return 0;
     return Math.round((usage.total || 0) * cacheEfficiency);
   }, [usage.total, cacheEfficiency]);
-  
+
   // If no data available, show placeholder message with improved visual design
   if (!usage.total && !budgets.total) {
     return (
-      <Card 
+      <Card
         className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}
         aria-labelledby="token-utilization-empty-title"
       >
@@ -144,7 +144,7 @@ const TokenUtilization = ({
   }
 
   return (
-    <Card 
+    <Card
       className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200 animate-in fade-in duration-300 ${darkMode ? 'bg-card/95' : ''}`}
       aria-labelledby="token-utilization-title"
     >
@@ -174,38 +174,38 @@ const TokenUtilization = ({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <div 
+            <div
               className="text-sm font-medium"
               aria-label={`${(usage.total || 0).toLocaleString()} tokens used out of ${(budgets.total || 0).toLocaleString()} tokens budgeted`}
             >
               {(usage.total || 0).toLocaleString()} / {(budgets.total || 0).toLocaleString()}
             </div>
           </div>
-          
+
           <div className="relative">
-            <Progress 
-              value={totalPercentage} 
+            <Progress
+              value={totalPercentage}
               className="h-3"
               aria-label={`Overall budget usage is at ${totalPercentage} percent`}
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow={totalPercentage}
             />
-            
+
             {/* Critical threshold markers with enhanced visual design */}
             <div className="absolute top-0 left-[75%] h-full w-[1px] bg-amber-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-amber-500"></div>
             <div className="absolute top-0 left-[90%] h-full w-[1px] bg-red-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-red-500"></div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`${getBadgeColor(totalPercentage)} w-fit flex items-center gap-0.5 px-2 py-0.5`}
             >
               {totalPercentage > 75 ? <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" /> : null}
               {totalPercentage}% used
             </Badge>
-            <div 
+            <div
               className="text-sm text-muted-foreground flex items-center gap-1.5"
               aria-label={`Estimated cost: ${estimatedCost} dollars`}
             >
@@ -220,17 +220,17 @@ const TokenUtilization = ({
         {/* Categories Breakdown with improved visual design and animation */}
         <div className="space-y-4" aria-labelledby="budget-categories-heading">
           <h3 id="budget-categories-heading" className="text-sm font-semibold">Budget Categories</h3>
-          
+
           <div className="grid gap-5">
             {categories.map((category, index) => {
               const used = usage[category] || 0;
               const budget = budgets[category] || 0;
               const percentage = calculatePercentage(used, budget);
               const categoryIcon = getCategoryIcon(category);
-              
+
               return (
-                <div 
-                  key={category} 
+                <div
+                  key={category}
                   className="space-y-2 animate-in fade-in slide-in-from-left duration-300"
                   style={{ animationDelay: `${index * 100}ms` }}
                   aria-labelledby={`category-${category}`}
@@ -244,50 +244,50 @@ const TokenUtilization = ({
                       )}
                       <span id={`category-${category}`} className="capitalize text-sm font-medium">{category}</span>
                     </div>
-                    <div 
+                    <div
                       className="text-xs text-muted-foreground"
                       aria-label={`${used.toLocaleString()} tokens used out of ${budget.toLocaleString()} tokens budgeted for ${category}`}
                     >
                       {used.toLocaleString()} / {budget.toLocaleString()}
                     </div>
                   </div>
-                  
-                  <div 
+
+                  <div
                     className="relative h-2 w-full rounded-full bg-muted overflow-hidden"
                     role="progressbar"
                     aria-label={`${category} usage is at ${percentage} percent`}
-                    aria-valuemin="0" 
+                    aria-valuemin="0"
                     aria-valuemax="100"
                     aria-valuenow={percentage}
                   >
-                    <div 
+                    <div
                       className={`absolute left-0 top-0 h-full rounded-full ${getStatusColor(percentage)} transition-all duration-700 ease-in-out`}
                       style={{ width: `${percentage}%` }}
                     ></div>
-                    
+
                     {/* Add pulsing animation for high usage */}
                     {percentage > 90 && (
-                      <div 
+                      <div
                         className="absolute inset-0 bg-red-500/20 rounded-full animate-pulse"
                         aria-hidden="true"
                       ></div>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-xs">
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={getBadgeColor(percentage)}
                     >
                       {percentage}%
                     </Badge>
-                    
+
                     {/* Show trend if available with improved visualization */}
                     {tokenData.trends && tokenData.trends[category] && (
                       <div className="flex items-center">
                         {tokenData.trends[category] > 0 ? (
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 flex items-center"
                             aria-label={`Trending up ${tokenData.trends[category].toFixed(1)} percent`}
                           >
@@ -295,7 +295,7 @@ const TokenUtilization = ({
                             {tokenData.trends[category].toFixed(1)}%
                           </Badge>
                         ) : (
-                          <Badge 
+                          <Badge
                             variant="outline"
                             className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center"
                             aria-label={`Trending down ${tokenData.trends[category].toFixed(1)} percent`}
@@ -317,7 +317,7 @@ const TokenUtilization = ({
         {cacheEfficiency !== undefined && (
           <>
             <Separator className="my-1" />
-            <div 
+            <div
               className={`rounded-lg ${darkMode ? 'bg-primary/15' : 'bg-primary/5'} p-4 animate-in fade-in duration-500 shadow-sm`}
               aria-labelledby="cache-efficiency-heading"
             >
@@ -326,24 +326,24 @@ const TokenUtilization = ({
                   <Database className="h-4 w-4 text-primary" aria-hidden="true" />
                   <span id="cache-efficiency-heading" className="font-medium">Cache Efficiency</span>
                 </div>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={`${darkMode ? 'bg-primary/25 border-primary/30' : 'bg-primary/10 border-primary/20'} text-primary`}
                   aria-label={`Cache efficiency is ${(cacheEfficiency * 100).toFixed(0)} percent`}
                 >
                   {(cacheEfficiency * 100).toFixed(0)}%
                 </Badge>
               </div>
-              <p 
+              <p
                 className="mt-2 text-xs text-muted-foreground"
                 aria-label={`${tokensSaved.toLocaleString()} tokens saved through caching`}
               >
                 Tokens saved through caching: <span className="font-semibold">{tokensSaved.toLocaleString()}</span>
               </p>
-              
+
               {/* Enhanced visual representation of cache savings */}
               <div className="mt-3 pt-1">
-                <div 
+                <div
                   className="h-2 w-full bg-muted rounded-full overflow-hidden"
                   role="progressbar"
                   aria-label={`Cache efficiency visual indicator at ${(cacheEfficiency * 100).toFixed(0)} percent`}
@@ -351,12 +351,12 @@ const TokenUtilization = ({
                   aria-valuemax="100"
                   aria-valuenow={(cacheEfficiency * 100)}
                 >
-                  <div 
+                  <div
                     className={`h-full rounded-full ${darkMode ? 'bg-primary/80' : 'bg-primary/60'} transition-all duration-1000 ease-in-out`}
                     style={{ width: `${cacheEfficiency * 100}%` }}
                   ></div>
                 </div>
-                
+
                 {/* Add visual scale marks */}
                 <div className="flex justify-between text-[10px] text-muted-foreground/70 mt-1 px-0.5">
                   <span>0%</span>
@@ -364,13 +364,13 @@ const TokenUtilization = ({
                   <span>100%</span>
                 </div>
               </div>
-              
+
               {/* Add estimated savings note */}
               <div className="mt-3 text-xs text-muted-foreground bg-background/50 rounded p-2 border border-border/40">
                 <div className="flex items-center gap-1">
                   <CreditCard className="h-3 w-3 text-primary/70" aria-hidden="true" />
                   <span className="font-medium">Estimated Savings:</span>
-                  <span 
+                  <span
                     className="font-semibold"
                     aria-label={`Saved ${(tokensSaved / 1000 * (costData?.averageRate || 0.002)).toFixed(2)} dollars through caching`}
                   >

@@ -13,15 +13,15 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '../../../components/ui';
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
-  LayoutGrid, 
-  Calendar, 
-  Layers, 
-  FileType, 
-  Code, 
+import {
+  BarChart3,
+  LineChart,
+  PieChart,
+  LayoutGrid,
+  Calendar,
+  Layers,
+  FileType,
+  Code,
   ActivityIcon,
   Info
 } from 'lucide-react';
@@ -33,7 +33,7 @@ import Chart from 'chart.js/auto';
  * Displays usage statistics in various chart formats
  * Includes token usage over time, usage by model, function, and file type
  * Provides filtering options and chart type selection
- * 
+ *
  * @param {Object} props Component props
  * @param {Object} props.usageData Token usage data
  * @param {String} props.className Additional CSS classes
@@ -100,7 +100,7 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
     ];
 
     // Return the appropriate color array based on dark mode
-    return Array(count).fill().map((_, i) => 
+    return Array(count).fill().map((_, i) =>
       darkMode ? baseColors[i % baseColors.length].dark : baseColors[i % baseColors.length].light
     );
   };
@@ -162,7 +162,7 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
     if (isTimeSeries) {
       // Time series data (daily)
       const labels = data.map((_, i) => `Day ${i + 1}`);
-      
+
       chartInstance.current = new Chart(ctx, {
         type: chartType,
         data: {
@@ -206,17 +206,17 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
     } else {
       // Category data (models, functions, file types, popularity)
       const entries = Object.entries(data);
-      
+
       // For the popularity chart, sort by value
       const sortedEntries = chartView === 'popularity'
         ? entries.sort((a, b) => b[1] - a[1])
         : entries;
-      
+
       // Take top entries for cleaner visualization
       const topEntries = sortedEntries.slice(0, 8);
       const labels = topEntries.map(([label]) => label);
       const values = topEntries.map(([_, value]) => value);
-      
+
       chartInstance.current = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -340,7 +340,7 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
             <div className="text-lg font-bold">{formatNumber(safeUsageData.activeUsers || 0)}</div>
           </div>
         </div>
-        
+
         {/* Chart Canvas */}
         <div className="relative h-[300px] w-full">
           <canvas ref={chartRef} />
@@ -350,13 +350,13 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
         {chartView !== 'daily' && (
           <div className="flex flex-wrap gap-2 justify-center mt-2">
             {Object.entries(getChartData()).slice(0, 8).map(([category, _], index) => (
-              <Badge 
-                key={category} 
+              <Badge
+                key={category}
                 variant="outline"
                 className="flex items-center gap-1.5"
               >
-                <div 
-                  className="w-2 h-2 rounded-full" 
+                <div
+                  className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: getChartColors()[index % 8] }}
                 />
                 <span className="text-xs">{category}</span>

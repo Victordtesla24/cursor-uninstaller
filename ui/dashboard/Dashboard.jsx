@@ -172,7 +172,7 @@ export const Dashboard = () => {
         <div className="text-5xl mb-4">⚠️</div>
         <div className="text-xl font-semibold mb-2">Error Loading Dashboard</div>
         <div className="text-muted-foreground mb-6">{error}</div>
-        <button 
+        <button
           className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors font-medium"
           onClick={() => setUseMockData(!useMockData)}
         >
@@ -191,17 +191,17 @@ export const Dashboard = () => {
             <span className="text-sm text-muted-foreground">
               {useMockData ? 'Using mock data' : 'Connected'}
             </span>
-            <button 
-              className="bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm 
-                hover:bg-background-secondary transition-colors" 
+            <button
+              className="bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm
+                hover:bg-background-secondary transition-colors"
               onClick={toggleDataSource}
             >
               Switch to {useMockData ? 'Live Data' : 'Mock Data'}
             </button>
           </div>
-          <button 
-            className={`bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm 
-              hover:bg-background-secondary transition-colors ${refreshing ? 'opacity-70 cursor-not-allowed' : ''}`} 
+          <button
+            className={`bg-background border border-border text-foreground px-3 py-1.5 rounded text-sm
+              hover:bg-background-secondary transition-colors ${refreshing ? 'opacity-70 cursor-not-allowed' : ''}`}
             onClick={handleRefresh}
             disabled={refreshing}
           >

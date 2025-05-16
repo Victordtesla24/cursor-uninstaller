@@ -45,9 +45,9 @@ describe('SettingsPanel Simple Tests', () => {
       chat: 200000,
       completion: 300000
     };
-    
+
     render(<SettingsPanel tokenBudgets={tokenBudgets} />);
-    
+
     // Check for token budget items
     expect(screen.getByText('chat')).toBeInTheDocument();
     expect(screen.getByText('completion')).toBeInTheDocument();

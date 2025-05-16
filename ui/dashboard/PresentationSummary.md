@@ -153,4 +153,4 @@ ui/dashboard/
 
 * Questions?
 * Feedback on current implementation
-* Priorities for future enhancements 
+* Priorities for future enhancements

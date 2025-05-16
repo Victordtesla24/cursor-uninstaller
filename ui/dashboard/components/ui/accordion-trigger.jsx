@@ -16,7 +16,7 @@ const AccordionTrigger = ({ children, className = '', ...props }) => {
   };
 
   return (
-    <button 
+    <button
       type="button"
       className={`${className}`}
       onClick={handleClick}

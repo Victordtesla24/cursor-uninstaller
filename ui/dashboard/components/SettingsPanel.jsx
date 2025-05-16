@@ -24,14 +24,14 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "./ui/index.js";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Settings, 
-  CreditCard, 
-  Save, 
-  X, 
-  Edit, 
+import {
+  ChevronDown,
+  ChevronUp,
+  Settings,
+  CreditCard,
+  Save,
+  X,
+  Edit,
   Check,
   AlertCircle,
   Info,
@@ -45,9 +45,9 @@ import {
 
 /**
  * SettingsPanel Component
- * 
+ *
  * Displays and allows editing of application settings and token budgets
- * 
+ *
  * @param {Object} props Component props
  * @param {Object} props.settings Application settings
  * @param {Object} props.tokenBudgets Token budget settings
@@ -143,12 +143,12 @@ const SettingsPanel = ({
   const handleSaveBudget = (category) => {
     // Validate input
     const numValue = parseFloat(budgetValue.replace(/,/g, ''));
-    
+
     if (isNaN(numValue)) {
       setBudgetError('Please enter a valid number');
       return;
     }
-    
+
     if (numValue < 0) {
       setBudgetError('Budget cannot be negative');
       return;
@@ -169,7 +169,7 @@ const SettingsPanel = ({
   // Handle budget input change
   const handleBudgetChange = (e) => {
     const value = e.target.value.replace(/,/g, '');
-    
+
     // Allow empty string or numbers
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setBudgetValue(value);
@@ -181,29 +181,29 @@ const SettingsPanel = ({
   const getBudgetBadgeColor = (category) => {
     const value = tokenBudgets[category];
     if (!value) return "bg-muted/50 text-muted-foreground";
-    
+
     // For "total" category, use a different color
     if (category === "total") {
       return "bg-primary/10 text-primary dark:bg-primary/20";
     }
-    
+
     return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
   };
 
   // Render a toggle item for a setting
   const renderSettingToggle = (settingId, label, description, icon) => {
     const isEnabled = settings?.[settingId] || false;
-    
+
     return (
-      <div 
+      <div
         className="flex items-start justify-between space-y-0 py-3 px-1 hover:bg-muted/50 rounded-md transition-colors"
         key={settingId}
       >
         <div className="flex space-x-3">
           {icon && <div className="pt-0.5 text-muted-foreground">{icon}</div>}
           <div className="space-y-1">
-            <Label 
-              htmlFor={`toggle-${settingId}`} 
+            <Label
+              htmlFor={`toggle-${settingId}`}
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               {label}
@@ -253,9 +253,9 @@ const SettingsPanel = ({
             <Settings className="mr-2 h-5 w-5 text-primary" />
             Settings
           </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onToggleCollapse}
             className="h-8 w-8 p-0"
             aria-label={isCollapsed ? "Expand settings" : "Collapse settings"}
@@ -287,16 +287,16 @@ const SettingsPanel = ({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                
-                <Accordion 
-                  type="single" 
-                  collapsible 
+
+                <Accordion
+                  type="single"
+                  collapsible
                   className="w-full"
                   defaultValue="general" // Initially open the general settings
                 >
                   {Object.entries(settingsCategories).map(([category, {icon, label, settings: items}]) => (
-                    <AccordionItem 
-                      value={category} 
+                    <AccordionItem
+                      value={category}
                       key={category}
                       className="border-b border-border last:border-0"
                     >
@@ -308,7 +308,7 @@ const SettingsPanel = ({
                       </AccordionTrigger>
                       <AccordionContent className="animate-in slide-in-from-top-2 duration-200">
                         <div className="space-y-1 pt-1 pb-2">
-                          {items.map(item => 
+                          {items.map(item =>
                             renderSettingToggle(item.id, item.label, item.description, item.icon)
                           )}
                         </div>
@@ -318,17 +318,17 @@ const SettingsPanel = ({
                 </Accordion>
               </div>
             )}
-            
+
             {/* Token Budgets Section */}
             {tokenBudgets && Object.keys(tokenBudgets).length > 0 && (
               <>
                 <Separator className="my-2" />
-                
+
                 <div className="space-y-4 animate-in fade-in duration-500" style={{ animationDelay: "100ms" }}>
                   <div className="flex items-center">
                     <CreditCard className="mr-2 h-4 w-4 text-primary" />
                     <h3 className="text-sm font-medium leading-none">Token Budgets</h3>
-                    
+
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -340,11 +340,11 @@ const SettingsPanel = ({
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  
+
                   <div className="space-y-3 rounded-md border border-border p-3 bg-muted/10">
                     {budgetCategories.map((category, index) => (
-                      <div 
-                        key={category} 
+                      <div
+                        key={category}
                         className={`flex items-center justify-between py-2 px-2 rounded-md transition-all duration-200 ${
                           editingBudget === category ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-muted/50'
                         } ${index !== 0 ? 'border-t border-border/50' : ''}`}
@@ -358,7 +358,7 @@ const SettingsPanel = ({
                             <span className="capitalize text-sm">{category}</span>
                           )}
                         </div>
-                        
+
                         {editingBudget === category ? (
                           <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
                             <div className="space-y-1">
@@ -375,18 +375,18 @@ const SettingsPanel = ({
                                 <p className="text-xs text-red-500 absolute">{budgetError}</p>
                               )}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleSaveBudget(category)}
                               className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/20"
                               data-testid={`budget-save-${category}`}
                             >
                               <Check className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={handleCancelEdit}
                               className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
                               data-testid={`budget-cancel-${category}`}
@@ -396,15 +396,15 @@ const SettingsPanel = ({
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={`px-2.5 py-1 h-6 font-medium ${getBudgetBadgeColor(category)}`}
                             >
                               {formatNumber(tokenBudgets[category])}
                             </Badge>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleEditBudget(category)}
                               className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
                               data-testid={`budget-edit-${category}`}

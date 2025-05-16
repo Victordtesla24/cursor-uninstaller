@@ -7,7 +7,7 @@ import React from 'react';
  */
 const CardContent = ({ children, className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`p-6 pt-0 ${className}`}
       {...props}
     >
@@ -16,4 +16,4 @@ const CardContent = ({ children, className = '', ...props }) => {
   );
 };
 
-export default CardContent; 
+export default CardContent;

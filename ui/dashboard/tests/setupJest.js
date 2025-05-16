@@ -58,9 +58,9 @@ console.error = (...args) => {
     'Cannot read properties of undefined',
     'is not a function'
   ];
-  
-  if (!args.some(arg => 
-    typeof arg === 'string' && 
+
+  if (!args.some(arg =>
+    typeof arg === 'string' &&
     suppressPatterns.some(pattern => arg.includes(pattern))
   )) {
     originalConsoleError(...args);

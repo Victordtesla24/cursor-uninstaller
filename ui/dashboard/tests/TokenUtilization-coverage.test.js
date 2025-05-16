@@ -31,16 +31,16 @@ describe('TokenUtilization Coverage Tests', () => {
 
   test('renders with token usage data', () => {
     render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
-    
+
     // Check component title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Check usage metrics
     expect(screen.getByText(/550,000 \/ 900,000/)).toBeInTheDocument();
-    
+
     // Check percentage calculation
     expect(screen.getByText('61% used')).toBeInTheDocument();
-    
+
     // Check cost estimation - using a more flexible approach since text is now split across elements
     expect(screen.getByText('Est. Cost:')).toBeInTheDocument();
     expect(screen.getByText('$8.25')).toBeInTheDocument();
@@ -48,18 +48,18 @@ describe('TokenUtilization Coverage Tests', () => {
 
   test('renders trend indicators correctly', () => {
     render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
-    
+
     // Check for trend indicators
     const decreaseTrend = screen.getByText(/5\.2%/);
     expect(decreaseTrend).toBeInTheDocument();
-    
+
     const increaseTrend = screen.getByText(/3\.7%/);
     expect(increaseTrend).toBeInTheDocument();
   });
 
   test('handles no data gracefully', () => {
     render(<TokenUtilization />);
-    
+
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
     expect(screen.getByText('No token usage data available')).toBeInTheDocument();
     expect(screen.getByText('Token usage metrics will appear here when available')).toBeInTheDocument();

@@ -28,30 +28,30 @@ export { default as EnhancedAnalyticsDashboard } from './features/EnhancedAnalyt
 export { default as ModelPerformanceComparison } from './features/ModelPerformanceComparison';
 
 // Shadcn UI components - standardized to use local ui directory
-export { 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  CardFooter 
+export {
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter
 } from './ui/card.jsx';
 
-export { 
-  Tooltip, 
-  TooltipTrigger, 
-  TooltipContent, 
-  TooltipProvider 
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider
 } from './ui/tooltip.jsx';
 
-export { 
-  Collapsible, 
-  CollapsibleTrigger, 
-  CollapsibleContent 
+export {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
 } from './ui/collapsible.jsx';
 
-export { 
-  Accordion, 
-  AccordionItem, 
-  AccordionTrigger, 
-  AccordionContent 
+export {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent
 } from './ui/accordion.jsx';

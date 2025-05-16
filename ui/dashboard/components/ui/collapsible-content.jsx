@@ -14,7 +14,7 @@ const CollapsibleContent = ({ children, className = '', ...props }) => {
   }
 
   return (
-    <div 
+    <div
       className={`${className}`}
       {...props}
     >
@@ -23,4 +23,4 @@ const CollapsibleContent = ({ children, className = '', ...props }) => {
   );
 };
 
-export default CollapsibleContent; 
+export default CollapsibleContent;

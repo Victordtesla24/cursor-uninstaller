@@ -13,16 +13,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui";
-import { 
-  BarChart3, 
-  CheckCircle2, 
-  ArrowDown, 
-  ArrowUp, 
-  LayoutGrid, 
-  List, 
-  Plus, 
-  ZoomIn, 
-  Copy, 
+import {
+  BarChart3,
+  CheckCircle2,
+  ArrowDown,
+  ArrowUp,
+  LayoutGrid,
+  List,
+  Plus,
+  ZoomIn,
+  Copy,
   BadgeCheck,
   BarChart,
   BarChart2,
@@ -39,21 +39,21 @@ import {
 
 /**
  * ModelPerformanceComparison Component
- * 
+ *
  * Allows users to compare the performance and cost-efficiency of different language models.
  * Features include side-by-side comparisons, sortable metrics, and visualization tools.
- * 
+ *
  * @param {Object} props
  * @param {Object} props.modelsData - Available models and their performance data
  * @param {Object} props.usageData - Token usage data for performance comparison
  * @param {Function} props.onModelSelect - Callback when user selects a model
  * @param {Boolean} props.darkMode - Whether dark mode is enabled
  */
-const ModelPerformanceComparison = ({ 
-  modelsData = {}, 
-  usageData = {}, 
-  onModelSelect, 
-  darkMode = false 
+const ModelPerformanceComparison = ({
+  modelsData = {},
+  usageData = {},
+  onModelSelect,
+  darkMode = false
 }) => {
   // State for selected models to compare
   const [selectedModels, setSelectedModels] = useState([]);
@@ -68,7 +68,7 @@ const ModelPerformanceComparison = ({
     trafficAllocation: 50,
     metricsToTrack: ['latency', 'costEfficiency']
   });
-  
+
   // Core comparison metrics to always show
   const coreMetrics = useMemo(() => [
     {
@@ -104,7 +104,7 @@ const ModelPerformanceComparison = ({
       higherIsBetter: true
     }
   ], []);
-  
+
   // Extended metrics only shown when "Show All Metrics" is enabled
   const extendedMetrics = useMemo(() => [
     {
@@ -148,16 +148,16 @@ const ModelPerformanceComparison = ({
       higherIsBetter: false
     }
   ], []);
-  
+
   // Combine core and extended metrics based on showAllMetrics flag
   const displayMetrics = useMemo(() => {
     return showAllMetrics ? [...coreMetrics, ...extendedMetrics] : coreMetrics;
   }, [coreMetrics, extendedMetrics, showAllMetrics]);
-  
+
   // Process models data for the comparison
   const availableModels = useMemo(() => {
     if (!modelsData || !modelsData.available) return [];
-    
+
     return modelsData.available.map(model => ({
       id: model.id,
       name: model.name || model.id,
@@ -178,7 +178,7 @@ const ModelPerformanceComparison = ({
       }
     }));
   }, [modelsData]);
-  
+
   // Handle toggling a model in the comparison
   const toggleModelSelection = (modelId) => {
     setSelectedModels(prev => {
@@ -193,36 +193,36 @@ const ModelPerformanceComparison = ({
       }
     });
   };
-  
+
   // Get the best model for a specific metric
   const getBestModelForMetric = (metric) => {
     if (!selectedModels.length) return null;
-    
+
     const metricDef = [...coreMetrics, ...extendedMetrics].find(m => m.id === metric);
     if (!metricDef) return null;
-    
-    const selectedModelObjects = availableModels.filter(model => 
+
+    const selectedModelObjects = availableModels.filter(model =>
       selectedModels.includes(model.id)
     );
-    
+
     // Sort based on whether higher or lower is better
     return selectedModelObjects.sort((a, b) => {
       const aValue = a.performance[metric] || 0;
       const bValue = b.performance[metric] || 0;
-      
-      return metricDef.higherIsBetter 
+
+      return metricDef.higherIsBetter
         ? bValue - aValue // Descending for higher is better
         : aValue - bValue; // Ascending for lower is better
     })[0]?.id;
   };
-  
+
   // Format value based on metric
   const formatMetricValue = (value, metricId) => {
     if (value === undefined || value === null) return 'N/A';
-    
+
     const metric = [...coreMetrics, ...extendedMetrics].find(m => m.id === metricId);
     if (!metric) return value.toString();
-    
+
     // Format based on unit
     switch (metric.unit) {
       case 'ms':
@@ -241,29 +241,29 @@ const ModelPerformanceComparison = ({
         return value.toString();
     }
   };
-  
+
   // Determine if a value is the best among all selected models for a metric
   const isValueBest = (modelId, metricId) => {
     return getBestModelForMetric(metricId) === modelId;
   };
-  
+
   // Run an A/B test simulation
   const handleStartAbTest = () => {
     if (!abTestConfig.modelA || !abTestConfig.modelB) {
       // Can't start test without two models
       return;
     }
-    
+
     setAbTestActive(true);
     // In a real implementation, this would trigger an actual A/B test
     console.log('Starting A/B test with config:', abTestConfig);
   };
-  
+
   // Stop the A/B test
   const handleStopAbTest = () => {
     setAbTestActive(false);
   };
-  
+
   // Handle refreshing performance data
   const handleRefreshData = async () => {
     setRefreshingData(true);
@@ -271,16 +271,16 @@ const ModelPerformanceComparison = ({
     await new Promise(resolve => setTimeout(resolve, 1000));
     setRefreshingData(false);
   };
-  
+
   // Generate sample A/B test results
   const abTestResults = useMemo(() => {
     if (!abTestActive || !abTestConfig.modelA || !abTestConfig.modelB) return null;
-    
+
     const modelA = availableModels.find(model => model.id === abTestConfig.modelA);
     const modelB = availableModels.find(model => model.id === abTestConfig.modelB);
-    
+
     if (!modelA || !modelB) return null;
-    
+
     // Generate mock results with statistical significance
     return {
       sampleSize: Math.floor(Math.random() * 1000 + 500),
@@ -307,7 +307,7 @@ const ModelPerformanceComparison = ({
       conclusion: Math.random() > 0.5 ? abTestConfig.modelA : abTestConfig.modelB
     };
   }, [abTestActive, abTestConfig, availableModels]);
-  
+
   // If no models data is available, show loading state
   if (!availableModels || availableModels.length === 0) {
     return (
@@ -330,7 +330,7 @@ const ModelPerformanceComparison = ({
       </Card>
     );
   }
-  
+
   return (
     <Card className={`shadow-sm hover:shadow-md transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}>
       <CardHeader className="pb-3">
@@ -344,14 +344,14 @@ const ModelPerformanceComparison = ({
               Compare performance metrics across different models
             </CardDescription>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setViewType(viewType === 'grid' ? 'list' : 'grid')}
                     className="h-8 w-8 p-0"
                   >
@@ -363,13 +363,13 @@ const ModelPerformanceComparison = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowAllMetrics(!showAllMetrics)}
                     className="h-8"
                   >
@@ -381,13 +381,13 @@ const ModelPerformanceComparison = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleRefreshData}
                     disabled={refreshingData}
                     className="h-8"
@@ -404,21 +404,21 @@ const ModelPerformanceComparison = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <Separator />
-      
+
       <CardContent className="pt-6">
         {/* Model Selection Section */}
         <div className="mb-6">
           <h3 className="text-sm font-medium mb-3">Select Models to Compare ({selectedModels.length}/4)</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {availableModels.map((model) => (
-              <div 
+              <div
                 key={model.id}
                 onClick={() => toggleModelSelection(model.id)}
-                className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 
-                  ${selectedModels.includes(model.id) 
-                    ? 'border-primary bg-primary/5 dark:bg-primary/10' 
+                className={`border rounded-lg p-3 cursor-pointer transition-all duration-200
+                  ${selectedModels.includes(model.id)
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
                     : 'border-border hover:border-primary/60'}`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -436,12 +436,12 @@ const ModelPerformanceComparison = ({
             ))}
           </div>
         </div>
-        
+
         {/* Metrics Comparison Section */}
         {selectedModels.length > 0 ? (
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-3">Performance Comparison</h3>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full min-w-[600px] border-collapse">
                 <thead>
@@ -484,7 +484,7 @@ const ModelPerformanceComparison = ({
                         const model = availableModels.find(m => m.id === modelId);
                         const value = model?.performance[metric.id];
                         const isBest = selectedModels.length > 1 && isValueBest(modelId, metric.id);
-                        
+
                         return (
                           <td key={`${modelId}-${metric.id}`} className="text-center p-2">
                             <div className="flex items-center justify-center gap-1">
@@ -513,27 +513,27 @@ const ModelPerformanceComparison = ({
             </p>
           </div>
         )}
-        
+
         {/* A/B Testing Section */}
         {selectedModels.length >= 2 && (
           <div className="mt-8">
             <Separator className="mb-6" />
-            
+
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium">A/B Testing</h3>
-              
+
               {abTestActive ? (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={handleStopAbTest}
                 >
                   Stop Test
                 </Button>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleStartAbTest}
                   disabled={!abTestConfig.modelA || !abTestConfig.modelB}
                 >
@@ -541,16 +541,16 @@ const ModelPerformanceComparison = ({
                 </Button>
               )}
             </div>
-            
+
             {!abTestActive ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border rounded-lg p-4">
                   <h4 className="text-sm font-medium mb-3">Test Configuration</h4>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Model A</label>
-                      <select 
+                      <select
                         className="w-full p-2 border rounded bg-background"
                         value={abTestConfig.modelA}
                         onChange={(e) => setAbTestConfig(prev => ({ ...prev, modelA: e.target.value }))}
@@ -566,10 +566,10 @@ const ModelPerformanceComparison = ({
                         })}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Model B</label>
-                      <select 
+                      <select
                         className="w-full p-2 border rounded bg-background"
                         value={abTestConfig.modelB}
                         onChange={(e) => setAbTestConfig(prev => ({ ...prev, modelB: e.target.value }))}
@@ -586,15 +586,15 @@ const ModelPerformanceComparison = ({
                         })}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">
                         Traffic Allocation: {abTestConfig.trafficAllocation}% to Model A, {100 - abTestConfig.trafficAllocation}% to Model B
                       </label>
-                      <input 
-                        type="range" 
-                        min="10" 
-                        max="90" 
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
                         step="10"
                         className="w-full"
                         value={abTestConfig.trafficAllocation}
@@ -603,14 +603,14 @@ const ModelPerformanceComparison = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <h4 className="text-sm font-medium mb-3">Metrics to Track</h4>
                   <div className="space-y-2">
                     {coreMetrics.map(metric => (
                       <div key={metric.id} className="flex items-center gap-2">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           id={`track-${metric.id}`}
                           checked={abTestConfig.metricsToTrack.includes(metric.id)}
                           onChange={(e) => {
@@ -646,7 +646,7 @@ const ModelPerformanceComparison = ({
                       Live Test
                     </Badge>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
@@ -668,17 +668,17 @@ const ModelPerformanceComparison = ({
                         {Object.entries(abTestResults.metricsComparison).map(([metricId, data]) => {
                           const metric = coreMetrics.find(m => m.id === metricId);
                           if (!metric) return null;
-                          
+
                           // Determine if the difference is positive or negative
                           // For "higher is better" metrics, positive difference means B is better
                           // For "lower is better" metrics, negative difference means B is better
-                          const diffIsPositive = metric.higherIsBetter 
-                            ? parseFloat(data.difference) > 0 
+                          const diffIsPositive = metric.higherIsBetter
+                            ? parseFloat(data.difference) > 0
                             : parseFloat(data.difference) < 0;
-                          
+
                           // Calculate which model performed better for this metric
                           const betterModel = diffIsPositive ? 'B' : 'A';
-                            
+
                           return (
                             <tr key={metricId} className="border-b hover:bg-muted/30">
                               <td className="p-2">
@@ -691,8 +691,8 @@ const ModelPerformanceComparison = ({
                               <td className="text-center p-2">{formatMetricValue(data.modelB, metricId)}</td>
                               <td className="text-center p-2">
                                 <div className={`flex items-center justify-center gap-1 ${
-                                  diffIsPositive 
-                                    ? 'text-emerald-600 dark:text-emerald-400' 
+                                  diffIsPositive
+                                    ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-red-600 dark:text-red-400'
                                 }`}>
                                   {diffIsPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
@@ -701,8 +701,8 @@ const ModelPerformanceComparison = ({
                               </td>
                               <td className="text-center p-2">
                                 <Badge variant="outline" className={
-                                  data.significanceLevel === 'high' 
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400' 
+                                  data.significanceLevel === 'high'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400'
                                     : data.significanceLevel === 'medium'
                                     ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
                                     : 'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-400'
@@ -716,7 +716,7 @@ const ModelPerformanceComparison = ({
                       </tbody>
                     </table>
                   </div>
-                  
+
                   <div className="mt-4 p-3 bg-muted/40 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" />
@@ -738,4 +738,4 @@ const ModelPerformanceComparison = ({
   );
 };
 
-export default ModelPerformanceComparison; 
+export default ModelPerformanceComparison;

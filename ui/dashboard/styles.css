@@ -35,7 +35,7 @@
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
   }
- 
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -421,11 +421,11 @@ body {
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
-  
+
   .animate-slide-up {
     animation: slideInUp 0.4s ease-out;
   }
-  
+
   .animate-pulse-gentle {
     animation: pulse 2s ease-in-out infinite;
   }
@@ -434,20 +434,20 @@ body {
   .transition-all-fast {
     @apply transition-all duration-200 ease-in-out;
   }
-  
+
   .transition-all-medium {
     @apply transition-all duration-300 ease-in-out;
   }
-  
+
   .transition-transform-bounce {
     @apply transition-transform duration-300 ease-out;
   }
-  
+
   /* Hover effect utilities */
   .hover-lift {
     @apply hover:-translate-y-1 transition-transform-bounce;
   }
-  
+
   .hover-scale {
     @apply hover:scale-105 transition-transform-bounce;
   }
@@ -463,7 +463,7 @@ body {
   .dashboard-card {
     @apply bg-card rounded-lg border shadow-sm overflow-hidden animate-fade-in;
   }
-  
+
   .metric-card {
     @apply p-4 rounded-lg border bg-card shadow-sm transition-all-fast hover:shadow-md;
   }
@@ -471,19 +471,19 @@ body {
   .metric-value {
     @apply text-2xl font-bold;
   }
-  
+
   .metric-label {
     @apply text-sm text-muted-foreground;
   }
-  
+
   .data-grid {
     @apply grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
-  
+
   .data-list {
     @apply divide-y divide-border rounded-md border bg-card;
   }
-  
+
   .data-list-item {
     @apply flex items-center justify-between p-4;
   }

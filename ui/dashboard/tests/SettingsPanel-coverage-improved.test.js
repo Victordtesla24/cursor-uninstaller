@@ -38,7 +38,7 @@ describe('SettingsPanel Component Branch Coverage', () => {
     // Simple check - component rendered
     const hasSettings = screen.getByText('Settings');
     expect(hasSettings).not.toBeNull();
-    
+
     // Basic content check - use safer assertion method
     const hasAutoRefresh = container.textContent.indexOf('Auto Refresh') > -1;
     expect(hasAutoRefresh).toBe(true); // Use toBe instead of toBeTruthy
@@ -61,17 +61,17 @@ describe('SettingsPanel Component Branch Coverage', () => {
     const { container } = render(
       <SettingsPanel settings={null} tokenBudgets={null} />
     );
-    
+
     // Simple check - still renders something
     const hasSettings = screen.getByText('Settings');
     expect(hasSettings).toBeTruthy();
   });
-  
+
   test('renders with empty settings objects', () => {
     const { container } = render(
       <SettingsPanel settings={{}} tokenBudgets={{}} />
     );
-    
+
     // Simple check - component rendered
     const hasSettings = screen.getByText('Settings');
     expect(hasSettings).toBeTruthy();
@@ -81,11 +81,11 @@ describe('SettingsPanel Component Branch Coverage', () => {
     const { container } = render(
       <SettingsPanel settings={settings} tokenBudgets={tokenBudgets} />
     );
-    
+
     // Simple check - has inputs and buttons
     const inputCount = container.querySelectorAll('input').length;
     const buttonCount = container.querySelectorAll('button').length;
-    
+
     // Just check they exist without using matchers that might cause format issues
     expect(inputCount > 0).toBe(true); // Use toBe instead of toBeTruthy
     expect(buttonCount > 0).toBe(true); // Use toBe instead of toBeTruthy

@@ -14,7 +14,7 @@ const Badge = ({ children, variant = 'default', className = '', ...props }) => {
   };
 
   return (
-    <div 
+    <div
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${variantClasses[variant] || variantClasses.default} ${className}`}
       {...props}
     >
@@ -23,4 +23,4 @@ const Badge = ({ children, variant = 'default', className = '', ...props }) => {
   );
 };
 
-export default Badge; 
+export default Badge;

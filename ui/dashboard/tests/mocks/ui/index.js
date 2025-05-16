@@ -49,7 +49,7 @@ export const Accordion = ({ className = '', children, collapsible, ...props }) =
   if (collapsible !== undefined) {
     accordionProps['data-collapsible'] = collapsible.toString();
   }
-  
+
   return (
     <div className={`mock-accordion ${className}`} data-testid="mock-accordion" {...accordionProps}>
       {children}
@@ -91,14 +91,14 @@ export const Switch = ({ className = '', checked, onCheckedChange, ...props }) =
   };
 
   return (
-    <input 
-      type="checkbox" 
+    <input
+      type="checkbox"
       role="switch" // Explicitly add the role
-      className={`mock-switch ${className}`} 
-      data-testid="mock-switch" 
+      className={`mock-switch ${className}`}
+      data-testid="mock-switch"
       defaultChecked={checked}
-      onChange={handleChange} 
-      {...props} 
+      onChange={handleChange}
+      {...props}
     />
   );
 };
@@ -118,11 +118,11 @@ export const TooltipTrigger = ({ className = '', children, asChild, ...props }) 
   if (asChild !== undefined) {
     triggerProps['data-aschild'] = asChild.toString();
   }
-  
+
   return (
-    <div 
-      className={`mock-tooltip-trigger ${className}`} 
-      data-testid="mock-tooltip-trigger" 
+    <div
+      className={`mock-tooltip-trigger ${className}`}
+      data-testid="mock-tooltip-trigger"
       {...triggerProps}
     >
       {children}

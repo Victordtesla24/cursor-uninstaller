@@ -11,15 +11,15 @@ const AccordionItemContext = createContext(null);
  */
 const AccordionItem = ({ children, value, className = '', ...props }) => {
   const { value: activeValue, type } = useAccordion();
-  
+
   // Determine if this item is open
-  const isOpen = type === 'single' 
-    ? activeValue === value 
+  const isOpen = type === 'single'
+    ? activeValue === value
     : Array.isArray(activeValue) && activeValue.includes(value);
 
   return (
     <AccordionItemContext.Provider value={{ value, isOpen }}>
-      <div 
+      <div
         className={`${className}`}
         data-state={isOpen ? 'open' : 'closed'}
         {...props}
@@ -39,4 +39,4 @@ export const useAccordionItem = () => {
     throw new Error('useAccordionItem must be used within an AccordionItem component');
   }
   return context;
-}; 
+};

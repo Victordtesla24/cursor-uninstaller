@@ -25,7 +25,7 @@ describe('TokenUtilization Component', () => {
 
     // Component should render title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Should show no data message
     expect(screen.getByText('No token usage data available')).toBeInTheDocument();
   });
@@ -35,18 +35,18 @@ describe('TokenUtilization Component', () => {
 
     // Check component title
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Check for the description text
     expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
-    
+
     // Check for "Overall Budget" with a function to detect the text that might be split across elements
     expect(screen.getByText((content, element) => {
       return element.tagName.toLowerCase() === 'h3' && content.includes('Overall Budget');
     })).toBeInTheDocument();
-    
+
     // Check for "Budget Categories" heading
     expect(screen.getByText('Budget Categories')).toBeInTheDocument();
-    
+
     // Check for cache efficiency
     expect(screen.getByText('Cache Efficiency')).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes('Tokens saved through caching'))).toBeInTheDocument();
@@ -63,10 +63,10 @@ describe('TokenUtilization Component', () => {
 
     // Should render the main component
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
-    
+
     // Check for the description text which means we're not seeing the empty state
     expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
-    
+
     // Look for the usage numbers in the container's text content
     expect(container.textContent).toContain('150,000');
     expect(container.textContent).toContain('200,000');
@@ -84,7 +84,7 @@ describe('TokenUtilization Component', () => {
     // Should render the component (not the empty state)
     expect(screen.getByText('Token Utilization')).toBeInTheDocument();
     expect(screen.getByText('Token usage across different categories and overall budget')).toBeInTheDocument();
-    
+
     // Container should include the usage number
     expect(container.textContent).toContain('100');
   });

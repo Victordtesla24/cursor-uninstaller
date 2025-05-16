@@ -16,49 +16,49 @@ let checkingPuppeteerAvailability = false;
  */
 export const isPuppeteerAvailable = async () => {
   if (typeof window === 'undefined') return false;
-  
+
   // First check if we already know it's available
   if (window.PUPPETEER_MCP_AVAILABLE === true) {
     return true;
   }
-  
+
   // If we already tried and it's not available, return false
   if (window.PUPPETEER_MCP_AVAILABLE === false) {
     return false;
   }
-  
+
   // Guard against reentrant calls that could cause stack overflow
   if (checkingPuppeteerAvailability) {
     console.warn('Preventing recursive isPuppeteerAvailable call');
     return false;
   }
-  
+
   // Set guard to prevent nested calls
   checkingPuppeteerAvailability = true;
-  
+
   // Set a default false value to prevent recursive calls
   window.PUPPETEER_MCP_AVAILABLE = false;
-  
+
   try {
     console.log('Checking Puppeteer MCP availability...');
-    
+
     // Try to connect to the Puppeteer MCP server
     const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3333/mcp/status`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
     const isAvailable = response.ok;
-    
+
     // Cache the result
     window.PUPPETEER_MCP_AVAILABLE = isAvailable;
-    
+
     if (isAvailable) {
       console.log('Puppeteer MCP server is available');
     } else {
       console.warn('Puppeteer MCP server is not available');
     }
-    
+
     checkingPuppeteerAvailability = false;
     return isAvailable;
   } catch (error) {
@@ -212,7 +212,7 @@ export const evaluate = async (script) => {
         return null;
     }
     window.__PUPPETEER_EVALUATING_GUARD = true;
-    
+
     // Direct tool call without additional checks that could create recursion
     const result = await window.__MCP_CLIENT.useTool(PUPPETEER_SERVER, 'puppeteer_evaluate', {
       script
@@ -281,7 +281,7 @@ export const runDiagnosticTest = async () => {
         const mockData = document.querySelector('.mock-data-indicator');
         results.push({
           name: 'Mock data check',
-          success: true, 
+          success: true,
           details: mockData ? 'Using mock data: ' + mockData.textContent : 'Not using mock data'
         });
         const consoleErrors = window.__console_errors || [];
@@ -297,7 +297,7 @@ export const runDiagnosticTest = async () => {
         };
       })()
     `;
-    
+
     const diagnosticResults = await evaluate(diagnosticScript);
 
     return diagnosticResults || {
@@ -324,4 +324,4 @@ export default {
   hover,
   evaluate,
   runDiagnosticTest
-}; 
+};

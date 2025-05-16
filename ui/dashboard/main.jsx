@@ -12,11 +12,11 @@ const removeLoadingScreen = () => {
   const loadingScreen = document.getElementById("loading-screen");
   if (loadingScreen) {
     console.log("Removing loading screen");
-    
+
     // Add fade-out effect
     loadingScreen.style.transition = "opacity 0.5s";
     loadingScreen.style.opacity = "0";
-    
+
     // Remove element after transition
     setTimeout(() => {
       if (loadingScreen.parentNode) {
@@ -48,12 +48,12 @@ async function initAndRenderApp() {
     // Ensure root element exists
     ensureRootElement();
     const rootElement = document.getElementById("root");
-    
+
     // Initialize MCP servers via the setup module
     console.log("Setting up MCP servers...");
     const mcpStatus = await initializeMcpServers();
     console.log("MCP setup complete", mcpStatus);
-    
+
     // Render the EnhancedDashboard
     console.log("Rendering EnhancedDashboard...");
     const reactRoot = ReactDOM.createRoot(rootElement);

@@ -13,12 +13,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
   Sparkles,
   Lightbulb,
   ArrowRight,
@@ -28,39 +28,39 @@ import {
 
 /**
  * TokenBudgetRecommendations Component
- * 
+ *
  * Analyzes token usage patterns and provides intelligent budget recommendations
  * based on historical data, usage trends, and anomaly detection.
- * 
+ *
  * @param {Object} props
  * @param {Object} props.tokenData - Historical and current token usage data
  * @param {Function} props.onApplyRecommendation - Callback when recommendation is applied
  * @param {Boolean} props.darkMode - Whether dark mode is enabled
  */
-const TokenBudgetRecommendations = ({ 
-  tokenData = {}, 
-  onApplyRecommendation, 
-  darkMode = false 
+const TokenBudgetRecommendations = ({
+  tokenData = {},
+  onApplyRecommendation,
+  darkMode = false
 }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [selectedRecommendation, setSelectedRecommendation] = useState(null);
-  
+
   // Calculate recommendations based on usage patterns and historical data
   useEffect(() => {
     if (!tokenData.usage || !tokenData.history) return;
-    
+
     generateRecommendations(tokenData);
   }, [tokenData]);
-  
+
   // Generate recommendations based on token usage patterns
   const generateRecommendations = async (data) => {
     setAnalyzing(true);
-    
+
     try {
       // Simulate analytics processing
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // This would be a real algorithm that analyzes usage patterns
       // For now, we'll generate mock recommendations
       const mockRecommendations = [
@@ -98,7 +98,7 @@ const TokenBudgetRecommendations = ({
           anomalies: 'Unusual spike detected on May 10-12',
         }
       ];
-      
+
       setRecommendations(mockRecommendations);
     } catch (error) {
       console.error('Error generating recommendations:', error);
@@ -106,27 +106,27 @@ const TokenBudgetRecommendations = ({
       setAnalyzing(false);
     }
   };
-  
+
   // Handle applying a recommendation
   const handleApplyRecommendation = (rec) => {
     if (onApplyRecommendation) {
       onApplyRecommendation(rec.category, rec.recommendedBudget);
-      
+
       // Update the selected recommendation
       setSelectedRecommendation(rec.id);
-      
+
       // Reset after a delay to show the success state
       setTimeout(() => {
         setSelectedRecommendation(null);
       }, 2000);
     }
   };
-  
+
   // Format numbers for display
   const formatNumber = (num) => {
     return num.toLocaleString();
   };
-  
+
   // Get the badge for confidence level
   const getConfidenceBadge = (confidence) => {
     if (confidence >= 0.9) {
@@ -137,7 +137,7 @@ const TokenBudgetRecommendations = ({
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
     }
   };
-  
+
   // Get savings badge color
   const getSavingsBadge = (savings) => {
     if (savings > 0) {
@@ -148,7 +148,7 @@ const TokenBudgetRecommendations = ({
       return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400";
     }
   };
-  
+
   if (recommendations.length === 0) {
     return (
       <Card className={`shadow-sm transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}>
@@ -171,8 +171,8 @@ const TokenBudgetRecommendations = ({
             <>
               <Sparkles className="h-12 w-12 text-amber-500/80" aria-hidden="true" />
               <p>No budget recommendations available yet</p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => generateRecommendations(tokenData)}
                 className="mt-2"
               >
@@ -184,7 +184,7 @@ const TokenBudgetRecommendations = ({
       </Card>
     );
   }
-  
+
   return (
     <Card className={`shadow-sm hover:shadow-md transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}>
       <CardHeader className="pb-2">
@@ -198,9 +198,9 @@ const TokenBudgetRecommendations = ({
               Intelligent budget suggestions based on usage patterns
             </CardDescription>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => generateRecommendations(tokenData)}
             disabled={analyzing}
             className="h-8 w-8 p-0"
@@ -212,8 +212,8 @@ const TokenBudgetRecommendations = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {recommendations.map((rec) => (
-          <div 
-            key={rec.id} 
+          <div
+            key={rec.id}
             className={`rounded-lg border p-4 transition-all duration-200 animate-in fade-in ${selectedRecommendation === rec.id ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-accent/50'}`}
           >
             <div className="flex flex-col gap-3">
@@ -233,8 +233,8 @@ const TokenBudgetRecommendations = ({
                         <TooltipTrigger asChild>
                           <span className="text-xs text-muted-foreground flex items-center cursor-help">
                             <span>Confidence:</span>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={`ml-1 text-[10px] px-1 py-0 ${getConfidenceBadge(rec.confidence)}`}
                             >
                               {Math.round(rec.confidence * 100)}%
@@ -254,9 +254,9 @@ const TokenBudgetRecommendations = ({
                     </TooltipProvider>
                   </div>
                 </div>
-                
-                <Badge 
-                  variant="outline" 
+
+                <Badge
+                  variant="outline"
                   className={`${getSavingsBadge(rec.savings)} flex items-center gap-1`}
                 >
                   {rec.savings > 0 ? (
@@ -274,30 +274,30 @@ const TokenBudgetRecommendations = ({
                   )}
                 </Badge>
               </div>
-              
+
               <div className="grid grid-cols-12 gap-4 items-center">
                 <div className="col-span-5">
                   <div className="text-xs text-muted-foreground mb-1">Current Budget</div>
                   <div className="font-semibold">{formatNumber(rec.currentBudget)} tokens</div>
                 </div>
-                
+
                 <div className="col-span-2 flex justify-center">
                   <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 </div>
-                
+
                 <div className="col-span-5">
                   <div className="text-xs text-muted-foreground mb-1">Recommended</div>
                   <div className="font-semibold">{formatNumber(rec.recommendedBudget)} tokens</div>
                 </div>
               </div>
-              
+
               <div className="text-sm text-muted-foreground mt-1">
                 {rec.impact}
               </div>
-              
+
               <div className="flex justify-end mt-2">
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={() => handleApplyRecommendation(rec)}
                   disabled={selectedRecommendation === rec.id}
                   className={selectedRecommendation === rec.id ? 'bg-emerald-600 hover:bg-emerald-700' : ''}

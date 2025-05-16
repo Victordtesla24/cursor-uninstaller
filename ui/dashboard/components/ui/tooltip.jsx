@@ -7,7 +7,7 @@ import React from 'react';
  */
 const Tooltip = ({ children, className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`${className}`}
       {...props}
     >
@@ -16,4 +16,4 @@ const Tooltip = ({ children, className = '', ...props }) => {
   );
 };
 
-export default Tooltip; 
+export default Tooltip;

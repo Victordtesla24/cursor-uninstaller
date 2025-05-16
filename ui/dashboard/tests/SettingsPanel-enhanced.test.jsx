@@ -12,11 +12,11 @@ jest.mock('../components/ui', () => ({
   CardTitle: ({ children, className }) => <div data-testid="card-title" className={className}>{children}</div>,
   CardFooter: ({ children, className }) => <div data-testid="card-footer" className={className}>{children}</div>,
   Button: ({ children, variant, size, onClick, className, disabled, ...props }) => (
-    <button 
-      data-testid="button" 
-      data-variant={variant} 
-      data-size={size} 
-      onClick={onClick} 
+    <button
+      data-testid="button"
+      data-variant={variant}
+      data-size={size}
+      onClick={onClick}
       className={className}
       disabled={disabled}
       {...props}
@@ -25,11 +25,11 @@ jest.mock('../components/ui', () => ({
     </button>
   ),
   Switch: ({ checked, onCheckedChange, id, className, ...props }) => (
-    <input 
-      type="checkbox" 
-      data-testid={id || "switch"} 
-      checked={checked} 
-      onChange={(e) => onCheckedChange && onCheckedChange(e.target.checked)} 
+    <input
+      type="checkbox"
+      data-testid={id || "switch"}
+      checked={checked}
+      onChange={(e) => onCheckedChange && onCheckedChange(e.target.checked)}
       className={className}
       role="switch"
       aria-checked={checked}
@@ -40,12 +40,12 @@ jest.mock('../components/ui', () => ({
     <label data-testid="label" htmlFor={htmlFor} className={className}>{children}</label>
   ),
   Input: ({ value, onChange, className, autoFocus, ...props }) => (
-    <input 
-      data-testid="input" 
-      value={value} 
-      onChange={onChange} 
+    <input
+      data-testid="input"
+      value={value}
+      onChange={onChange}
       className={className}
-      {...props} 
+      {...props}
     />
   ),
   Badge: ({ children, variant, className }) => (
@@ -64,11 +64,11 @@ jest.mock('../components/ui', () => ({
   ),
   CollapsibleTrigger: ({ children }) => <div data-testid="collapsible-trigger">{children}</div>,
   Accordion: ({ children, type, collapsible, className, defaultValue }) => (
-    <div 
-      data-testid="accordion" 
-      data-type={type} 
-      data-collapsible={collapsible} 
-      className={className} 
+    <div
+      data-testid="accordion"
+      data-type={type}
+      data-collapsible={collapsible}
+      className={className}
       data-default-value={defaultValue}
     >
       {children}
@@ -93,7 +93,7 @@ jest.mock('lucide-react', () => {
       {name} Icon
     </span>
   );
-  
+
   // Return mocked icon components
   return {
     Settings: createIconMock("Settings"),
@@ -163,19 +163,19 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Basic rendering tests
   test('renders settings panel with correct title and description', () => {
     const { getByText } = render(<SettingsPanel {...defaultProps} />);
-    
+
     expect(getByText('Settings')).toBeInTheDocument();
     expect(getByText('Configure dashboard settings and token budgets')).toBeInTheDocument();
   });
 
   test('renders empty state when settings and budgets are null', () => {
     const { getByText } = render(
-      <SettingsPanel 
-        settings={null} 
-        tokenBudgets={null} 
+      <SettingsPanel
+        settings={null}
+        tokenBudgets={null}
       />
     );
-    
+
     expect(getByText('No settings available')).toBeInTheDocument();
     expect(getByText('Settings information will appear here when available')).toBeInTheDocument();
   });
@@ -185,32 +185,32 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
     const { rerender, getByRole } = render(
       <SettingsPanel {...defaultProps} isCollapsed={false} />
     );
-    
+
     // Initially expanded
     const collapseButton = getByRole('button', { name: /collapse settings/i });
     expect(collapseButton).toBeInTheDocument();
-    
+
     // Click to collapse
     fireEvent.click(collapseButton);
     expect(defaultProps.onToggleCollapse).toHaveBeenCalledTimes(1);
-    
+
     // Rerender with collapsed state
     rerender(<SettingsPanel {...defaultProps} isCollapsed={true} />);
-    
+
     const expandButton = getByRole('button', { name: /expand settings/i });
     expect(expandButton).toBeInTheDocument();
   });
 
   test('renders collapsible content when not collapsed', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
-    
+
     const collapsible = getByTestId('mock-collapsible');
     expect(collapsible).toHaveAttribute('data-open', 'true');
   });
 
   test('does not render collapsible content when collapsed', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={true} />);
-    
+
     const collapsible = getByTestId('mock-collapsible');
     expect(collapsible).toHaveAttribute('data-open', 'false');
   });
@@ -218,33 +218,33 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Settings toggle tests
   test('toggles settings correctly', () => {
     const { container } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Find the autoRefresh toggle
     const autoRefreshToggle = getSettingToggle(container, 'autoRefresh');
     expect(autoRefreshToggle).toBeInTheDocument();
     expect(autoRefreshToggle).toBeChecked(); // Should be checked initially
-    
+
     // Toggle it
     fireEvent.click(autoRefreshToggle);
-    
+
     // Check that the callback was called with the right parameters
     expect(defaultProps.onSettingChange).toHaveBeenCalledWith('autoRefresh', false);
   });
 
   test('renders all settings in appropriate categories', () => {
     const { getAllByTestId, getByText } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Check that all accordion items are rendered
     const accordionItems = getAllByTestId('mock-accordion-item');
     expect(accordionItems.length).toBeGreaterThanOrEqual(3); // At least 3 categories
-    
+
     // Check that all settings are rendered
     Object.keys(settings).forEach(settingId => {
       // There should be a label for each setting
       const labels = Array.from(document.querySelectorAll('label')).filter(
         label => label.textContent.includes(settingId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))
       );
-      
+
       expect(labels.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -252,26 +252,26 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Budget editing tests
   test('edits budget value correctly', async () => {
     const { container, getAllByRole } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Find edit buttons for budgets
-    const editButtons = getAllByRole('button').filter(button => 
+    const editButtons = getAllByRole('button').filter(button =>
       button.getAttribute('data-testid')?.includes('budget-edit-')
     );
-    
+
     // Click the first edit button
     fireEvent.click(editButtons[0]);
-    
+
     // Find the input
     const input = container.querySelector('input[data-testid^="budget-input-"]');
     expect(input).toBeInTheDocument();
-    
+
     // Change the value
     fireEvent.change(input, { target: { value: '400000' } });
-    
+
     // Find the save button and click it
     const saveButton = container.querySelector('button[data-testid^="budget-save-"]');
     fireEvent.click(saveButton);
-    
+
     // Check that the callback was called with the right parameters
     // The exact category depends on the implementation, but it should be called
     expect(defaultProps.onBudgetChange).toHaveBeenCalled();
@@ -280,57 +280,57 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
 
   test('validates budget input correctly', async () => {
     const { container, getAllByRole } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Find edit buttons for budgets
-    const editButtons = getAllByRole('button').filter(button => 
+    const editButtons = getAllByRole('button').filter(button =>
       button.getAttribute('data-testid')?.includes('budget-edit-')
     );
-    
+
     // Click the first edit button
     fireEvent.click(editButtons[0]);
-    
+
     // Find the input
     const input = container.querySelector('input[data-testid^="budget-input-"]');
-    
+
     // Enter invalid value (non-numeric)
     fireEvent.change(input, { target: { value: 'abc' } });
-    
+
     // Find the save button and click it
     const saveButton = container.querySelector('button[data-testid^="budget-save-"]');
     fireEvent.click(saveButton);
-    
+
     // Check for error message
     expect(container.textContent).toContain('Please enter a valid number');
-    
+
     // Should not call the callback for invalid input
     expect(defaultProps.onBudgetChange).not.toHaveBeenCalled();
   });
 
   test('cancels budget editing correctly', async () => {
     const { container, getAllByRole } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Find edit buttons for budgets
-    const editButtons = getAllByRole('button').filter(button => 
+    const editButtons = getAllByRole('button').filter(button =>
       button.getAttribute('data-testid')?.includes('budget-edit-')
     );
-    
+
     // Click the first edit button
     fireEvent.click(editButtons[0]);
-    
+
     // Find the input
     const input = container.querySelector('input[data-testid^="budget-input-"]');
     expect(input).toBeInTheDocument();
-    
+
     // Change the value
     fireEvent.change(input, { target: { value: '400000' } });
-    
+
     // Find the cancel button and click it
     const cancelButton = container.querySelector('button[data-testid^="budget-cancel-"]');
     fireEvent.click(cancelButton);
-    
+
     // The input should no longer be visible
     expect(container.querySelector('input[data-testid^="budget-input-"]')).not.toBeInTheDocument();
-    
+
     // The callback should not have been called
     expect(defaultProps.onBudgetChange).not.toHaveBeenCalled();
   });
@@ -338,15 +338,15 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Accessibility tests
   test('has proper ARIA attributes for settings toggles', () => {
     const { container } = render(<SettingsPanel {...defaultProps} />);
-    
+
     // Find toggle switches
     const toggles = container.querySelectorAll('input[role="switch"]');
-    
+
     // Each toggle should have appropriate ARIA attributes
     toggles.forEach(toggle => {
       expect(toggle).toHaveAttribute('aria-checked');
       expect(toggle).toHaveAttribute('id');
-      
+
       // Should have an associated label
       const labelFor = toggle.getAttribute('id');
       const label = container.querySelector(`label[for="${labelFor}"]`);
@@ -356,14 +356,14 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
 
   test('collapse/expand button has appropriate ARIA label', () => {
     const { getByRole, rerender } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
-    
+
     // When expanded, should have "Collapse settings" aria-label
     const collapseButton = getByRole('button', { name: /collapse settings/i });
     expect(collapseButton).toHaveAttribute('aria-label', 'Collapse settings');
-    
+
     // Rerender with collapsed state
     rerender(<SettingsPanel {...defaultProps} isCollapsed={true} />);
-    
+
     // When collapsed, should have "Expand settings" aria-label
     const expandButton = getByRole('button', { name: /expand settings/i });
     expect(expandButton).toHaveAttribute('aria-label', 'Expand settings');
@@ -372,12 +372,12 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Dark mode tests
   test('applies correct styling with dark mode', () => {
     const { container } = render(<SettingsPanel {...defaultProps} darkMode={true} />);
-    
+
     // For this test, we'll just check that the props were passed correctly
     const card = container.querySelector('[data-testid="mock-card"]');
     expect(card).toBeInTheDocument();
-    
+
     // Additional checks could be added for specific dark mode classes
     // depending on implementation
   });
-}); 
+});

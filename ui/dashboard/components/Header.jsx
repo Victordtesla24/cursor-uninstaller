@@ -83,8 +83,8 @@ export const Header = ({
         <div className="flex bg-card border border-border rounded-md overflow-hidden">
           <button
             className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
-              viewMode === 'overview' 
-                ? 'bg-primary text-primary-foreground' 
+              viewMode === 'overview'
+                ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-background'
             }`}
             onClick={() => onViewModeChange('overview')}
@@ -94,8 +94,8 @@ export const Header = ({
           </button>
           <button
             className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
-              viewMode === 'detailed' 
-                ? 'bg-primary text-primary-foreground' 
+              viewMode === 'detailed'
+                ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-background'
             }`}
             onClick={() => onViewModeChange('detailed')}
@@ -105,8 +105,8 @@ export const Header = ({
           </button>
           <button
             className={`px-3 py-1 cursor-pointer text-sm font-medium transition-colors ${
-              viewMode === 'settings' 
-                ? 'bg-primary text-primary-foreground' 
+              viewMode === 'settings'
+                ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-background'
             }`}
             onClick={() => onViewModeChange('settings')}

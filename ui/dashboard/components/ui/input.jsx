@@ -18,4 +18,4 @@ const Input = forwardRef(({ className = '', type = 'text', ...props }, ref) => {
 
 Input.displayName = 'Input';
 
-export default Input; 
+export default Input;

@@ -7,7 +7,7 @@ import React from 'react';
  */
 const Card = ({ children, className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}
       {...props}
     >
@@ -16,4 +16,4 @@ const Card = ({ children, className = '', ...props }) => {
   );
 };
 
-export default Card; 
+export default Card;

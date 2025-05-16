@@ -5,13 +5,13 @@ import React from 'react';
  *
  * A versatile button component with different variants and sizes.
  */
-const Button = ({ 
-  children, 
-  variant = 'default', 
-  size = 'default', 
-  className = '', 
+const Button = ({
+  children,
+  variant = 'default',
+  size = 'default',
+  className = '',
   disabled = false,
-  ...props 
+  ...props
 }) => {
   const variantClasses = {
     default: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -30,7 +30,7 @@ const Button = ({
   };
 
   return (
-    <button 
+    <button
       className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled}
       {...props}
@@ -40,4 +40,4 @@ const Button = ({
   );
 };
 
-export default Button; 
+export default Button;

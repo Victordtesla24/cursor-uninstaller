@@ -7,7 +7,7 @@ import React from 'react';
  */
 const Label = ({ children, className = '', htmlFor, ...props }) => {
   return (
-    <label 
+    <label
       htmlFor={htmlFor}
       className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
       {...props}
@@ -17,4 +17,4 @@ const Label = ({ children, className = '', htmlFor, ...props }) => {
   );
 };
 
-export default Label; 
+export default Label;

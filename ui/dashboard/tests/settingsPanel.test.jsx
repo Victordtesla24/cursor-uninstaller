@@ -29,35 +29,35 @@ describe('SettingsPanel Component', () => {
 
   test('renders settings correctly', () => {
     const { container } = render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
       />
     );
 
     // Check if the heading is rendered
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    
+
     // Check if settings items are rendered (using a more reliable approach)
     Object.keys(settings).forEach(key => {
       // Convert camelCase to Display Format for UI
       const displayText = key
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase());
-      
+
       expect(container.textContent).toContain(displayText);
     });
-    
+
     // Check if token budgets section is present
     expect(container.textContent).toContain('Token Budgets');
   });
 
   test('calls onSettingChange when toggle is clicked', () => {
     const handleSettingChange = jest.fn();
-    
+
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         onSettingChange={handleSettingChange}
       />
@@ -75,21 +75,21 @@ describe('SettingsPanel Component', () => {
 
   test('edits token budget when edit button is clicked', () => {
     const handleBudgetChange = jest.fn();
-    
+
     render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         onBudgetChange={handleBudgetChange}
       />
     );
 
     // Find budget edit buttons - depending on UI implementation
-    const editButtons = screen.getAllByRole('button').filter(button => 
-      button.textContent.includes('Edit') || 
+    const editButtons = screen.getAllByRole('button').filter(button =>
+      button.textContent.includes('Edit') ||
       button.getAttribute('aria-label')?.includes('edit')
     );
-    
+
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
       // Verify budget change handler called (implementation-specific)
@@ -102,35 +102,35 @@ describe('SettingsPanel Component', () => {
     const { container } = render(
       <SettingsPanel settings={null} tokenBudgets={null} />
     );
-    
+
     // Should still render the component
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    
+
     // Should not crash
     expect(container).toBeInTheDocument();
   });
-  
+
   test('renders with empty settings objects', () => {
     const { container } = render(
       <SettingsPanel settings={{}} tokenBudgets={{}} />
     );
-    
+
     // Component should render
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    
+
     // Should not crash
     expect(container).toBeInTheDocument();
   });
 
   test('renders advanced settings when toggled', () => {
     const { container } = render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={tokenBudgets}
         showAdvanced={true}
       />
     );
-    
+
     // Should render advanced settings section
     const hasAdvancedSettings = container.textContent.includes('Advanced Settings');
     expect(hasAdvancedSettings).toBe(true);
@@ -147,12 +147,12 @@ describe('SettingsPanel Component', () => {
     };
 
     const { container } = render(
-      <SettingsPanel 
-        settings={settings} 
+      <SettingsPanel
+        settings={settings}
         tokenBudgets={budgetsWithUsage}
       />
     );
-    
+
     // Check for correct percentage calculations
     // Since we can't rely on exact text content due to different UI implementations,
     // we'll just ensure the component renders without errors
@@ -163,11 +163,11 @@ describe('SettingsPanel Component', () => {
     const { container } = render(
       <SettingsPanel settings={settings} tokenBudgets={tokenBudgets} />
     );
-    
+
     // Check for expected UI elements
     const inputCount = container.querySelectorAll('input').length;
     const buttonCount = container.querySelectorAll('button').length;
-    
+
     // Should have at least some inputs and buttons
     expect(inputCount > 0).toBe(true);
     expect(buttonCount > 0).toBe(true);

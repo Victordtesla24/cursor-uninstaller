@@ -13,4 +13,4 @@ const TooltipProvider = ({ children, ...props }) => {
   );
 };
 
-export default TooltipProvider; 
+export default TooltipProvider;

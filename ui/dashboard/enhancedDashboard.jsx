@@ -34,10 +34,10 @@ import {
   LayoutDashboard,
   BarChart3,
   Settings as SettingsIcon,
-  RefreshCw, 
-  AlertCircle, 
-  ChevronDown, 
-  Wifi, 
+  RefreshCw,
+  AlertCircle,
+  ChevronDown,
+  Wifi,
   WifiOff,
   ArrowUpRight,
   ArrowDownRight,
@@ -65,7 +65,7 @@ function AnimatedTabs({ tabs, activeTab, onChange }) {
         >
           {tab.icon}
           <span>{tab.label}</span>
-          
+
           {activeTab === tab.id && (
             <span className="absolute inset-0 z-[-1] rounded-md bg-primary shadow-sm animate-in fade-in duration-200" />
           )}
@@ -96,7 +96,7 @@ function StatusBadge({ connected, label }) {
 // Section Header component
 function SectionHeader({ title, isCollapsed, onToggleCollapse, icon }) {
   return (
-    <div 
+    <div
       className="flex cursor-pointer items-center justify-between border-b border-border p-4"
       onClick={onToggleCollapse}
     >
@@ -104,11 +104,11 @@ function SectionHeader({ title, isCollapsed, onToggleCollapse, icon }) {
         {icon}
         <h3 className="text-lg font-medium">{title}</h3>
       </div>
-      <ChevronDown 
+      <ChevronDown
         className={cn(
           "h-5 w-5 text-muted-foreground transition-transform",
           !isCollapsed && "rotate-180"
-        )} 
+        )}
       />
     </div>
   );
@@ -116,7 +116,7 @@ function SectionHeader({ title, isCollapsed, onToggleCollapse, icon }) {
 
 /**
  * Enhanced Dashboard Component
- * 
+ *
  * This is the main dashboard component that integrates all dashboard
  * functionality into a single component. It features:
  * - Real-time data updates
@@ -128,7 +128,7 @@ function SectionHeader({ title, isCollapsed, onToggleCollapse, icon }) {
  * - Budget recommendations
  * - Advanced analytics
  * - Model performance comparison
- * 
+ *
  * It merges functionality from both Dashboard.jsx and index.jsx into a single
  * consolidated component that serves as the primary entry point for the dashboard.
  */
@@ -153,12 +153,12 @@ const EnhancedDashboard = () => {
     // Check system preference as fallback
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-  
+
   // Refs for managing API calls
   const refreshTimeoutRef = useRef(null);
   const isInitialLoad = useRef(true);
   const isPendingRefresh = useRef(false);
-  
+
   // Set dark mode class on body
   useEffect(() => {
     if (darkMode) {
@@ -169,7 +169,7 @@ const EnhancedDashboard = () => {
     // Save preference to localStorage
     localStorage.setItem('darkMode', darkMode.toString());
   }, [darkMode]);
-  
+
   // Function to toggle dark mode
   const toggleDarkMode = useCallback(() => {
     setDarkMode(prev => !prev);
@@ -184,14 +184,14 @@ const EnhancedDashboard = () => {
   // Function to fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
     if (isPendingRefresh.current) return;
-    
+
     isPendingRefresh.current = true;
     setLoading(isInitialLoad.current);
-    
+
     try {
       // Use the consolidated enhancedDashboardApi with mock data fallback capability
       const data = await enhancedDashboardApi.refreshData(useMockData);
-      
+
       if (data) {
         setDashboardData(data);
         setSettings(data.settings || {});
@@ -202,7 +202,7 @@ const EnhancedDashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError(err.message || 'Failed to load dashboard data');
-      
+
       // Only show error state if we have no existing data
       if (!dashboardData) {
         setDashboardData(null);
@@ -218,23 +218,23 @@ const EnhancedDashboard = () => {
   // Initial data load
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Set up polling for updates
     const setupPolling = () => {
       const pollingInterval = dashboardConfig.refreshInterval || 30000; // 30 seconds default
-      
+
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
-      
+
       refreshTimeoutRef.current = setTimeout(() => {
         fetchDashboardData();
         setupPolling();
       }, pollingInterval);
     };
-    
+
     setupPolling();
-    
+
     // Clean up on unmount
     return () => {
       if (refreshTimeoutRef.current) {
@@ -344,7 +344,7 @@ const EnhancedDashboard = () => {
         </div>
         <h2 className="text-xl font-semibold">Error Loading Dashboard</h2>
         <p className="text-center text-muted-foreground">{error}</p>
-        <Button 
+        <Button
           onClick={() => setUseMockData(!useMockData)}
           className="mt-2"
         >
@@ -361,12 +361,12 @@ const EnhancedDashboard = () => {
         <header className="mb-6 flex flex-col gap-4 border-b pb-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">Cline AI Dashboard</h1>
-            <StatusBadge 
-              connected={!useMockData} 
-              label={useMockData ? "Mock Data" : "Live API"} 
+            <StatusBadge
+              connected={!useMockData}
+              label={useMockData ? "Mock Data" : "Live API"}
             />
           </div>
-          
+
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <AnimatedTabs
               tabs={[
@@ -380,15 +380,15 @@ const EnhancedDashboard = () => {
               activeTab={viewMode}
               onChange={setViewMode}
             />
-            
+
             <div className="flex items-center gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={toggleDarkMode} 
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleDarkMode}
                       className="h-9 w-9"
                     >
                       {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -399,14 +399,14 @@ const EnhancedDashboard = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={handleRefresh} 
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRefresh}
                       disabled={isPendingRefresh.current}
                       className="h-9 w-9"
                     >
@@ -418,14 +418,14 @@ const EnhancedDashboard = () => {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
+
               {useMockData && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={toggleDataSource}
                         className="gap-1 text-xs"
                       >
@@ -450,9 +450,9 @@ const EnhancedDashboard = () => {
               <AlertCircle className="h-5 w-5" />
               <span>{error}</span>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setError(null)}
               className="h-8 hover:bg-red-200 dark:hover:bg-red-900/50"
             >
@@ -561,7 +561,7 @@ const EnhancedDashboard = () => {
                     )}
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -579,7 +579,7 @@ const EnhancedDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -596,7 +596,7 @@ const EnhancedDashboard = () => {
                   )}
                 </CardContent>
               </Card>
-              
+
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
@@ -615,7 +615,7 @@ const EnhancedDashboard = () => {
                     )}
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -639,7 +639,7 @@ const EnhancedDashboard = () => {
           {viewMode === 'analytics' && (
             <div className="space-y-6">
               {dashboardData && (
-                <EnhancedAnalyticsDashboard 
+                <EnhancedAnalyticsDashboard
                   usageData={dashboardData.usage}
                   modelsData={dashboardData.models}
                   darkMode={darkMode}
@@ -651,7 +651,7 @@ const EnhancedDashboard = () => {
           {viewMode === 'comparison' && (
             <div className="space-y-6">
               {dashboardData && (
-                <ModelPerformanceComparison 
+                <ModelPerformanceComparison
                   modelsData={dashboardData.models}
                   usageData={dashboardData.usage}
                   onModelSelect={handleModelChange}
@@ -664,7 +664,7 @@ const EnhancedDashboard = () => {
           {viewMode === 'recommendations' && (
             <div className="space-y-6">
               {dashboardData && (
-                <TokenBudgetRecommendations 
+                <TokenBudgetRecommendations
                   tokenData={dashboardData.tokens}
                   onApplyRecommendation={handleApplyRecommendation}
                   darkMode={darkMode}
@@ -684,13 +684,13 @@ const EnhancedDashboard = () => {
                     </CardTitle>
                     <CardDescription>Configure dashboard behavior</CardDescription>
                   </div>
-                  
+
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={toggleAdvancedSettings}
                         >
                           {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
@@ -703,7 +703,7 @@ const EnhancedDashboard = () => {
                   </TooltipProvider>
                 </div>
               </CardHeader>
-              
+
               <CardContent>
                 {dashboardData && (
                   <SettingsPanel
@@ -715,14 +715,14 @@ const EnhancedDashboard = () => {
                   />
                 )}
               </CardContent>
-              
+
               <CardFooter className="flex flex-col-reverse items-start justify-between gap-4 sm:flex-row sm:items-center">
                 <span className="text-sm text-muted-foreground">
                   Last updated: {new Date(refreshTimestamp).toLocaleTimeString()}
                 </span>
-                
-                <Button 
-                  onClick={handleRefresh} 
+
+                <Button
+                  onClick={handleRefresh}
                   disabled={isPendingRefresh.current}
                   className="flex items-center gap-2"
                 >
@@ -740,18 +740,18 @@ const EnhancedDashboard = () => {
             <div>
               Cline AI Dashboard v{dashboardConfig.version || '1.0.0'}
             </div>
-            
+
             {loading && !isInitialLoad.current && (
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                 <span>Updating...</span>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2">
-              <StatusBadge 
-                connected={!useMockData} 
-                label={useMockData ? "Using mock data" : "Connected to live API"} 
+              <StatusBadge
+                connected={!useMockData}
+                label={useMockData ? "Using mock data" : "Connected to live API"}
               />
             </div>
           </div>

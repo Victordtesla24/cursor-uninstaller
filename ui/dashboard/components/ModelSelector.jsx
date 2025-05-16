@@ -31,7 +31,7 @@ import {
  * Displays available AI models with their capabilities and specifications
  * Allows users to select which model to use
  * Shows recommendations for different task types
- * 
+ *
  * @param {Object} props Component props
  * @param {Array|Object} props.models Available models
  * @param {String} props.selectedModel Currently selected model ID
@@ -40,14 +40,14 @@ import {
  * @param {Object} props.modelData Structured model data
  * @param {Boolean} props.darkMode Whether dark mode is enabled
  */
-const ModelSelector = ({ 
-  models, 
-  selectedModel, 
-  onModelChange, 
-  onModelSelect, 
+const ModelSelector = ({
+  models,
+  selectedModel,
+  onModelChange,
+  onModelSelect,
   modelData,
   className = '',
-  darkMode = false 
+  darkMode = false
 }) => {
   // Allow both ways of passing props for backward compatibility with tests
   // Add compatibility with both onModelChange and onModelSelect prop names
@@ -142,16 +142,16 @@ const ModelSelector = ({
                 key={model.id || `model-${index}`}
                 data-testid={`model-card-${model.id}`}
                 className={`relative rounded-lg border overflow-hidden transition-all duration-200 hover:shadow-md ${
-                  isSelected 
-                    ? 'border-primary bg-primary/5 dark:bg-primary/10' 
+                  isSelected
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
                     : 'border-border hover:border-primary/60'
                 }`}
                 onClick={() => handleModelChange(model.id)}
               >
                 <div className="p-4 space-y-4 cursor-pointer">
                   <div className="flex justify-between items-center">
-                    <div 
-                      className="font-medium text-base" 
+                    <div
+                      className="font-medium text-base"
                       data-testid={`model-name-${model.id}`}
                     >
                       {model.name}
@@ -197,8 +197,8 @@ const ModelSelector = ({
                       <div className="text-xs text-muted-foreground mb-1.5">Recommended for:</div>
                       <div className="flex flex-wrap gap-1.5">
                         {recommendedTasks.map((task, taskIndex) => (
-                          <Badge 
-                            key={`${model.id}-${task}-${taskIndex}`} 
+                          <Badge
+                            key={`${model.id}-${task}-${taskIndex}`}
                             variant="outline"
                             className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 text-xs font-normal"
                           >
@@ -238,7 +238,7 @@ const ModelSelector = ({
         {recommendedFor && Object.keys(recommendedFor).length > 0 && (
           <div className="mt-auto pt-4">
             <Separator className="mb-4" />
-            
+
             <div className="space-y-3">
               <h3 className="text-sm font-medium">Recommended Models by Task</h3>
 
@@ -252,8 +252,8 @@ const ModelSelector = ({
                     <div key={task} className="flex items-center justify-between p-2 rounded-md border border-border">
                       <div className="text-sm">{formatTaskName(task)}</div>
                       <div className="flex items-center gap-1.5">
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full" 
+                        <div
+                          className="w-2.5 h-2.5 rounded-full"
                           style={{ backgroundColor: getModelColor(modelId) }}
                         ></div>
                         <div className="text-sm font-medium">{recommendedModel.name.split(' ').pop()}</div>

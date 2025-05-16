@@ -7,7 +7,7 @@ import React from 'react';
  */
 const CardFooter = ({ children, className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`flex items-center p-6 pt-0 ${className}`}
       {...props}
     >
@@ -16,4 +16,4 @@ const CardFooter = ({ children, className = '', ...props }) => {
   );
 };
 
-export default CardFooter; 
+export default CardFooter;

@@ -4,15 +4,15 @@ import puppeteerClient from '../lib/puppeteerClient';
 // Fallback if import fails
 if (!puppeteerClient || Object.keys(puppeteerClient).length === 0) {
   console.error('Failed to import puppeteerClient, creating fallback');
-  
+
   // Create fallback puppeteerClient
   const fallbackClient = {
     isPuppeteerAvailable: () => {
-      return typeof window !== 'undefined' && 
-            typeof window.__MCP_CLIENT !== 'undefined' && 
+      return typeof window !== 'undefined' &&
+            typeof window.__MCP_CLIENT !== 'undefined' &&
             window.PUPPETEER_MCP_AVAILABLE === true;
     },
-    
+
     navigate: async () => false,
     takeScreenshot: async () => null,
     click: async () => false,
@@ -25,13 +25,13 @@ if (!puppeteerClient || Object.keys(puppeteerClient).length === 0) {
       results: []
     })
   };
-  
+
   Object.assign(puppeteerClient, fallbackClient);
 }
 
 /**
  * Debug Panel Component
- * 
+ *
  * Provides debugging tools for the dashboard with Puppeteer integration
  * Allows testing UI interactions and viewing diagnostic information
  */
@@ -73,10 +73,10 @@ const DebugPanel = ({ onClose }) => {
     window.__console_errors = [];
 
     console.log = (...args) => {
-      const message = args.map(arg => 
+      const message = args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
       ).join(' ');
-      
+
       setConsoleMessages(prev => {
         const newMessages = [{type: 'log', content: message}, ...prev];
         return newMessages.slice(0, MAX_MESSAGES);
@@ -85,12 +85,12 @@ const DebugPanel = ({ onClose }) => {
     };
 
     console.error = (...args) => {
-      const message = args.map(arg => 
+      const message = args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
       ).join(' ');
-      
+
       window.__console_errors.push(message);
-      
+
       setConsoleMessages(prev => {
         const newMessages = [{type: 'error', content: message}, ...prev];
         return newMessages.slice(0, MAX_MESSAGES);
@@ -99,10 +99,10 @@ const DebugPanel = ({ onClose }) => {
     };
 
     console.warn = (...args) => {
-      const message = args.map(arg => 
+      const message = args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
       ).join(' ');
-      
+
       setConsoleMessages(prev => {
         const newMessages = [{type: 'warn', content: message}, ...prev];
         return newMessages.slice(0, MAX_MESSAGES);
@@ -131,7 +131,7 @@ const DebugPanel = ({ onClose }) => {
         width: 1024,
         height: 768
       });
-      
+
       setLastScreenshot(screenshot);
       console.log("Screenshot taken successfully");
     } catch (error) {
@@ -166,9 +166,9 @@ const DebugPanel = ({ onClose }) => {
       console.error("Puppeteer not available for inspection");
       return;
     }
-    
+
     setIsInspecting(true);
-    
+
     // Inject inspector code - simplified to avoid complex DOM handling
     const script = `
       (function() {
@@ -176,7 +176,7 @@ const DebugPanel = ({ onClose }) => {
         if (window.cleanupInspector) {
           window.cleanupInspector();
         }
-      
+
         // Create overlay for selection
         const overlay = document.createElement('div');
         overlay.id = 'debug-inspector-overlay';
@@ -188,7 +188,7 @@ const DebugPanel = ({ onClose }) => {
         overlay.style.pointerEvents = 'none';
         overlay.style.zIndex = '9999';
         document.body.appendChild(overlay);
-        
+
         // Create highlight element
         let highlight = document.createElement('div');
         highlight.id = 'debug-inspector-highlight';
@@ -199,11 +199,11 @@ const DebugPanel = ({ onClose }) => {
         highlight.style.zIndex = '10000';
         highlight.style.display = 'none';
         document.body.appendChild(highlight);
-        
+
         // Simple selector generation
         function getSimpleSelector(element) {
           if (element.id) return '#' + element.id;
-          
+
           let selector = element.tagName.toLowerCase();
           if (element.className) {
             const classes = element.className.split(/\\s+/);
@@ -211,10 +211,10 @@ const DebugPanel = ({ onClose }) => {
               if (cls) selector += '.' + cls;
             }
           }
-          
+
           return selector;
         }
-        
+
         // Setup event listeners
         function handleMouseOver(e) {
           const rect = e.target.getBoundingClientRect();
@@ -223,7 +223,7 @@ const DebugPanel = ({ onClose }) => {
           highlight.style.width = rect.width + 'px';
           highlight.style.height = rect.height + 'px';
           highlight.style.display = 'block';
-          
+
           window.__currentInspectedElement = {
             selector: getSimpleSelector(e.target),
             tagName: e.target.tagName,
@@ -231,47 +231,47 @@ const DebugPanel = ({ onClose }) => {
             id: e.target.id
           };
         }
-        
+
         function handleClick(e) {
           e.preventDefault();
           e.stopPropagation();
-          
+
           window.__selectedElement = getSimpleSelector(e.target);
-          window.postMessage({ 
-            type: 'DEBUG_INSPECTOR_SELECTED', 
-            selector: window.__selectedElement 
+          window.postMessage({
+            type: 'DEBUG_INSPECTOR_SELECTED',
+            selector: window.__selectedElement
           }, '*');
-          
+
           window.cleanupInspector();
           return false;
         }
-        
+
         // Set cursor and add event listeners
         document.body.style.cursor = 'crosshair';
         document.body.addEventListener('mouseover', handleMouseOver, true);
         document.body.addEventListener('click', handleClick, true);
-        
+
         // Cleanup function
         window.cleanupInspector = function() {
           document.body.style.cursor = '';
           document.body.removeEventListener('mouseover', handleMouseOver, true);
           document.body.removeEventListener('click', handleClick, true);
-          
+
           if (highlight && highlight.parentNode) {
             highlight.parentNode.removeChild(highlight);
           }
           if (overlay && overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
           }
-          
+
           window.postMessage({ type: 'DEBUG_INSPECTOR_DONE' }, '*');
         };
       })();
     `;
-    
+
     try {
       puppeteerClient.evaluate(script);
-      
+
       // Listen for messages from the inspector
       const handleMessage = (event) => {
         if (event.data && event.data.type === 'DEBUG_INSPECTOR_SELECTED') {
@@ -281,9 +281,9 @@ const DebugPanel = ({ onClose }) => {
           setIsInspecting(false);
         }
       };
-      
+
       window.addEventListener('message', handleMessage);
-      
+
       // Auto-timeout after 30 seconds
       const timeout = setTimeout(() => {
         if (isInspecting) {
@@ -291,7 +291,7 @@ const DebugPanel = ({ onClose }) => {
           setIsInspecting(false);
         }
       }, 30000);
-      
+
       // Return cleanup function
       return () => {
         window.removeEventListener('message', handleMessage);
@@ -313,7 +313,7 @@ const DebugPanel = ({ onClose }) => {
   // Run action on selected element
   const handleElementAction = async (action) => {
     if (!selectedElement || !puppeteerAvailable) return;
-    
+
     try {
       switch (action) {
         case 'click':
@@ -409,13 +409,13 @@ const DebugPanel = ({ onClose }) => {
 
   return (
     <div style={panelStyle}>
-      <div 
-        style={headerStyle} 
+      <div
+        style={headerStyle}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <h3 style={{ margin: 0, fontSize: '14px' }}>Dashboard Debug Panel {puppeteerAvailable ? '🟢' : '🔴'}</h3>
         <div style={{ display: 'flex' }}>
-          <button 
+          <button
             style={{ ...buttonStyle, padding: '2px 8px', margin: '0 5px' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -424,7 +424,7 @@ const DebugPanel = ({ onClose }) => {
           >
             {isExpanded ? '▼' : '▲'}
           </button>
-          <button 
+          <button
             style={{ ...buttonStyle, padding: '2px 8px', margin: '0' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -439,31 +439,31 @@ const DebugPanel = ({ onClose }) => {
       {isExpanded && (
         <div style={{ overflow: 'auto', maxHeight: 'calc(80vh - 40px)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-            <button 
+            <button
               style={puppeteerAvailable ? buttonStyle : disabledButtonStyle}
               onClick={handleTakeScreenshot}
               disabled={!puppeteerAvailable}
             >
               Take Screenshot
             </button>
-            
-            <button 
+
+            <button
               style={puppeteerAvailable ? buttonStyle : disabledButtonStyle}
               onClick={handleRunDiagnostics}
               disabled={!puppeteerAvailable}
             >
               Run Diagnostics
             </button>
-            
+
             {isInspecting ? (
-              <button 
+              <button
                 style={{ ...buttonStyle, backgroundColor: '#ef4444' }}
                 onClick={handleStopInspector}
               >
                 Cancel Inspection
               </button>
             ) : (
-              <button 
+              <button
                 style={puppeteerAvailable ? buttonStyle : disabledButtonStyle}
                 onClick={handleStartInspector}
                 disabled={!puppeteerAvailable}
@@ -477,19 +477,19 @@ const DebugPanel = ({ onClose }) => {
             <div style={{ marginTop: '10px', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px' }}>
               <div style={{ fontSize: '12px', marginBottom: '5px' }}>Selected: <code>{selectedElement}</code></div>
               <div style={{ display: 'flex', gap: '5px' }}>
-                <button 
+                <button
                   style={buttonStyle}
                   onClick={() => handleElementAction('click')}
                 >
                   Click
                 </button>
-                <button 
+                <button
                   style={buttonStyle}
                   onClick={() => handleElementAction('hover')}
                 >
                   Hover
                 </button>
-                <button 
+                <button
                   style={buttonStyle}
                   onClick={() => handleElementAction('screenshot')}
                 >
@@ -516,9 +516,9 @@ const DebugPanel = ({ onClose }) => {
           {lastScreenshot && (
             <div style={{ marginTop: '10px' }}>
               <h4 style={{ margin: '0 0 5px 0', fontSize: '13px' }}>Last Screenshot</h4>
-              <img 
-                src={`data:image/png;base64,${lastScreenshot}`} 
-                alt="Dashboard Screenshot" 
+              <img
+                src={`data:image/png;base64,${lastScreenshot}`}
+                alt="Dashboard Screenshot"
                 style={screenshotStyle}
               />
             </div>
@@ -540,8 +540,8 @@ const DebugPanel = ({ onClose }) => {
           </div>
 
           <div style={{ marginTop: '10px', fontSize: '11px', color: '#999' }}>
-            {puppeteerAvailable ? 
-              'Puppeteer MCP server is connected' : 
+            {puppeteerAvailable ?
+              'Puppeteer MCP server is connected' :
               'Puppeteer MCP server is not available - some features are disabled'
             }
           </div>
@@ -551,4 +551,4 @@ const DebugPanel = ({ onClose }) => {
   );
 };
 
-export default DebugPanel; 
+export default DebugPanel;

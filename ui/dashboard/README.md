@@ -156,12 +156,12 @@ The dashboard fetches data from the Cline AI extension API:
 async function fetchDataFromMcp() {
   try {
     const data = await access_mcp_resource('cline-dashboard', '/api/dashboard/data');
-    
+
     if (!data || !data.tokens || !data.models) {
       console.warn("Invalid data format received from MCP, falling back to mock data");
       throw new Error("Invalid data format");
     }
-    
+
     return data;
   } catch (error) {
     console.error("Error accessing MCP resource:", error);
@@ -181,10 +181,10 @@ export async function initialize(refreshInterval = 5000) {
   if (refreshIntervalId) {
     clearInterval(refreshIntervalId);
   }
-  
+
   // Initial data fetch
   await refreshData();
-  
+
   // Set up automatic refresh
   if (refreshInterval > 0) {
     refreshIntervalId = setInterval(async () => {
@@ -195,7 +195,7 @@ export async function initialize(refreshInterval = 5000) {
       }
     }, refreshInterval);
   }
-  
+
   return true;
 }
 ```
@@ -230,7 +230,7 @@ To extend the dashboard with new features:
    - Follow existing patterns for props, state management, and styling
 
 2. **Update the API Layer** (if needed):
-   - Add new methods to `enhancedDashboardApi.js` 
+   - Add new methods to `enhancedDashboardApi.js`
    - Ensure proper error handling and fallback mechanisms
 
 3. **Add Tests**:
@@ -256,4 +256,3 @@ Potential future enhancements include:
 - **Integration with Additional AI Models**: Support for more LLM providers
 - **Collaborative Features**: Sharing dashboards and settings across teams
 - **Predictive Budget Planning**: ML-based prediction of future token needs
-

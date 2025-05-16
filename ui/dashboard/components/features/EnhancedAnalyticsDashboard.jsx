@@ -14,7 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui";
-import { 
+import {
   BarChart3,
   PieChart,
   LineChart,
@@ -40,10 +40,10 @@ import {
 
 /**
  * Enhanced Analytics Dashboard Component
- * 
+ *
  * Provides advanced analytics capabilities for token usage monitoring and analysis.
  * Features include filtering, comparison, reporting, and visualization tools.
- * 
+ *
  * Key features:
  * - Time-based filtering (day, week, month, custom)
  * - Model-specific and category-based filtering
@@ -51,7 +51,7 @@ import {
  * - Interactive charts and visualizations
  * - Exportable reports in various formats
  * - Scheduled report generation
- * 
+ *
  * @typedef {Object} UsageData
  * @property {number[]} [daily] - Daily token usage values
  * @property {Object} [weekly] - Weekly usage data
@@ -59,18 +59,18 @@ import {
  * @property {number[]} [weekly.costs] - Weekly costs
  * @property {Object} [byModel] - Usage breakdown by model
  * @property {Object} [byCategory] - Usage breakdown by category
- * 
+ *
  * @typedef {Object} ModelData
  * @property {string} [selected] - Currently selected model ID
  * @property {Array<Object>} [available] - List of available models
  * @property {Object} [performance] - Performance metrics for each model
- * 
+ *
  * @typedef {Object} MetricsData
  * @property {number} [avgResponseTime] - Average response time in seconds
  * @property {number} [reliability] - Reliability percentage
  * @property {number} [cacheHitRate] - Cache hit rate percentage
  * @property {number} [costSavingsRate] - Cost savings rate percentage
- * 
+ *
  * @param {Object} props - Component props
  * @param {UsageData} [props.usageData={}] - Token usage data for analysis
  * @param {ModelData} [props.modelsData={}] - Model data and performance metrics
@@ -78,19 +78,19 @@ import {
  * @param {boolean} [props.darkMode=false] - Whether dark mode is enabled
  * @param {Function} [props.onExport] - Callback when data is exported
  * @param {Function} [props.onFilterChange] - Callback when filters are changed
- * 
+ *
  * @returns {JSX.Element} Rendered analytics dashboard component
- * 
+ *
  * @example
  * // Basic usage
- * <EnhancedAnalyticsDashboard 
+ * <EnhancedAnalyticsDashboard
  *   usageData={usageData}
  *   modelsData={modelsData}
  * />
- * 
+ *
  * @example
  * // With metrics and dark mode
- * <EnhancedAnalyticsDashboard 
+ * <EnhancedAnalyticsDashboard
  *   usageData={usageData}
  *   modelsData={modelsData}
  *   metrics={metricsData}
@@ -98,9 +98,9 @@ import {
  *   onExport={handleExport}
  * />
  */
-const EnhancedAnalyticsDashboard = ({ 
-  usageData = {}, 
-  modelsData = {}, 
+const EnhancedAnalyticsDashboard = ({
+  usageData = {},
+  modelsData = {},
   metrics = {},
   darkMode = false,
   onExport,
@@ -113,32 +113,32 @@ const EnhancedAnalyticsDashboard = ({
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [tags, setTags] = useState([]);
-  
+
   // State for comparison
   const [comparisonEnabled, setComparisonEnabled] = useState(false);
   const [comparisonTimeRange, setComparisonTimeRange] = useState('previous');
-  
+
   // State for data export
   const [exportFormat, setExportFormat] = useState('pdf');
   const [scheduledExports, setScheduledExports] = useState([]);
   const [exportInProgress, setExportInProgress] = useState(false);
-  
+
   // State for current view
   const [currentView, setCurrentView] = useState('overview');
-  
+
   // Derived state
   const [filteredData, setFilteredData] = useState(null);
   const [comparisonData, setComparisonData] = useState(null);
-  
+
   // Available filter options
   const availableCategories = useMemo(() => {
     return ['prompt', 'completion', 'embedding', 'fine-tuning', 'chat', 'vision'];
   }, []);
-  
+
   const availableTags = useMemo(() => {
     return ['production', 'development', 'testing', 'critical', 'experimental'];
   }, []);
-  
+
   // Memoized options
   const modelOptions = useMemo(() => {
     if (!modelsData || !modelsData.available) return [];
@@ -147,7 +147,7 @@ const EnhancedAnalyticsDashboard = ({
       name: model.name,
     }));
   }, [modelsData]);
-  
+
     // Effect to apply filters and generate filtered data
   useEffect(() => {
     // Simulate API call or data processing when filters change
@@ -184,11 +184,11 @@ const EnhancedAnalyticsDashboard = ({
     // return () => clearTimeout(timer); // Removed timer cleanup
   }, [
     usageData,
-    timeRange, 
-    customDateRange, 
-    selectedModels, 
-    selectedCategories, 
-    searchTerm, 
+    timeRange,
+    customDateRange,
+    selectedModels,
+    selectedCategories,
+    searchTerm,
     tags,
     comparisonEnabled,
     comparisonTimeRange,
@@ -220,7 +220,7 @@ const EnhancedAnalyticsDashboard = ({
       date: date.toISOString(),
       formattedDate: date.toLocaleDateString()
     });
-    
+
     const today = new Date();
     let simulatedData = {
       totalTokens: 1250000,
@@ -228,7 +228,7 @@ const EnhancedAnalyticsDashboard = ({
       peakUsage: 120000,
       series: []
     };
-    
+
     // Generate time series data based on selected time range
     switch (filters.timeRange) {
       case 'day':
@@ -264,7 +264,7 @@ const EnhancedAnalyticsDashboard = ({
           const start = new Date(filters.customDateRange.start);
           const end = new Date(filters.customDateRange.end);
           const daysDiff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-          
+
           for (let i = 0; i < daysDiff; i++) {
             const date = new Date(start);
             date.setDate(date.getDate() + i);
@@ -282,7 +282,7 @@ const EnhancedAnalyticsDashboard = ({
           simulatedData.series.push(createDataPoint(value, date));
         }
     }
-    
+
     // Add category breakdown
     simulatedData.categories = {
       prompt: Math.floor(simulatedData.totalTokens * 0.4),
@@ -291,14 +291,14 @@ const EnhancedAnalyticsDashboard = ({
       chat: Math.floor(simulatedData.totalTokens * 0.08),
       vision: Math.floor(simulatedData.totalTokens * 0.02),
     };
-    
+
     // Add model breakdown
     simulatedData.models = {
       'gpt-4o': Math.floor(simulatedData.totalTokens * 0.25),
       'gpt-4-turbo': Math.floor(simulatedData.totalTokens * 0.35),
       'gpt-3.5-turbo': Math.floor(simulatedData.totalTokens * 0.4),
     };
-    
+
     // Apply category filters if any
     if (filters.selectedCategories && filters.selectedCategories.length > 0) {
       // Filter categories
@@ -309,11 +309,11 @@ const EnhancedAnalyticsDashboard = ({
         }
       }
       simulatedData.categories = filteredCategories;
-      
+
       // Adjust total tokens
       simulatedData.totalTokens = Object.values(filteredCategories).reduce((sum, value) => sum + value, 0);
     }
-    
+
     // Apply model filters if any
     if (filters.selectedModels && filters.selectedModels.length > 0) {
       // Filter models
@@ -325,7 +325,7 @@ const EnhancedAnalyticsDashboard = ({
       }
       simulatedData.models = filteredModels;
     }
-    
+
     // Apply tag filters
     if (filters.tags && filters.tags.length > 0) {
       // In a real implementation, this would filter by tags
@@ -336,7 +336,7 @@ const EnhancedAnalyticsDashboard = ({
         value: Math.floor(point.value * 0.9)
       }));
     }
-    
+
     return simulatedData;
   };
 
@@ -374,10 +374,10 @@ const EnhancedAnalyticsDashboard = ({
         peakUsage: 14.29
       }
     };
-    
+
     return simulatedData;
   };
-  
+
   /**
    * Handles the change in the selected time range filter.
    * Resets the custom date range if a non-custom range is selected.
@@ -390,7 +390,7 @@ const EnhancedAnalyticsDashboard = ({
       setCustomDateRange({ start: null, end: null });
     }
   };
-  
+
   /**
    * Handles the change in the custom date range.
    *
@@ -403,7 +403,7 @@ const EnhancedAnalyticsDashboard = ({
       [type]: date
     }));
   };
-  
+
   /**
    * Handles the selection or deselection of a model filter.
    *
@@ -418,7 +418,7 @@ const EnhancedAnalyticsDashboard = ({
       }
     });
   };
-  
+
   /**
    * Handles the selection or deselection of a category filter.
    *
@@ -433,7 +433,7 @@ const EnhancedAnalyticsDashboard = ({
       }
     });
   };
-  
+
   /**
    * Handles the selection or deselection of a tag filter.
    *
@@ -448,7 +448,7 @@ const EnhancedAnalyticsDashboard = ({
       }
     });
   };
-  
+
   /**
    * Handles the data export process.
    * Simulates an asynchronous export operation.
@@ -458,22 +458,22 @@ const EnhancedAnalyticsDashboard = ({
   const handleExportData = async (format) => {
     setExportInProgress(true);
     setExportFormat(format);
-    
+
     // Simulate export process
     // await new Promise(resolve => setTimeout(resolve, 1500)); // Removed delay
-    
+
     // In a real implementation, this would trigger an actual export
     console.log(`Exporting data in ${format} format`);
-    
+
     if (onExport) {
       onExport({ format, data: filteredData }); // Pass format and potentially data
     }
-    
+
     setExportInProgress(false);
-    
+
     // Show success message (in a real implementation)
   };
-  
+
   /**
    * Handles scheduling a recurring report export.
    *
@@ -492,10 +492,10 @@ const EnhancedAnalyticsDashboard = ({
         tags
       }
     };
-    
+
     setScheduledExports(prev => [...prev, newSchedule]);
   };
-  
+
   /**
    * Resets all applied filters to their default state.
    */
@@ -508,7 +508,7 @@ const EnhancedAnalyticsDashboard = ({
     setTags([]);
     setComparisonEnabled(false);
   };
-  
+
   /**
    * Formats a number with locale-specific separators.
    *
@@ -518,7 +518,7 @@ const EnhancedAnalyticsDashboard = ({
   const formatNumber = (num) => {
     return num?.toLocaleString() || '0';
   };
-  
+
   // Render loading state if no data available
   if (!usageData || Object.keys(usageData).length === 0) {
     return (
@@ -539,7 +539,7 @@ const EnhancedAnalyticsDashboard = ({
       </Card>
     );
   }
-  
+
   return (
     <Card className={`shadow-sm hover:shadow-md transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}>
       <CardHeader>
@@ -553,26 +553,26 @@ const EnhancedAnalyticsDashboard = ({
               Advanced analytics and reporting tools
             </CardDescription>
           </div>
-          
+
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentView('overview')}
               className={currentView === 'overview' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
             >
               Overview
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setCurrentView('detailed')}
               className={currentView === 'detailed' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
             >
               Detailed
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setCurrentView('reports')}
               className={currentView === 'reports' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
@@ -582,9 +582,9 @@ const EnhancedAnalyticsDashboard = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <Separator />
-      
+
       {/* Filter Section */}
       <div className="px-6 py-3 bg-muted/30 border-b">
         <div className="flex flex-wrap gap-3 justify-between items-center">
@@ -592,10 +592,10 @@ const EnhancedAnalyticsDashboard = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTimeRangeChange('day')} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTimeRangeChange('day')}
                     className={timeRange === 'day' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
                   >
                     Day
@@ -606,14 +606,14 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTimeRangeChange('week')} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTimeRangeChange('week')}
                     className={timeRange === 'week' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
                   >
                     Week
@@ -624,14 +624,14 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTimeRangeChange('month')} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTimeRangeChange('month')}
                     className={timeRange === 'month' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
                   >
                     Month
@@ -642,14 +642,14 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTimeRangeChange('custom')} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTimeRangeChange('custom')}
                     className={timeRange === 'custom' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
                   >
                     <Calendar className="h-4 w-4 mr-1" />
@@ -661,13 +661,13 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             {/* Advanced filters button */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => document.getElementById('filters-panel').classList.toggle('hidden')}
                   >
@@ -681,13 +681,13 @@ const EnhancedAnalyticsDashboard = ({
               </Tooltip>
             </TooltipProvider>
           </div>
-          
+
           <div className="flex gap-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant={comparisonEnabled ? 'default' : 'outline'} 
+                  <Button
+                    variant={comparisonEnabled ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setComparisonEnabled(!comparisonEnabled)}
                   >
@@ -700,12 +700,12 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setCurrentView('reports')} // Changed to switch to reports view
                     disabled={exportInProgress}
@@ -723,12 +723,12 @@ const EnhancedAnalyticsDashboard = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={resetFilters}
                   >
@@ -742,7 +742,7 @@ const EnhancedAnalyticsDashboard = ({
             </TooltipProvider>
           </div>
         </div>
-        
+
         {/* Advanced filters panel (hidden by default) */}
         <div id="filters-panel" className="hidden pt-3 mt-3 border-t">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -751,8 +751,8 @@ const EnhancedAnalyticsDashboard = ({
               <div className="col-span-1 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Start Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className="w-full px-3 py-2 rounded-md border bg-background"
                     onChange={(e) => handleCustomDateChange('start', e.target.value)}
                     value={customDateRange.start || ''}
@@ -760,8 +760,8 @@ const EnhancedAnalyticsDashboard = ({
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">End Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className="w-full px-3 py-2 rounded-md border bg-background"
                     onChange={(e) => handleCustomDateChange('end', e.target.value)}
                     value={customDateRange.end || ''}
@@ -769,13 +769,13 @@ const EnhancedAnalyticsDashboard = ({
                 </div>
               </div>
             )}
-            
+
             {/* Model filter */}
             <div>
               <label className="text-sm font-medium mb-1 block">Models</label>
               <div className="flex flex-wrap gap-1">
                 {modelOptions.map(model => (
-                  <Badge 
+                  <Badge
                     key={model.id}
                     variant={selectedModels.includes(model.id) ? 'default' : 'outline'}
                     className="cursor-pointer"
@@ -786,13 +786,13 @@ const EnhancedAnalyticsDashboard = ({
                 ))}
               </div>
             </div>
-            
+
             {/* Category filter */}
             <div>
               <label className="text-sm font-medium mb-1 block">Categories</label>
               <div className="flex flex-wrap gap-1">
                 {availableCategories.map(category => (
-                  <Badge 
+                  <Badge
                     key={category}
                     variant={selectedCategories.includes(category) ? 'default' : 'outline'}
                     className="cursor-pointer capitalize"
@@ -803,13 +803,13 @@ const EnhancedAnalyticsDashboard = ({
                 ))}
               </div>
             </div>
-            
+
             {/* Tags filter */}
             <div>
               <label className="text-sm font-medium mb-1 block">Tags</label>
               <div className="flex flex-wrap gap-1">
                 {availableTags.map(tag => (
-                  <Badge 
+                  <Badge
                     key={tag}
                     variant={tags.includes(tag) ? 'default' : 'outline'}
                     className="cursor-pointer capitalize"
@@ -821,7 +821,7 @@ const EnhancedAnalyticsDashboard = ({
               </div>
             </div>
           </div>
-          
+
           {/* Comparison options (only shown when comparison is enabled) */}
           {comparisonEnabled && (
             <div className="mt-4 pt-3 border-t">
@@ -846,7 +846,7 @@ const EnhancedAnalyticsDashboard = ({
           )}
         </div>
       </div>
-      
+
       {/* Main content based on current view */}
       <CardContent className="p-6">
         {currentView === 'overview' && (
@@ -875,7 +875,7 @@ const EnhancedAnalyticsDashboard = ({
                   </div>
                 )}
               </div>
-              
+
               <div className="bg-background p-4 rounded-lg border">
                 <div className="text-sm text-muted-foreground">Average Daily Usage</div>
                 <div className="text-2xl font-bold mt-1">
@@ -898,7 +898,7 @@ const EnhancedAnalyticsDashboard = ({
                   </div>
                 )}
               </div>
-              
+
               <div className="bg-background p-4 rounded-lg border">
                 <div className="text-sm text-muted-foreground">Peak Usage</div>
                 <div className="text-2xl font-bold mt-1">
@@ -922,7 +922,7 @@ const EnhancedAnalyticsDashboard = ({
                 )}
               </div>
             </div>
-            
+
             {/* Usage Chart - simulated placeholder */}
             <div className="bg-background p-4 rounded-lg border h-64 flex items-center justify-center">
               <div className="text-center text-muted-foreground">
@@ -930,7 +930,7 @@ const EnhancedAnalyticsDashboard = ({
                 <p>Time Series Chart would be rendered here</p>
               </div>
             </div>
-            
+
             {/* Category Distribution */}
             <div className="bg-background p-4 rounded-lg border">
               <h3 className="font-medium mb-4">Category Distribution</h3>
@@ -958,7 +958,7 @@ const EnhancedAnalyticsDashboard = ({
             </div>
           </div>
         )}
-        
+
         {currentView === 'detailed' && (
           <div className="space-y-6">
             <div className="bg-background p-4 rounded-lg border">
@@ -970,7 +970,7 @@ const EnhancedAnalyticsDashboard = ({
                     <p>Detailed Usage Timeline</p>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div className="bg-background rounded-lg border p-4">
                     <h4 className="text-sm font-medium mb-3">Model Distribution</h4>
@@ -986,7 +986,7 @@ const EnhancedAnalyticsDashboard = ({
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="bg-background rounded-lg border p-4">
                     <h4 className="text-sm font-medium mb-3">Usage Patterns</h4>
                     <div className="space-y-4">
@@ -1005,12 +1005,12 @@ const EnhancedAnalyticsDashboard = ({
             </div>
           </div>
         )}
-        
+
         {currentView === 'reports' && (
           <div className="space-y-6">
             <div className="bg-background p-4 rounded-lg border">
               <h3 className="font-medium mb-4">Report Generation</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-muted/10 rounded-lg border p-4">
                   <h4 className="text-sm font-medium mb-3">Export Options</h4>
@@ -1030,7 +1030,7 @@ const EnhancedAnalyticsDashboard = ({
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="bg-muted/10 rounded-lg border p-4">
                   <h4 className="text-sm font-medium mb-3">Schedule Reports</h4>
                   <div className="space-y-2">
@@ -1054,7 +1054,7 @@ const EnhancedAnalyticsDashboard = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <h4 className="text-sm font-medium mb-3">Scheduled Reports</h4>
                 {scheduledExports.length > 0 ? (
@@ -1090,7 +1090,7 @@ const EnhancedAnalyticsDashboard = ({
           </div>
         )}
       </CardContent>
-      
+
       <CardFooter className="bg-muted/20 py-3 text-xs text-muted-foreground flex justify-between">
         <div>
           Data last updated: {new Date().toLocaleString()}

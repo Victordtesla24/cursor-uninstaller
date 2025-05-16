@@ -8,13 +8,13 @@ const CollapsibleContext = createContext(null);
  *
  * A component that can be expanded or collapsed.
  */
-const Collapsible = ({ 
-  children, 
-  open = false, 
+const Collapsible = ({
+  children,
+  open = false,
   defaultOpen = false,
   onOpenChange,
   className = '',
-  ...props 
+  ...props
 }) => {
   // Use either controlled (open prop) or uncontrolled (internal state) mode
   const [isOpenState, setIsOpenState] = useState(defaultOpen);
@@ -32,7 +32,7 @@ const Collapsible = ({
 
   return (
     <CollapsibleContext.Provider value={{ isOpen, toggle }}>
-      <div 
+      <div
         className={`${className}`}
         data-state={isOpen ? 'open' : 'closed'}
         {...props}
@@ -52,4 +52,4 @@ export const useCollapsible = () => {
     throw new Error('useCollapsible must be used within a Collapsible component');
   }
   return context;
-}; 
+};

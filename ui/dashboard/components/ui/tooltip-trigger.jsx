@@ -7,7 +7,7 @@ import React from 'react';
  */
 const TooltipTrigger = ({ children, asChild, className = '', ...props }) => {
   return (
-    <div 
+    <div
       className={`${className}`}
       {...props}
     >
@@ -16,4 +16,4 @@ const TooltipTrigger = ({ children, asChild, className = '', ...props }) => {
   );
 };
 
-export default TooltipTrigger; 
+export default TooltipTrigger;
