@@ -3,5 +3,13 @@
     "dockerfile": "Dockerfile",
     "context": "."
   },
-  "terminals": []
+  "user": "node",
+  "install": "./.cursor/install.sh",
+  "terminals": [
+    {
+      "name": "Dashboard",
+      "command": "npm run dashboard",
+      "description": "Runs the main dashboard application."
+    }
+  ]
 }

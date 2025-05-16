@@ -1,46 +1,19 @@
-FROM node:18-alpine AS dashboard_prep
-# Set WORKDIR to root for the initial copy of ui/dashboard contents
-WORKDIR /
-# Copy the entire ui/dashboard directory contents to a uniquely named directory at the root
-COPY ui/dashboard /temp_dashboard_ui_dashboard_files
-
-# Switch WORKDIR to where we want the package files to end up
-WORKDIR /source_files
-# Now, move the specific files from the copied directory at the root
-RUN mv /temp_dashboard_ui_dashboard_files/package.json ./dashboard_package.json && \
-    mv /temp_dashboard_ui_dashboard_files/package-lock.json ./dashboard_package-lock.json && \
-    rm -rf /temp_dashboard_ui_dashboard_files
-RUN echo "--- Contents of /source_files in dashboard_prep stage ---" && ls -la /source_files
-
 FROM node:18-alpine
-WORKDIR /app
 
-# Copy root package files and install root dependencies
-COPY package*.json ./
-RUN npm install
+# Install git, as the agent will clone the repository
+RUN apk add --no-cache git
 
-# Create dashboard directory and copy prepped package files
-RUN mkdir -p ./ui/dashboard
-COPY --from=dashboard_prep /source_files/dashboard_package.json ./ui/dashboard/package.json
-COPY --from=dashboard_prep /source_files/dashboard_package-lock.json ./ui/dashboard/package-lock.json
+# Set a working directory for the agent.
+# The agent will clone the repository into this directory.
+WORKDIR /agent_workspace
 
-RUN echo "--- Contents of /app/ui/dashboard in main stage after COPY --from ---" && ls -la ./ui/dashboard
-
-# Install dashboard dependencies
-RUN cd ui/dashboard && npm install
-
-# Copy the rest of the project files
-COPY . .
-
-# Make the uninstall script executable
-RUN chmod +x ./uninstall_cursor.sh
-
-# Set environment variables
+# Set environment variables if needed globally for the agent's environment
 ENV NODE_ENV=production
 
-# Expose port for dashboard
+# Expose ports if the processes started by the agent need to be accessed
 EXPOSE 5173
 EXPOSE 3000
 
-# Command to run
-CMD ["npm", "run", "dashboard"]
+# Default command to keep the container running, can be overridden by environment.json.
+# A simple shell is often sufficient as a default.
+CMD ["/bin/sh"]

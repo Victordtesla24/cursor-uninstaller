@@ -1,15 +1,23 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-# Display initial message
-echo "Setting up cursor-uninstaller environment..."
+echo "--- Running install script ---"
 
-# Install dependencies
+# Install root dependencies
+echo "Installing root dependencies..."
 npm install
 
 # Install dashboard dependencies
-echo "Installing dashboard dependencies..."
-cd ui/dashboard && npm install
-cd ../..
+echo "Installing ui/dashboard dependencies..."
+if [ -d "ui/dashboard" ]; then
+  cd ui/dashboard
+  npm install
+  cd ..
+else
+  echo "Warning: ui/dashboard directory not found. Skipping dashboard dependencies."
+fi
+
+echo "--- Install script finished ---"
 
 # Make sure the uninstall script is executable
 chmod +x ./uninstall_cursor.sh
