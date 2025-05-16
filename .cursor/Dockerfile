@@ -4,7 +4,11 @@ WORKDIR /app
 
 # Copy package.json files
 COPY package*.json ./
-COPY ui/dashboard/package*.json ./ui/dashboard/
+# Explicitly create destination directory for dashboard packages
+RUN mkdir -p ./ui/dashboard
+# Copy dashboard package files individually
+COPY ui/dashboard/package.json ./ui/dashboard/package.json
+COPY ui/dashboard/package-lock.json ./ui/dashboard/package-lock.json
 
 # Install dependencies
 RUN npm install
