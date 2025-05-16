@@ -19,9 +19,6 @@ fi
 
 echo "--- Install script finished ---"
 
-# Make sure the uninstall script is executable
-chmod +x ./uninstall_cursor.sh
-
 # Setup background agent protocol directories if they don't exist
 mkdir -p .cursor/rules
 
