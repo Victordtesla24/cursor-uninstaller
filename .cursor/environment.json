@@ -5,12 +5,11 @@
   },
   "user": "node",
   "install": ".cursor/install.sh",
+  "start": "./install.sh",
   "terminals": [
     {
-      "name": "Dashboard",
-      "command": "cd ui/dashboard && npx vite optimize --force && npm run dev -- --host --no-open",
-      "description": "Runs the main dashboard application using Vite dev server (with pre-optimization), accessible externally and without opening browser."
+      "name": "Run Dashboard Tests",
+      "command": "cd ui/dashboard && npx jest"
     }
-  ],
-  "start": "./install.sh"
+  ]
 }

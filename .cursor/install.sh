@@ -22,12 +22,5 @@ echo "--- Install script finished ---"
 # Setup background agent protocol directories if they don't exist
 mkdir -p .cursor/rules
 
-# Verify background agent prompt configuration
-if [ -f .cursor/background-agent-prompt.md ]; then
-  echo "Background agent prompt is configured."
-else
-  echo "Warning: Background agent prompt configuration is missing."
-fi
-
 # Display completion message
 echo "Environment setup complete! You can now run the dashboard with 'npm run dashboard'"
