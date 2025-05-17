@@ -1,0 +1,15 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "user": "agentuser",
+  "install": "./.cursor/install.sh",
+  "start": "echo 'Background agent started. Custom start command executed.'",
+  "terminals": [
+    {
+      "name": "prototype_terminal",
+      "command": "echo 'Prototype agent terminal active. Waiting for tasks...' && sleep infinity",
+      "description": "A simple terminal for the prototype agent."
+    }
+  ]
+}
