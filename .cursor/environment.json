@@ -5,7 +5,7 @@
   },
   "user": "node",
   "install": ".cursor/install.sh",
-  "start": "./install.sh",
+  "start": "bash .cursor/install.sh",
   "terminals": [
     {
       "name": "Run Dashboard Tests",
