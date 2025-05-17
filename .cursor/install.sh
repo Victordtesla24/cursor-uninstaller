@@ -1,11 +1,12 @@
 #!/bin/bash
 set -e
 
-# Create a log file directory if it doesn't exist
+# Create log file directory if it doesn't exist
 CURSOR_LOG_DIR=".cursor/logs"
-CURSOR_LOG_FILE="${CURSOR_LOG_DIR}/agent.log"
 CURSOR_AGENT_LOG=".cursor/agent.log"
 mkdir -p "${CURSOR_LOG_DIR}"
+mkdir -p "$(dirname "${CURSOR_AGENT_LOG}")"
+touch "${CURSOR_AGENT_LOG}"
 
 # Setup logging function
 log() {
@@ -14,6 +15,12 @@ log() {
 }
 
 log "--- Running Background Agent install.sh ---"
+
+# Source utility functions if available
+if [ -f ".cursor/retry-utils.sh" ]; then
+  log "Sourcing retry utilities..."
+  source .cursor/retry-utils.sh
+fi
 
 # Log environment information for debugging
 log "Current directory: $(pwd)"
@@ -25,10 +32,16 @@ log "OS info: $(cat /etc/os-release 2>/dev/null || echo 'OS info not available')
 # Function to handle errors
 handle_error() {
   log "ERROR: An error occurred at line $1, exit code $2"
-  exit $2
+  # Don't exit with error on validation steps - allows for graceful continuation
+  if [[ "$3" == "continue" ]]; then
+    log "Continuing despite error..."
+    return 0
+  else
+    exit $2
+  fi
 }
 
-# Set up error trap
+# Set up error trap for non-validation errors
 trap 'handle_error $LINENO $?' ERR
 
 # Ensure we're in the repository root directory
@@ -37,22 +50,30 @@ if [ -d "/agent_workspace" ] && [ "$(pwd)" != "/agent_workspace" ]; then
   cd /agent_workspace
 fi
 
-# Validate GitHub repository
+# Validate GitHub repository - with graceful fallback
 log "Validating GitHub repository configuration..."
-if ! git remote -v | grep -q "github.com/Victordtesla24/cursor-uninstaller"; then
+if ! git remote -v 2>/dev/null | grep -q "github.com/Victordtesla24/cursor-uninstaller"; then
   log "WARNING: GitHub repository does not match expected repository (https://github.com/Victordtesla24/cursor-uninstaller.git)"
   
-  # Check if we can set the correct remote
+  # Check if we can set the correct remote - using retry utility if available
   if ! git remote get-url origin >/dev/null 2>&1; then
     log "Setting GitHub repository remote..."
-    git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git
+    if type retry >/dev/null 2>&1; then
+      retry 3 2 git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+    else
+      git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+    fi
   else
     log "Updating GitHub repository remote..."
-    git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git
+    if type retry >/dev/null 2>&1; then
+      retry 3 2 git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+    else
+      git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+    fi
   fi
 fi
 
-# Validate GitHub credentials
+# Validate GitHub credentials - with graceful fallback
 log "Validating GitHub credentials..."
 if ! git fetch origin --dry-run 2>/dev/null; then
   log "WARNING: Unable to fetch from GitHub. This may be due to missing credentials."
@@ -62,26 +83,52 @@ else
   
   # Update local repository
   log "Updating local repository from GitHub..."
-  git fetch origin
+  if type retry >/dev/null 2>&1; then
+    retry 3 2 git fetch origin || handle_error $LINENO $? "continue"
+  else
+    git fetch origin || handle_error $LINENO $? "continue"
+  fi
   
   # Check if we're on a branch
   current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
   if [ -z "$current_branch" ]; then
     log "Not on any branch. Checking out main branch..."
-    git checkout main || git checkout master || { log "ERROR: Could not checkout main or master branch"; }
+    if type retry >/dev/null 2>&1; then
+      retry 3 2 git checkout main || retry 3 2 git checkout master || { log "ERROR: Could not checkout main or master branch"; handle_error $LINENO $? "continue"; }
+    else
+      git checkout main || git checkout master || { log "ERROR: Could not checkout main or master branch"; handle_error $LINENO $? "continue"; }
+    fi
   else
     log "Currently on branch: $current_branch"
   fi
   
   # Pull latest changes
   log "Pulling latest changes from origin..."
-  git pull origin $(git symbolic-ref --short HEAD) || log "WARNING: Unable to pull latest changes"
+  if type retry >/dev/null 2>&1; then
+    retry 3 2 git pull origin $(git symbolic-ref --short HEAD 2>/dev/null || echo "main") || { log "WARNING: Unable to pull latest changes"; handle_error $LINENO $? "continue"; }
+  else
+    git pull origin $(git symbolic-ref --short HEAD 2>/dev/null || echo "main") || { log "WARNING: Unable to pull latest changes"; handle_error $LINENO $? "continue"; }
+  fi
+fi
+
+# Create basic repository structure if it doesn't exist (for first-time setup)
+if [ ! -d ".git" ]; then
+  log "WARNING: Not in a git repository. Initializing basic repository..."
+  git init || handle_error $LINENO $? "continue"
+  git config --global init.defaultBranch main || handle_error $LINENO $? "continue"
+  touch README.md || handle_error $LINENO $? "continue"
+  git add README.md || handle_error $LINENO $? "continue"
+  git commit -m "Initial commit" || handle_error $LINENO $? "continue"
 fi
 
 # Install root dependencies
 if [ -f "package.json" ]; then
   log "Root package.json found. Running npm install in root..."
-  npm install || { log "WARNING: npm install in root directory failed"; }
+  if type run_with_timeout >/dev/null 2>&1; then
+    run_with_timeout 300 npm install || { log "WARNING: npm install in root directory failed"; handle_error $LINENO $? "continue"; }
+  else
+    npm install || { log "WARNING: npm install in root directory failed"; handle_error $LINENO $? "continue"; }
+  fi
   log "Root npm install completed."
 else
   log "No root package.json found. Skipping npm install in root."
@@ -94,11 +141,19 @@ if [ -d "$DASHBOARD_DIR" ]; then
   cd "$DASHBOARD_DIR"
   if [ -f "package.json" ]; then
     log "Dashboard package.json found. Running npm install in $DASHBOARD_DIR..."
-    npm install || { log "WARNING: npm install in dashboard directory failed"; }
+    if type run_with_timeout >/dev/null 2>&1; then
+      run_with_timeout 300 npm install || { log "WARNING: npm install in dashboard directory failed"; handle_error $LINENO $? "continue"; }
+    else
+      npm install || { log "WARNING: npm install in dashboard directory failed"; handle_error $LINENO $? "continue"; }
+    fi
     log "Dashboard npm install completed."
 
     log "Running npx vite optimize --force in $DASHBOARD_DIR..."
-    npx vite optimize --force || { log "WARNING: Vite optimization failed"; }
+    if type run_with_timeout >/dev/null 2>&1; then
+      run_with_timeout 120 npx vite optimize --force || { log "WARNING: Vite optimization failed"; handle_error $LINENO $? "continue"; }
+    else
+      npx vite optimize --force || { log "WARNING: Vite optimization failed"; handle_error $LINENO $? "continue"; }
+    fi
     log "Vite optimization completed."
   else
     log "No package.json found in $DASHBOARD_DIR. Skipping dashboard setup."
@@ -143,18 +198,34 @@ if [ -f "bg-agent-test.txt" ]; then
       
       # Try to push to remote (will fail without credentials, but agent should have them)
       log "Attempting to push to GitHub..."
-      if git push --set-upstream origin "$git_branch" 2>/dev/null; then
-        log "Successfully pushed to GitHub"
-        
-        # Try to create a pull request if gh cli is available
-        if command -v gh &>/dev/null; then
-          log "Creating a pull request using GitHub CLI..."
-          gh pr create --title "Background Agent Test" --body "This is a test pull request created by the Background Agent setup process." || log "Failed to create pull request"
+      if type retry >/dev/null 2>&1; then
+        if retry 3 5 git push --set-upstream origin "$git_branch" 2>/dev/null; then
+          log "Successfully pushed to GitHub"
+          
+          # Try to create a pull request if gh cli is available
+          if command -v gh &>/dev/null; then
+            log "Creating a pull request using GitHub CLI..."
+            gh pr create --title "Background Agent Test" --body "This is a test pull request created by the Background Agent setup process." || log "Failed to create pull request"
+          else
+            log "GitHub CLI not available. Skipping pull request creation."
+          fi
         else
-          log "GitHub CLI not available. Skipping pull request creation."
+          log "WARNING: Failed to push to GitHub. This is expected if credentials are not available."
         fi
       else
-        log "WARNING: Failed to push to GitHub. This is expected if credentials are not available."
+        if git push --set-upstream origin "$git_branch" 2>/dev/null; then
+          log "Successfully pushed to GitHub"
+          
+          # Try to create a pull request if gh cli is available
+          if command -v gh &>/dev/null; then
+            log "Creating a pull request using GitHub CLI..."
+            gh pr create --title "Background Agent Test" --body "This is a test pull request created by the Background Agent setup process." || log "Failed to create pull request"
+          else
+            log "GitHub CLI not available. Skipping pull request creation."
+          fi
+        else
+          log "WARNING: Failed to push to GitHub. This is expected if credentials are not available."
+        fi
       fi
     else
       log "WARNING: Failed to create test commit. This is expected if no changes were made."
@@ -170,7 +241,7 @@ fi
 # Run test scripts to validate the setup
 if [ -f "./test-background-agent.sh" ]; then
   log "Running validation tests..."
-  bash ./test-background-agent.sh || log "WARNING: Validation tests failed, but continuing..."
+  bash ./test-background-agent.sh || { log "WARNING: Validation tests failed, but continuing..."; handle_error $LINENO $? "continue"; }
 fi
 
 log "--- install.sh finished successfully ---"

@@ -15,12 +15,14 @@ This repository contains a Cursor uninstaller tool with a dashboard UI. The back
 - You need to grant Cursor GitHub app permission to your repository through the Cursor UI
 - This is set up once per repository when you first use background agents
 - The agent will clone your repo and create new branches for implementing changes
+- If you encounter GitHub authentication issues, refer to `.cursor/TROUBLESHOOTING.md`
 
 ### Environment Setup
 - This project uses a Dockerfile-based environment (declarative approach) in `.cursor/Dockerfile`
 - The environment includes Node.js, git, and other development tools needed for the project
 - Dependencies are installed via the `.cursor/install.sh` script which runs npm install for both root and dashboard
 - The `.cursor/environment.json` file configures how the agent works with terminals for the dashboard and validation
+- Helper scripts in `.cursor/retry-utils.sh` and `.cursor/github-setup.sh` provide reliable GitHub integration
 
 ### Security Considerations
 - Your code runs in Cursor's AWS infrastructure
@@ -105,6 +107,7 @@ If you encounter errors during execution:
 - Examine the git configuration with `git config --list`
 - Look for any GitHub authentication issues
 - Validate the Docker environment with `test-agent-runtime.sh`
+- Refer to the troubleshooting guide in `.cursor/TROUBLESHOOTING.md`
 
 ## Notes
 - Keep changes focused on improving the codebase without changing core functionality
