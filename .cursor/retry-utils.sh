@@ -1,124 +1,101 @@
 #!/bin/bash
 
-# Utility functions for retrying operations
-CURSOR_AGENT_LOG=".cursor/agent.log"
+# Utility functions for retry operations and logging
 
-# Log message to the agent log file
-log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo "[${timestamp}] $1" | tee -a "${CURSOR_AGENT_LOG}"
-}
-
-# Function to retry a command with exponential backoff
-# Usage: retry <max_attempts> <delay> <command>
-retry() {
-  local max_attempts=$1
-  local delay=$2
-  shift 2
-  local command="$@"
-  local attempt=1
-  
-  while true; do
-    echo "Attempt $attempt of $max_attempts: $command"
-    if eval "$command"; then
-      echo "Command succeeded on attempt $attempt"
-      return 0
-    else
-      echo "Command failed on attempt $attempt with exit code $?"
-      if [ $attempt -ge $max_attempts ]; then
-        echo "Maximum attempts reached. Giving up."
-        return 1
-      fi
-      
-      sleep_time=$((delay * attempt))
-      echo "Sleeping for $sleep_time seconds before next retry..."
-      sleep $sleep_time
-      attempt=$((attempt + 1))
-    fi
-  done
-}
-
-# Function to run a command with a timeout
-# Usage: run_with_timeout <timeout_seconds> <command>
-run_with_timeout() {
-  local timeout=$1
-  shift
-  local command="$@"
-  
-  # Create a background process
-  (
-    "$@" &
-    cmd_pid=$!
+# Retry a command a specified number of times with exponential backoff
+# Usage: retry <max_attempts> <delay> <command> [args...]
+function retry() {
+    local max_attempts=$1
+    local delay=$2
+    shift 2  # Remove the first two arguments, leaving the command and its arguments
     
-    # Wait for the command to finish or timeout
+    local attempt=1
+    
+    until "$@"; do
+        if (( attempt == max_attempts )); then
+            echo "Command '$*' failed after $max_attempts attempts"
+            return 1
+        fi
+        
+        echo "Command '$*' failed, attempt $attempt/$max_attempts. Retrying in ${delay}s..."
+        sleep $delay
+        attempt=$((attempt + 1))
+        delay=$((delay * 2))  # Exponential backoff
+    done
+    
+    return 0
+}
+
+# Run a command with a timeout
+# Usage: run_with_timeout <timeout_seconds> <command> [args...]
+function run_with_timeout() {
+    local timeout=$1
+    shift
+    
+    # Start the command in the background
+    "$@" &
+    local pid=$!
+    
+    # Start a subshell to kill the command after the timeout
     (
-      sleep $timeout
-      echo "Command timed out after $timeout seconds"
-      kill -9 $cmd_pid 2>/dev/null
+        sleep $timeout
+        kill -TERM $pid 2>/dev/null
+        echo "Command '$*' timed out after ${timeout}s"
     ) &
-    timeout_pid=$!
+    local watchdog_pid=$!
     
     # Wait for the command to finish
-    wait $cmd_pid 2>/dev/null
-    cmd_status=$?
+    wait $pid 2>/dev/null
+    local status=$?
     
-    # Kill the timeout process
-    kill -9 $timeout_pid 2>/dev/null
+    # Kill the watchdog
+    kill -TERM $watchdog_pid 2>/dev/null
     
-    exit $cmd_status
-  )
+    return $status
 }
 
-# Verify that a command returns the expected output
-# Usage: verify_output <expected_output_regex> <command>
-verify_output() {
-  local expected=$1
-  shift
-  local command="$@"
-  
-  log "Verifying output of: $command"
-  
-  local output
-  output=$($command 2>&1)
-  
-  if [[ "$output" =~ $expected ]]; then
-    log "Output verification successful"
+# Ensure a directory exists
+# Usage: ensure_dir <directory>
+function ensure_dir() {
+    local dir=$1
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir" || return 1
+    fi
     return 0
-  else
-    log "ERROR: Output verification failed."
-    log "Expected pattern: $expected"
-    log "Actual output: $output"
-    return 1
-  fi
 }
 
-# Check if a command exists
-# Usage: command_exists <command>
-command_exists() {
-  command -v "$1" &> /dev/null
-  return $?
-}
-
-# Run a command only if another command was successful
-# Usage: if_success <condition_command> <command_to_run>
-if_success() {
-  local condition_command="$1"
-  local command_to_run="$2"
-  
-  if $condition_command; then
-    log "Condition met, running: $command_to_run"
-    $command_to_run
-    return $?
-  else
-    log "Condition not met, skipping: $command_to_run"
+# Ensure a file exists
+# Usage: ensure_file <file>
+function ensure_file() {
+    local file=$1
+    if [ ! -f "$file" ]; then
+        touch "$file" || return 1
+    fi
     return 0
-  fi
+}
+
+# Initialize logging
+# Usage: init_logging <log_file>
+function init_logging() {
+    local log_file=$1
+    ensure_dir "$(dirname "$log_file")"
+    ensure_file "$log_file"
+    echo "--- Logging initialized at $(date) ---" >> "$log_file"
+}
+
+# Log a message to a file and stdout
+# Usage: log_message <log_file> <message>
+function log_message() {
+    local log_file=$1
+    local message=$2
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "[$timestamp] $message" | tee -a "$log_file"
 }
 
 # Export functions
-export -f log
 export -f retry
 export -f run_with_timeout
-export -f verify_output
-export -f command_exists
-export -f if_success 
+export -f ensure_dir
+export -f ensure_file
+export -f init_logging
+export -f log_message 

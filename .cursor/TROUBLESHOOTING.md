@@ -1,170 +1,164 @@
 # Background Agent Troubleshooting Guide
 
-This guide provides solutions for common issues encountered with Cursor Background Agents.
+This guide helps you troubleshoot common issues with Cursor Background Agents.
 
-## GitHub Authentication Issues
+## Common Issues and Solutions
 
-### Symptoms
-- "Unable to fetch from GitHub" errors
-- Repository connection failures
-- Failed to push commits
-- Permission denied errors
+### 1. GitHub Authentication Issues
 
-### Solutions
-1. **Check GitHub App Permission**
-   - Ensure the Cursor GitHub App has read/write access to your repository
-   - Go to GitHub → Settings → Applications → Authorized OAuth Apps → Cursor
-   - Verify permissions include repository access
+**Symptoms:**
+- Error messages about GitHub authentication failure
+- Failed pull/push operations 
+- Messages about "Permission denied" or "Could not read from remote repository"
 
-2. **Reset GitHub Token**
-   - In Cursor, go to Command Palette → "Background Agent: Reconnect GitHub"
-   - Follow the authentication flow to refresh your token
+**Solutions:**
+1. **Verify GitHub Integration in Cursor:**
+   - Open Cursor settings and check that GitHub integration is enabled
+   - Make sure you've granted Cursor read-write permissions to your repository
+   - If needed, disconnect and reconnect your GitHub account in Cursor settings
 
-3. **Manual Token Configuration**
-   - Generate a GitHub personal access token with repo scope
-   - Set as environment variable: `GITHUB_TOKEN=your_token_here`
-   - Restart the background agent
+2. **Check Git Configuration:**
+   - Run `git config --list` to see your current configuration
+   - Ensure your user name and email are properly set
+   - Verify that credential helper is configured: `git config --global credential.helper 'cache --timeout=3600'`
 
-## Log Directory Issues
+3. **Force Token Refresh:**
+   - Disconnect and reconnect GitHub in Cursor settings
+   - Restart Cursor and try again
 
-### Symptoms
-- "No such file or directory" errors when writing to logs
-- Missing `.cursor/agent.log` file
+### 2. Agent Cannot Access Files or Directories
 
-### Solutions
-1. **Create Required Directories**
-   ```bash
-   mkdir -p .cursor/logs
-   touch .cursor/agent.log
-   ```
+**Symptoms:**
+- "Permission denied" errors
+- "No such file or directory" errors
+- File operation failures
 
-2. **Check File Permissions**
-   ```bash
-   chmod 755 .cursor
-   chmod 644 .cursor/agent.log
-   ```
+**Solutions:**
+1. **Check Directory Structure:**
+   - Ensure the `.cursor` directory exists and has the right permissions
+   - Make sure all necessary subdirectories like `.cursor/logs` exist
 
-## Repository Configuration Issues
+2. **Fix Ownership and Permissions:**
+   - Run `ls -la .cursor` to check file permissions
+   - Ensure files are owned by the correct user and have appropriate permissions
+   - Run `chmod +x .cursor/*.sh` to make scripts executable
 
-### Symptoms
-- "Not a git repository" errors
-- Remote configuration failures
+3. **Create Missing Files/Directories:**
+   - Ensure `.cursor/agent.log` exists: `touch .cursor/agent.log` 
+   - Create missing directories: `mkdir -p .cursor/logs`
 
-### Solutions
-1. **Verify Git Installation**
-   ```bash
-   git --version
-   ```
+### 3. Background Agent Startup Fails
 
-2. **Initialize Repository Properly**
-   ```bash
-   git init
-   git config --global init.defaultBranch main
-   git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git
-   ```
+**Symptoms:**
+- Agent status shows "Error" or "Failed"
+- Agent process terminates prematurely
 
-3. **Update Remote URL**
-   ```bash
-   git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git
-   ```
+**Solutions:**
+1. **Check Docker Configuration:**
+   - Ensure Docker is installed and running
+   - Verify the Dockerfile in `.cursor/Dockerfile` is valid
+   - Try building the Docker image manually: `docker build -t cursor-agent-test -f .cursor/Dockerfile .`
 
-## Connection and Network Issues
+2. **Verify Environment.json:**
+   - Check `.cursor/environment.json` for syntax errors
+   - Remove any trailing commas or invalid JSON
+   - Ensure all paths in the file are correct
 
-### Symptoms
-- Timeout errors
-- Network connection failures
-- "Connection refused" errors
+3. **Run Validation Script:**
+   - Run `./test-background-agent.sh` to check for configuration issues
+   - Address any errors reported by the script
 
-### Solutions
-1. **Check Internet Connection**
-   ```bash
-   curl -I https://github.com
-   ```
+### 4. Agent Cannot Install Dependencies
 
-2. **Test DNS Resolution**
-   ```bash
-   nslookup github.com
-   ```
+**Symptoms:**
+- npm install failures
+- Package resolution errors
+- Messages about network issues
 
-3. **Proxy Configuration**
-   If behind a proxy, set:
-   ```bash
-   git config --global http.proxy http://proxy-url:port
-   ```
+**Solutions:**
+1. **Check Package.json:**
+   - Ensure package.json files have valid syntax
+   - Verify that all dependencies exist and are accessible
 
-## Background Agent Setup Issues
+2. **Network Issues:**
+   - Check if npm registry is accessible
+   - If behind a proxy, configure npm to use it: `npm config set proxy YOUR_PROXY`
 
-### Symptoms
-- "Agent setup failed" errors
-- GitHub initialization failures
-- Docker-related errors
+3. **Clear npm Cache:**
+   - In the agent environment, try: `npm cache clean --force` 
+   - Then retry installation
 
-### Solutions
-1. **Check Prerequisite Software**
-   - Docker: `docker --version`
-   - Git: `git --version`
-   - Node.js: `node --version`
+### 5. Agent Cannot Start Services or Terminals
 
-2. **Verify Environment Configuration**
-   - Check `.cursor/environment.json` format
-   - Validate `.cursor/Dockerfile` syntax
-   - Ensure `.cursor/install.sh` is executable
+**Symptoms:**
+- Terminals fail to start or crash immediately
+- Services report errors or don't respond
 
-3. **Run Validation Scripts**
-   ```bash
-   bash ./test-background-agent.sh
-   bash ./test-agent-runtime.sh
-   ```
+**Solutions:**
+1. **Check Terminal Commands:**
+   - Verify commands in `environment.json` terminals section
+   - Make sure paths in commands are correct
+   - Consider using absolute paths rather than relative ones
 
-## Performance and Resource Issues
+2. **Port Conflicts:**
+   - If services fail because ports are in use, modify them in your config
+   - Check if multiple services try to use the same port
 
-### Symptoms
-- Agent running slowly
-- High CPU or memory usage
-- Container timeout errors
+3. **Run Commands Manually:**
+   - Connect to the agent environment
+   - Run terminal commands manually to identify specific errors
 
-### Solutions
-1. **Monitor Container Resources**
-   ```bash
-   docker stats
-   ```
+## Advanced Troubleshooting
 
-2. **Increase Container Resources**
-   - Adjust Docker settings to allow more CPU/memory
-   - Split complex tasks into smaller subtasks
+### Accessing Logs
 
-3. **Optimize Build Process**
-   - Use caching in Docker builds
-   - Optimize npm/yarn installation with frozen lockfiles
+Background agent logs are stored in the following locations:
+- `.cursor/agent.log` - Main agent log
+- `.cursor/logs/` - Additional log files
+- `.cursor/environment-snapshot-info.txt` - Environment information
 
-## Log Inspection and Debugging
+To inspect logs:
+```bash
+cat .cursor/agent.log
+ls -la .cursor/logs/
+```
 
-### How to Access Logs
-1. **Agent Logs**
-   ```bash
-   cat .cursor/agent.log
-   ```
+### Running Validation Tests
 
-2. **Terminal Logs**
-   - Use the `log_monitor` terminal in the agent UI
-   - Command: `tail -f .cursor/agent.log`
+```bash
+# Run basic validation
+./test-background-agent.sh
 
-3. **Docker Container Logs**
-   ```bash
-   docker logs <container-id>
-   ```
+# Run runtime validation
+./test-agent-runtime.sh
+```
+
+### Manual Environment Testing
+
+You can test building the environment manually:
+```bash
+# Build Docker image
+docker build -t cursor-agent-test -f .cursor/Dockerfile .
+
+# Run container with mounted directory
+docker run -it --rm -v "$(pwd):/agent_workspace" cursor-agent-test bash
+
+# Inside the container, run the install script
+cd /agent_workspace
+bash ./.cursor/install.sh
+```
 
 ## Contacting Support
 
-If you continue to experience issues after trying these solutions:
+If you've tried the above troubleshooting steps and still encounter issues:
 
 1. Collect the following information:
-   - Background agent logs (`.cursor/agent.log`)
-   - Validation test results
+   - Background agent logs
+   - Output from validation scripts
    - Cursor version
-   - Error messages
+   - OS and environment details
 
-2. Contact support via:
-   - Email: support@cursor.sh
-   - Discord: #background-agent channel
-   - GitHub Issues 
+2. Contact Cursor support:
+   - Submit an issue on GitHub
+   - Share your logs and environment details
+   - Be specific about the error and steps to reproduce 
