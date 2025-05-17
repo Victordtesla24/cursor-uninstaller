@@ -4,12 +4,18 @@
   },
   "user": "agentuser",
   "install": "./.cursor/install.sh",
-  "start": "echo 'Background agent started. Custom start command executed.'",
+  "start": "echo 'Background agent environment started. Custom start command from environment.json executed.'",
   "terminals": [
     {
-      "name": "prototype_terminal",
-      "command": "echo 'Prototype agent terminal active. Waiting for tasks...' && sleep infinity",
-      "description": "A simple terminal for the prototype agent."
+      "name": "dashboard_dev_server",
+      "command": "cd ui/dashboard && npm run dev -- --host --no-open",
+      "description": "Runs the UI dashboard development server. Access it via the port Vite announces (usually 3000 or 5173 if 3000 is taken)."
     }
+    // Add other terminals here if needed, for example, for a backend service:
+    // {
+    //   "name": "backend_server",
+    //   "command": "npm run start:backend", // Assuming a script in your root package.json
+    //   "description": "Runs the backend server."
+    // }
   ]
 }
