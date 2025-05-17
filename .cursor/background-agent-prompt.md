@@ -1,36 +1,122 @@
-## Role
+# Background Agent Prompt
 
-Act as a `10x Engineer`/`senior developer`, who meticulously follows all provided protocols and instructions to achieve precise and production-ready, `HIGH QUALITY` outcomes. You specialize in `minimal` code generation/replacement without over complicating requirements.
+## Project Context
+This repository contains a Cursor uninstaller tool with a dashboard UI. The background agent can help with:
 
-## Context
+1. Building and testing the dashboard UI
+2. Running validation tests
+3. Making improvements to the code
+4. Troubleshooting issues
 
-You are operating within the `/Users/Shared/cursor/cursor-uninstaller` project directory. You have access to the following:
--   Test results from running `cd ui/dashboard && npx jest`.
--   The Error Fixing Protocol located at `.cursor/rules/my-error-fixing-protocols.mdc`.
--   The Directory Management Protocol located at `.cursor/rules/my-directory-management-protocols.mdc`.
--   The project's Git repository at `https://github.com/Victordtesla24/cursor-uninstaller.git`.
+## Prerequisites
 
-## Objectives
+### GitHub Connection Setup
+- Background agents require read-write access to your GitHub repository
+- You need to grant Cursor GitHub app permission to your repository through the Cursor UI
+- This is set up once per repository when you first use background agents
+- The agent will clone your repo and create new branches for implementing changes
 
-1.  Identify and resolve all failing tests, errors, and warnings reported in the provided test results.
-2.  Ensure the codebase adheres to all specified protocols during the error resolution process.
-3.  Achieve a state where all tests pass without any errors or warnings.
-4.  Commit the verified, error-free changes to the designated GitHub repository.
+### Environment Setup
+- This project uses a Dockerfile-based environment (declarative approach) in `.cursor/Dockerfile`
+- The environment includes Node.js, git, and other development tools needed for the project
+- Dependencies are installed via the `.cursor/install.sh` script which runs npm install for both root and dashboard
+- The `.cursor/environment.json` file configures how the agent works with terminals for the dashboard and validation
 
-## Tasks/Instructions
+### Security Considerations
+- Your code runs in Cursor's AWS infrastructure
+- Privacy mode must be turned off to use background agents
+- Be aware that agent auto-runs all commands (potential for prompt injection)
+- Any secrets needed are stored encrypted-at-rest using KMS
 
-1.  **Analyze Test Output:** Examine the provided test results from the `cd ui/dashboard && npx jest` command to identify all specific failing tests, error messages, stack traces, and warnings.
-2.  **Perform Root Cause Analysis (RCA):** For each identified error or warning, conduct a detailed and systematic root cause analysis. Strictly follow the steps and guidelines outlined in the `.cursor/rules/my-error-fixing-protocols.mdc`.
-3.  **Implement Fixes:** Address each error and warning individually based on the root causes determined in the RCA. Apply the necessary code modifications or configuration changes. During implementation, strictly adhere to the procedures and constraints defined in the `.cursor/rules/my-error-fixing-protocols.mdc`, & `.cursor/rules/my-directory-management-protocols.mdc`. Prioritize minimal, atomic changes.
-4.  **Verify and Iterate:** After each fix attempt, re-run the tests by executing the command `cd ui/dashboard && npx jest`. Analyze the new test output. If errors or warnings persist (including Linter, Runtime, or Functional issues), return to step 1 to analyze the new results and repeat the RCA and fixing process. Continue this cycle until all tests pass and no errors or warnings are reported.
-5.  **Commit Changes:** Once the test execution confirms that all tests pass and the output is free of errors and warnings, commit the successfully verified changes to the GitHub repository at `https://github.com/Victordtesla24/cursor-uninstaller.git`.
+## Task Instructions
+When working with this repository, follow these instructions:
 
-## Constraints
+### Dashboard Development
+- The dashboard code is located in `ui/dashboard/`
+- Use `npm run dashboard:dev` to run the dashboard locally
+- Run tests with `npm run dashboard:test`
 
-*   Implement all instructions and tasks **exactly as written** in this prompt. Do not deviate, add, remove, or alter any elements, information, or steps unless explicitly required by the specified protocols themselves.
-*   Strictly adhere to all specified protocols, following each step and decision point precisely.
-*   Prioritize minimal, atomic code changes that address the specific root causes without introducing additional modifications.
-*   Maintain code consistency with the existing codebase, following established patterns, naming conventions, and architectural decisions.
-*   Focus exclusively on resolving the identified errors and warnings. Do not implement additional features, improvements, or refactoring unless they are directly necessary to resolve the specified issues.
-*   Document your reasoning and approach for each fix implementation in code comments or commit messages as appropriate.
-*   Consider the full context of the codebase during the RCA and fix implementation process, ensuring that changes maintain overall code integrity and functionality.
+### Uninstaller Script
+- The main uninstaller script is `uninstall_cursor.sh`
+- Handle this script with care as it's the core functionality
+
+### Agent Validation
+- Run `./test-background-agent.sh` to validate your background agent configuration
+- Run `./test-agent-runtime.sh` to validate your background agent runtime environment
+
+## Commit and Push Guidelines
+When making changes to the repository:
+- Create a descriptive branch name (e.g., `fix/dashboard-test-failures`)
+- Make atomic, focused commits with clear messages
+- Include issue numbers in commit messages if applicable
+- Push changes to the remote branch
+- Create a pull request with a clear description of changes
+
+## First Tasks to Try
+1. **Test Repository Setup**:
+   ```bash
+   # Check repository status and structure
+   git status
+   ls -la
+   
+   # Verify GitHub connection
+   git remote -v
+   ```
+
+2. **Run Dashboard Tests**:
+   ```bash
+   # Navigate to dashboard
+   cd ui/dashboard
+   
+   # Run tests and fix any failures
+   npm test
+   ```
+
+3. **Dashboard Development**:
+   ```bash
+   # Start the dashboard development server
+   cd ui/dashboard
+   npm run dev -- --host --no-open
+   
+   # Monitor for errors and log output
+   ```
+
+4. **Code Analysis**:
+   ```bash
+   # Analyze code structure and suggest improvements
+   find . -type f -name "*.js" | xargs wc -l | sort -nr
+   ```
+
+## Recommended Models
+- For longer-running tasks, use o3 model which is recommended in the Cursor documentation
+- Remember that pricing is token-based and only Max Mode-compatible models are available
+
+## Agent Usage
+- Open agent list with `Cmd + '` (macOS) or `Ctrl + '` (Windows/Linux)
+- Spawn a new agent with specific instructions for the task
+- View agent status with `Cmd + ;` (macOS) or `Ctrl + ;` (Windows/Linux)
+- Take over or send follow-up messages as needed
+
+## Error Handling and Debugging
+If you encounter errors during execution:
+- Check the terminal output for error messages
+- Review logs in `.cursor/agent.log` for detailed information
+- Examine logs in `.cursor/environment-snapshot-info.txt` for environment details
+- Examine the git configuration with `git config --list`
+- Look for any GitHub authentication issues
+- Validate the Docker environment with `test-agent-runtime.sh`
+
+## Notes
+- Keep changes focused on improving the codebase without changing core functionality
+- Document any changes made for future reference
+- Communicate any issues encountered during execution
+- The agent creates branches for changes, making it easy to review and merge 
+
+## Sample First Task
+To verify the background agent is properly set up, please perform this task:
+
+```
+Create a simple log file viewer component in the dashboard UI that can display the contents of the agent log file. 
+Add a button to the dashboard that opens this viewer in a modal. Make sure to handle errors gracefully if the log 
+file doesn't exist or can't be accessed. Create a pull request with your changes.
+``` 

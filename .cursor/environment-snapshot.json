@@ -1,9 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
-  },
+  "snapshot": "SNAPSHOT_ID_PLACEHOLDER",
   "user": "node",
   "install": "./.cursor/install.sh",
   "start": "echo 'Background agent environment started.' && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
@@ -34,4 +31,4 @@
       "description": "Monitors the background agent log file for debugging."
     }
   ]
-}
+} 
