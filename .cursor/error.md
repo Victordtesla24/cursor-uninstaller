@@ -1,36 +1,32 @@
-(.venv) vicd@Vics-MacBook-Air cursor-uninstaller % cd .cursor/tests && bash run-tests.sh
-[2025-05-19 02:12:26] ====== Starting Background Agent Tests ======
-[2025-05-19 02:12:26] Test directory: .
-[2025-05-19 02:12:26] Running test: validate_cursor_environment.sh
-[2025-05-19 02:12:26] Log file: ./../logs/validate_cursor_environment.log
-[2025-05-19 02:12:26] ✗ Test failed: validate_cursor_environment.sh (exit code: 1)
-[2025-05-19 02:12:26] See log file for details: ./../logs/validate_cursor_environment.log
-[2025-05-19 02:12:26] Running test: test-env-setup.sh
-[2025-05-19 02:12:26] Log file: ./../logs/test-env-setup.log
-[2025-05-19 02:12:26] ✗ Test failed: test-env-setup.sh (exit code: 1)
-[2025-05-19 02:12:26] See log file for details: ./../logs/test-env-setup.log
-[2025-05-19 02:12:26] Running test: test-github-integration.sh
-[2025-05-19 02:12:26] Log file: ./../logs/test-github-integration.log
-[2025-05-19 02:12:29] ✓ Test passed: test-github-integration.sh
-[2025-05-19 02:12:29] Running test: test-docker-env.sh
-[2025-05-19 02:12:29] Log file: ./../logs/test-docker-env.log
-[2025-05-19 02:12:30] ✗ Test failed: test-docker-env.sh (exit code: 1)
-[2025-05-19 02:12:30] See log file for details: ./../logs/test-docker-env.log
-[2025-05-19 02:12:30] Running test: test-background-agent.sh
-[2025-05-19 02:12:30] Log file: ./../logs/test-background-agent.log
-[2025-05-19 02:12:30] ✓ Test passed: test-background-agent.sh
-[2025-05-19 02:12:30] Running test: test-agent-runtime.sh
-[2025-05-19 02:12:30] Log file: ./../logs/test-agent-runtime.log
-[2025-05-19 02:12:30] ✗ Test failed: test-agent-runtime.sh (exit code: 1)
-[2025-05-19 02:12:30] See log file for details: ./../logs/test-agent-runtime.log
-[2025-05-19 02:12:30]
+(.venv) vicd@Vics-MacBook-Air cursor-uninstaller % bash .cursor/tests/run-tests.sh
+[2025-05-19 02:18:12] ====== Starting Background Agent Tests ======
+[2025-05-19 02:18:12] Test directory: .cursor/tests
+[2025-05-19 02:18:12] Running test: validate_cursor_environment.sh
+[2025-05-19 02:18:12] Log file: .cursor/tests/../logs/validate_cursor_environment.log
+[2025-05-19 02:18:12] ✓ Test passed: validate_cursor_environment.sh
+[2025-05-19 02:18:12] Running test: test-env-setup.sh
+[2025-05-19 02:18:12] Log file: .cursor/tests/../logs/test-env-setup.log
+[2025-05-19 02:18:12] ✓ Test passed: test-env-setup.sh
+[2025-05-19 02:18:12] Running test: test-github-integration.sh
+[2025-05-19 02:18:12] Log file: .cursor/tests/../logs/test-github-integration.log
+[2025-05-19 02:18:15] ✓ Test passed: test-github-integration.sh
+[2025-05-19 02:18:15] Running test: test-docker-env.sh
+[2025-05-19 02:18:15] Log file: .cursor/tests/../logs/test-docker-env.log
+[2025-05-19 02:18:17] ✓ Test passed: test-docker-env.sh
+[2025-05-19 02:18:17] Running test: test-background-agent.sh
+[2025-05-19 02:18:17] Log file: .cursor/tests/../logs/test-background-agent.log
+[2025-05-19 02:18:17] ✓ Test passed: test-background-agent.sh
+[2025-05-19 02:18:17] Running test: test-agent-runtime.sh
+[2025-05-19 02:18:17] Log file: .cursor/tests/../logs/test-agent-runtime.log
+[2025-05-19 02:18:22] ✓ Test passed: test-agent-runtime.sh
+[2025-05-19 02:18:22]
 ======================================================
-[2025-05-19 02:12:30] ===== Test Run Summary =====
-[2025-05-19 02:12:30] Test Count: 6
-[2025-05-19 02:12:30] Tests Passed: 2
-[2025-05-19 02:12:30] Success Rate: 33%
-[2025-05-19 02:12:30] Some tests failed. Check logs for details.
-[2025-05-19 02:12:30] OVERALL RESULT: FAIL
-[2025-05-19 02:12:30] ======================================================
+[2025-05-19 02:18:22] ===== Test Run Summary =====
+[2025-05-19 02:18:22] Test Count: 6
+[2025-05-19 02:18:22] Tests Passed: 6
+[2025-05-19 02:18:22] Success Rate: 100%
+[2025-05-19 02:18:22] All tests passed successfully
+[2025-05-19 02:18:22] OVERALL RESULT: PASS
+[2025-05-19 02:18:22] ======================================================
 
-(.venv) vicd@Vics-MacBook-Air tests %
+(.venv) vicd@Vics-MacBook-Air cursor-uninstaller %

@@ -14,41 +14,6 @@
       "description": "Runs the UI dashboard development server. Access it via the port Vite announces (usually 3000 or 5173 if 3000 is taken)."
     },
     {
-      "name": "run_tests",
-      "command": "echo 'Running all tests...' && bash .cursor/tests/run-tests.sh || echo 'Test run completed with status: $?'",
-      "description": "Runs the master test script for all validations."
-    },
-    {
-      "name": "agent_validation_test",
-      "command": "echo 'Running agent validation tests...' && bash .cursor/tests/test-background-agent.sh || echo 'Agent validation tests completed with status: $?'",
-      "description": "Validates the background agent configuration files."
-    },
-    {
-      "name": "comprehensive_validation_test",
-      "command": "echo 'Running comprehensive validation...' && bash .cursor/tests/validate_cursor_environment.sh || echo 'Comprehensive validation completed with status: $?'",
-      "description": "Performs comprehensive validation of the background agent environment setup."
-    },
-    {
-      "name": "env_setup_test",
-      "command": "echo 'Running environment setup validation...' && bash .cursor/tests/test-env-setup.sh || echo 'Environment setup validation completed with status: $?'",
-      "description": "Validates environment variable loading and permissions."
-    },
-    {
-      "name": "github_integration_test",
-      "command": "echo 'Running GitHub integration validation...' && bash .cursor/tests/test-github-integration.sh || echo 'GitHub integration validation completed with status: $?'",
-      "description": "Validates GitHub repository access and operations."
-    },
-    {
-      "name": "docker_env_test",
-      "command": "echo 'Running Docker environment validation...' && bash .cursor/tests/test-docker-env.sh || echo 'Docker environment validation completed with status: $?'",
-      "description": "Validates Docker container setup and script execution."
-    },
-    {
-      "name": "agent_runtime_test",
-      "command": "echo 'Running agent runtime validation...' && bash .cursor/tests/test-agent-runtime.sh || echo 'Agent runtime validation completed with status: $?'",
-      "description": "Validates the background agent runtime environment."
-    },
-    {
       "name": "git_status",
       "command": "git config --list && echo '----- Repository Status -----' && git status && echo '----- Branches -----' && git branch -a",
       "description": "Displays git configuration and repository status for debugging purposes."
