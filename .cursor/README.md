@@ -1,176 +1,53 @@
 # Cursor Background Agent Configuration
 
-This directory contains the configuration files for the Cursor Background Agent, which allows for asynchronous AI-powered code editing and task execution in a remote environment.
+This directory contains the configuration files and scripts for the Cursor Background Agent. The Background Agent allows you to run AI assistants in a remote environment that can edit and run your code asynchronously.
 
-## Files Overview
+## Directory Structure
 
-| File | Purpose |
-|------|---------|
-| `environment.json` | Main configuration file for the Background Agent |
-| `Dockerfile` | Defines the container environment for the agent (declarative approach) |
-| `install.sh` | Script run during agent setup to install dependencies |
-| `github-setup.sh` | Script to set up GitHub authentication and configuration |
-| `retry-utils.sh` | Utility functions for retry logic and error handling |
-| `background-agent-prompt.md` | Contains guidance for the agent on how to work with this repository |
-| `TROUBLESHOOTING.md` | Guide for solving common issues with the background agent |
-| `agent.log` | Log file for agent operations |
-| `logs/` | Directory for additional agent logs |
-| `error.md` | Error log file for debugging purposes |
+- `.cursor/` - Root configuration directory
+  - `Dockerfile` - Defines the container environment for the background agent
+  - `environment.json` - Main configuration file for the background agent
+  - `scripts/` - Helper scripts for environment setup and operation
+    - `install.sh` - Run during agent initialization to set up the environment
+    - `github-setup.sh` - Configures GitHub repository access
+    - `retry-utils.sh` - Utility functions for retrying operations
+    - `load-env.sh` - Loads environment variables
+    - `cleanup.sh` - Cleans up temporary files and resources
+    - `create-snapshot.sh` - Creates environment snapshots
+  - `docs/` - Documentation files
+    - `README.md` - Documentation on the agent configuration
+    - `TROUBLESHOOTING.md` - Solutions for common issues
+    - `background-agent-prompt.md` - Example prompts for the background agent
+  - `tests/` - Test scripts to validate the background agent environment
+    - `run-tests.sh` - Master test script that runs all tests
+    - `validate_cursor_environment.sh` - Validates overall environment setup
+    - `test-env-setup.sh` - Tests environment variable loading
+    - `test-github-integration.sh` - Tests GitHub repository access
+    - `test-docker-env.sh` - Tests Docker container setup
+    - `test-background-agent.sh` - Tests basic agent configuration
+    - `test-agent-runtime.sh` - Tests agent runtime behavior
+  - `logs/` - Log files from scripts and agent operations
+  - `env.txt` - Environment variable template (don't add sensitive data here)
+  - `install.sh` -> `scripts/install.sh` - Symlink to the install script
+  - `github-setup.sh` -> `scripts/github-setup.sh` - Symlink to GitHub setup script
+  - `retry-utils.sh` -> `scripts/retry-utils.sh` - Symlink to retry utilities
 
-## Configuration Approach
+## Configuration
 
-This repository uses the **Declarative (Dockerfile)** approach for setting up the environment:
-- `.cursor/Dockerfile` specifies all tools and dependencies
-- No project files are copied into the Dockerfile (these are cloned from GitHub)
-- Clean, version-controlled approach with explicit dependencies
-- Clear separation between environment setup and project code
+The Background Agent is configured via the `environment.json` file according to the [Cursor Background Agent Documentation](https://docs.cursor.com/background-agent).
 
-## Recent Enhancements
+## Security
 
-Several improvements have been made to the Background Agent configuration:
+- Do not commit sensitive information like API keys or tokens to the repository
+- Create a local `.env` file for your personal credentials (add to `.gitignore`)
+- Only use the `env.txt` file as a template with placeholders
 
-1. **Robust Directory Management**
-   - Enhanced error handling for missing directories
-   - Automatic creation of required directories like `.cursor/logs`
-   - Proper path validation and fallback mechanisms
+## Usage
 
-2. **Improved Git Repository Handling**
-   - Better handling of git initialization and remote configuration
-   - Graceful recovery from common git errors
-   - More informative error messages for troubleshooting
+To start using the Background Agent:
 
-3. **Enhanced Error Diagnostics**
-   - Added detailed error logging in `.cursor/error.md`
-   - Improved error recovery and continuation logic
-   - Better separation of critical vs. non-critical errors
+1. Make sure you have set up GitHub integration in Cursor
+2. Ensure all scripts are executable: `chmod +x .cursor/scripts/*.sh .cursor/tests/*.sh`
+3. Run the tests to validate your setup: `bash .cursor/tests/run-tests.sh`
 
-4. **New Validation Script**
-   - Added `validate_cursor_environment.sh` for comprehensive environment validation
-   - Automatically checks for required files, directories, and configurations
-   - Provides actionable insights for fixing issues
-
-## Setup Steps
-
-### Prerequisites
-1. **Disable privacy mode in Cursor settings**
-   - Background agents require privacy mode to be turned off
-   - Go to Cursor settings and ensure privacy mode is disabled
-
-2. **GitHub Integration**
-   - Grant GitHub read-write access to Cursor for this repository
-   - This is required for the agent to clone, commit, and push changes
-   - Follow the prompts in the Cursor UI to connect your GitHub account
-
-3. **Repository Setup**
-   - Ensure the repository has a valid remote pointing to GitHub
-   - The repository should be properly cloned with all configuration files
-
-### Setting Up the Background Agent
-1. **Open the Command Palette in Cursor (Cmd/Ctrl+Shift+P)**
-   - Search for "Background Agent" and select "Configure Background Agent"
-
-2. **Follow the Setup Wizard**
-   - **GitHub Connection**: Follow the prompts to connect your GitHub account
-   - **Environment Selection**: Choose Dockerfile setup
-     - Select `.cursor/Dockerfile` when prompted
-   - **Maintenance Commands**: Set `./.cursor/install.sh` as the install command
-   - **Startup Commands**: Set the start command from `environment.json`
-   - **Terminals**: Configure the terminals as defined in `environment.json`
-
-3. **Verification**
-   - Run `./test-background-agent.sh` to verify the configuration
-   - Run `./test-agent-runtime.sh` to test the runtime environment
-   - Run `./validate_cursor_environment.sh` for comprehensive validation
-   - Check the agent's log file at `.cursor/agent.log`
-
-### Configuration Details
-- **User**: The agent runs as the `node` user (non-root for security)
-- **Install Command**: `./.cursor/install.sh` runs when the machine starts
-- **Start Command**: Starts Docker if available and performs initial setup
-- **Terminals**: Several terminals are configured to validate and run the app
-- **Logging**: All operations are logged to `.cursor/agent.log`
-
-## How to Use
-
-1. **Open Background Agents**
-   - Use `Cmd + '` (macOS) or `Ctrl + '` (Windows/Linux)
-   - This will show a list of existing agents and an option to create a new one
-
-2. **Create a New Agent**
-   - Click "New Agent" to spawn a new agent
-   - Provide a task description (see examples below)
-
-3. **Monitor Agent Progress**
-   - Use `Cmd + ;` (macOS) or `Ctrl + ;` (Windows/Linux) to view the agent's status
-   - This opens the agent's machine where you can see logs and interact with terminals
-
-4. **Interact with the Agent**
-   - Send follow-up messages to provide additional instructions
-   - Take over the agent's machine if needed to manually help it
-
-## Example Tasks for the Agent
-
-1. **Run Dashboard Tests**
-   ```
-   Run the dashboard tests in ui/dashboard and fix any failing tests. Create a pull request with your changes.
-   ```
-
-2. **Implement a New Feature**
-   ```
-   Add a dark mode toggle to the dashboard UI. Implement the feature, test it, and create a PR with your changes.
-   ```
-
-3. **Code Analysis and Optimization**
-   ```
-   Analyze the codebase for potential performance improvements. Focus on the dashboard code and create a PR with optimizations.
-   ```
-
-4. **Bug Fixing**
-   ```
-   Investigate why the dashboard doesn't load correctly on Firefox. Debug the issue and implement a fix.
-   ```
-
-## Validation and Testing
-
-The agent is preconfigured with validation terminals:
-- `agent_validation`: Runs basic configuration validation
-- `runtime_validation`: Tests the runtime environment
-- `git_status`: Shows repository status for debugging
-- `dashboard_dev_server`: Runs the UI dashboard
-- `log_monitor`: Monitors the agent's log file
-
-Additionally, you can run the following scripts manually:
-- `./test-background-agent.sh`: Tests basic configuration
-- `./test-agent-runtime.sh`: Tests the runtime environment
-- `./validate_cursor_environment.sh`: Performs comprehensive validation
-
-## Security Considerations
-
-- Your code runs in Cursor's AWS infrastructure
-- The agent has full access to run commands in the environment
-- Secrets are stored encrypted-at-rest using KMS
-- Be aware of potential prompt injection risks if the agent accesses external content
-- If privacy mode is off, prompts and environments may be collected to improve the service
-
-## Recommended Models
-
-- For longer-running tasks, use the `o3` model as recommended in Cursor documentation
-- Only Max Mode-compatible models are available for background agents
-- Pricing is based on token usage with potential future charges for compute resources
-
-## Troubleshooting
-
-If the agent encounters issues:
-1. Check the terminal outputs for error messages
-2. Review `.cursor/agent.log` for detailed logs
-3. Examine the git configuration with `git config --list`
-4. Validate GitHub connectivity with the `git_status` terminal
-5. Run `validate_cursor_environment.sh` for diagnostic insights
-6. Ensure privacy mode is disabled in Cursor settings
-7. Verify GitHub permissions are correctly set up
-8. Refer to the detailed `.cursor/TROUBLESHOOTING.md` guide
-
-## References
-
-- [Cursor Background Agent Documentation](https://docs.cursor.com/background-agent)
-- [GitHub Repository](https://github.com/Victordtesla24/cursor-uninstaller.git)
+For any issues, refer to the `TROUBLESHOOTING.md` file in the `docs` directory.

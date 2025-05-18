@@ -243,10 +243,10 @@ This document provides solutions to common issues that may arise with the Cursor
      ```bash
      # Check current remote
      git remote -v
-     
+
      # Remove problematic remote if needed
      git remote remove origin
-     
+
      # Add correct remote
      git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git
      ```
@@ -256,7 +256,7 @@ This document provides solutions to common issues that may arise with the Cursor
      ```bash
      # Make directories writable
      chmod -R 755 .git
-     
+
      # Ensure correct user ownership
      sudo chown -R $(whoami) .git
      ```

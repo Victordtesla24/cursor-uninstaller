@@ -1,12 +1,12 @@
 {
-  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$schema": "https://json-schema.org/draft/2019-09/schema#",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "."
   },
   "user": "node",
-  "install": ".cursor/install.sh",
-  "start": "echo 'Background agent environment started.' && bash .cursor/github-setup.sh && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
+  "install": ".cursor/scripts/install.sh",
+  "start": "echo 'Background agent environment started.' && bash .cursor/scripts/github-setup.sh && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
   "terminals": [
     {
       "name": "dashboard_dev_server",
@@ -15,17 +15,17 @@
     },
     {
       "name": "agent_validation",
-      "command": "echo 'Running validation tests...' && bash ./test-background-agent.sh || echo 'Validation tests completed with status: $?'",
+      "command": "echo 'Running validation tests...' && bash .cursor/tests/test-background-agent.sh || echo 'Validation tests completed with status: $?'",
       "description": "Validates the background agent configuration files."
     },
     {
       "name": "comprehensive_validation",
-      "command": "echo 'Running comprehensive validation...' && bash ./validate_cursor_environment.sh || echo 'Comprehensive validation completed with status: $?'",
+      "command": "echo 'Running comprehensive validation...' && bash .cursor/tests/validate_cursor_environment.sh || echo 'Comprehensive validation completed with status: $?'",
       "description": "Performs comprehensive validation of the background agent environment setup."
     },
     {
       "name": "runtime_validation",
-      "command": "echo 'Running runtime validation...' && bash ./test-agent-runtime.sh || echo 'Runtime validation completed with status: $?'",
+      "command": "echo 'Running runtime validation...' && bash .cursor/tests/test-agent-runtime.sh || echo 'Runtime validation completed with status: $?'",
       "description": "Validates the background agent runtime environment."
     },
     {
@@ -35,7 +35,7 @@
     },
     {
       "name": "log_monitor",
-      "command": "tail -f .cursor/agent.log",
+      "command": "tail -f .cursor/logs/agent.log",
       "description": "Monitors the background agent log file for debugging."
     }
   ]
