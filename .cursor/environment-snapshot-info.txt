@@ -1,23 +1,23 @@
---- Environment Documentation for Snapshots ---
-Date: Sun May 18 03:19:57 UTC 2025
-Node version: v20.19.2
-NPM version: 11.4.0
-Global NPM packages:
-Disk usage:
-Filesystem            Size  Used Avail Use% Mounted on
-/run/host_mark/Users  229G   82G  148G  36% /agent_workspace
-Git configuration:
-user.email=background-agent@cursor.sh
-user.name=Cursor Background Agent
-credential.helper=cache --timeout=3600
-core.repositoryformatversion=0
-core.filemode=true
-core.bare=false
-core.logallrefupdates=true
-core.ignorecase=true
-core.precomposeunicode=true
-remote.origin.url=https://github.com/Victordtesla24/cursor-uninstaller.git
-remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
-branch.main.remote=origin
-branch.main.merge=refs/heads/main
-----------------------------------------
+# Environment Snapshot Information
+# This file contains non-sensitive configuration information
+# Last updated: $(date)
+
+# Project Information
+PROJECT_NAME=cursor-uninstaller
+VERSION=1.0.0
+DESCRIPTION=Uninstaller utility for Cursor
+
+# Runtime Environment
+NODE_VERSION=16.x
+RUNTIME=node
+PLATFORM=$(uname -s)
+ARCHITECTURE=$(uname -m)
+
+# Container Configuration
+CONTAINER_USER=node
+WORKSPACE_DIR=/agent_workspace
+CONFIG_DIR=/home/node/.env-config
+
+# Note: All sensitive information like tokens, passwords, and keys
+# should be stored in the .env file, which is not committed to version control.
+# See env.txt for template values.
