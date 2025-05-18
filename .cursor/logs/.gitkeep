@@ -1,0 +1,3 @@
+# This file ensures the logs directory is tracked by Git.
+# The logs directory is used to store logs from the Background Agent tests.
+# All log files are excluded from Git via .gitignore.

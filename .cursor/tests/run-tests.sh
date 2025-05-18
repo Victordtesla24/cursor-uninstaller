@@ -12,11 +12,23 @@ NC='\033[0m' # No Color
 
 # Define paths
 TEST_DIR="$(dirname "$0")"
-LOG_DIR="${TEST_DIR}/../logs"
+CURSOR_DIR="${TEST_DIR}/.."
+LOG_DIR="${CURSOR_DIR}/logs"
 MASTER_LOG="${LOG_DIR}/master-test-run.log"
 
-# Create log directory if it doesn't exist
-mkdir -p "${LOG_DIR}"
+# Flush logs before running tests
+echo "Flushing logs before running tests..."
+if [ -f "${CURSOR_DIR}/flush-logs.sh" ]; then
+  bash "${CURSOR_DIR}/flush-logs.sh"
+else
+  echo "Warning: flush-logs.sh not found. Creating log directory and clearing logs manually."
+  # Create log directory if it doesn't exist
+  mkdir -p "${LOG_DIR}"
+  # Remove all log files
+  find "${LOG_DIR}" -type f -name "*.log" -delete 2>/dev/null || true
+  # Create empty master log file
+  touch "${MASTER_LOG}"
+fi
 
 # Function to log messages
 log() {
@@ -154,4 +166,12 @@ else
 fi
 
 log "======================================================\n"
+
+# Update error.md with the latest test results
+if [ -f "${CURSOR_DIR}/update-error-md.sh" ]; then
+  bash "${CURSOR_DIR}/update-error-md.sh"
+else
+  log "${RED}Warning: update-error-md.sh not found. error.md not updated.${NC}"
+fi
+
 exit $exit_code
