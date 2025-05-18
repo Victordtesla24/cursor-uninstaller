@@ -19,6 +19,11 @@
       "description": "Validates the background agent configuration files."
     },
     {
+      "name": "comprehensive_validation",
+      "command": "echo 'Running comprehensive validation...' && bash ./validate_cursor_environment.sh || echo 'Comprehensive validation completed with status: $?'",
+      "description": "Performs comprehensive validation of the background agent environment setup."
+    },
+    {
       "name": "runtime_validation",
       "command": "echo 'Running runtime validation...' && bash ./test-agent-runtime.sh || echo 'Runtime validation completed with status: $?'",
       "description": "Validates the background agent runtime environment."

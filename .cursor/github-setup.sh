@@ -37,6 +37,23 @@ ensure_file() {
   return 0
 }
 
+# Create essential directories at startup
+init_directories() {
+  # Create all necessary directories for the agent to function
+  for dir in ".cursor" ".cursor/logs" ".git"; do
+    ensure_dir "$dir" || {
+      echo "CRITICAL: Failed to create essential directory: $dir" >&2
+      # Continue despite error - some directories might not be needed depending on flow
+    }
+  done
+  
+  # Ensure critical files exist
+  ensure_file "${CURSOR_AGENT_LOG}" || echo "WARNING: Could not create agent log file" >&2
+}
+
+# Call directory initialization early
+init_directories
+
 # Setup logging with proper error handling
 if ! ensure_dir "${CURSOR_LOG_DIR}"; then
   echo "WARNING: Could not create log directory. Logging to console only." >&2
@@ -93,6 +110,44 @@ else
   }
 fi
 
+# Improved git repository check
+check_git_repository() {
+  log "Checking git repository..."
+  
+  if [ ! -d ".git" ]; then
+    log "Git repository not found. Initializing..."
+    git init || {
+      log "Failed to initialize git repository"
+      return 1
+    }
+    
+    # Configure default branch name before first commit
+    git config --global init.defaultBranch main || log "Failed to set default branch, continuing anyway"
+    
+    # Create a basic README file if it doesn't exist
+    if [ ! -f "README.md" ]; then
+      echo "# Cursor Background Agent Repository" > README.md
+      log "Created basic README.md file"
+    fi
+    
+    git add README.md || {
+      log "Failed to add README to git"
+      return 1
+    }
+    
+    git commit -m "Initial commit" || {
+      log "Failed to make initial commit"
+      return 1
+    }
+    
+    log "Git repository initialized successfully"
+  else
+    log "Git repository already exists"
+  fi
+  
+  return 0
+}
+
 # Refresh GitHub token to ensure we have access
 refresh_github_token() {
   log "Refreshing GitHub access token..."
@@ -110,15 +165,26 @@ refresh_github_token() {
     log "GitHub token configuration completed."
   else
     log "No GitHub token found in environment. Cursor background agent should provide this."
+    log "IMPORTANT: Make sure the Cursor GitHub app is installed and has correct permissions."
   fi
 
-  # Update repository remotes if they exist
-  if git remote -v | grep -q "origin"; then
-    log "Updating remote URL for origin..."
-    git remote set-url origin "${GITHUB_REPO_URL}" || log "Failed to update remote URL"
+  # Check if git repository exists before trying to set remote
+  if [ -d ".git" ]; then
+    # Update repository remotes if they exist
+    if git remote -v | grep -q "origin"; then
+      log "Updating remote URL for origin..."
+      git remote set-url origin "${GITHUB_REPO_URL}" || log "Failed to update remote URL"
+    else
+      log "Adding remote origin..."
+      git remote add origin "${GITHUB_REPO_URL}" || log "Failed to add remote origin"
+    fi
   else
-    log "Adding remote origin..."
-    git remote add origin "${GITHUB_REPO_URL}" || log "Failed to add remote origin"
+    log "No git repository found. Please run 'git init' first."
+    check_git_repository
+    
+    # Try again to add remote after initializing repo
+    log "Adding remote origin after repository initialization..."
+    git remote add origin "${GITHUB_REPO_URL}" || log "Failed to add remote origin after initialization"
   fi
 }
 
@@ -140,7 +206,7 @@ configure_git_identity() {
   log "Git identity configuration completed."
 }
 
-# Verify GitHub access and repository
+# Verify GitHub access and repository with better error messages
 verify_github_access() {
   log "Verifying GitHub access..."
 
@@ -157,11 +223,26 @@ verify_github_access() {
     else
       if [ $attempt -lt $max_attempts ]; then
         log "GitHub access failed (attempt $attempt/$max_attempts). Retrying in ${delay}s..."
+        
+        # Provide more detailed troubleshooting information
+        log "Troubleshooting tips:"
+        log "1. Ensure the Cursor GitHub app is installed with correct permissions"
+        log "2. Check your internet connection and proxy settings"
+        log "3. Verify that ${GITHUB_REPO_URL} is correct and accessible"
+        
         sleep $delay
         delay=$((delay * 2))
         attempt=$((attempt + 1))
       else
-        log "GitHub access failed after $max_attempts attempts. Please ensure GitHub integration is properly configured in Cursor."
+        log "GitHub access failed after $max_attempts attempts."
+        log "Please ensure GitHub integration is properly configured in Cursor."
+        log "------------------------------------------------"
+        log "TROUBLESHOOTING STEPS:"
+        log "1. In Cursor, go to Settings and connect GitHub account"
+        log "2. Ensure the GitHub app has read/write access to your repositories"
+        log "3. Check if your organization has any restrictions on GitHub apps"
+        log "4. Verify network/proxy allows connections to github.com"
+        log "------------------------------------------------"
         return 1
       fi
     fi
@@ -190,6 +271,7 @@ create_test_branch() {
           log "Successfully pushed test branch to GitHub"
         else
           log "Failed to push test branch. GitHub push access may not be configured."
+          log "Check if your GitHub token has write permissions to this repository."
         fi
       else
         log "Failed to create test commit"
@@ -203,19 +285,45 @@ create_test_branch() {
   fi
 }
 
-# Main execution
+# Main execution with improved error handling
 main() {
+  # Ensure we're in the correct directory
+  if [ -d "/agent_workspace" ] && [ "$(pwd)" != "/agent_workspace" ]; then
+    log "Changing to /agent_workspace directory..."
+    cd /agent_workspace || {
+      log "Failed to change to /agent_workspace directory."
+      log "Continuing in current directory: $(pwd)"
+    }
+    
+    # Recreate directories after changing directory
+    init_directories
+  fi
+  
+  # Check git repository first
+  check_git_repository
+  
+  # Configure git identity
   configure_git_identity
+  
+  # Refresh GitHub token
   refresh_github_token
 
+  # Verify GitHub access with better error messages
   if verify_github_access; then
     log "GitHub setup completed successfully."
     # Uncomment the following line to create a test branch for GitHub integration
     # create_test_branch "true"
   else
     log "GitHub setup completed with warnings. Some GitHub operations may fail."
+    log "Please check the log for troubleshooting steps."
   fi
 }
 
-# Run the main function
-main
+# Run the main function and capture any errors
+if ! main; then
+  log "GitHub setup encountered errors. Please review the log messages above."
+  # Return non-zero but don't exit to prevent breaking the installation
+  # We'll let the outer script handle this
+else
+  log "GitHub setup completed."
+fi

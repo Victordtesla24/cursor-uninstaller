@@ -7,6 +7,7 @@ set -e
 # Create log file directory if it doesn't exist - with better error handling
 CURSOR_LOG_DIR=".cursor/logs"
 CURSOR_AGENT_LOG=".cursor/agent.log"
+CURSOR_ENV_INFO=".cursor/environment-snapshot-info.txt"
 
 # Ensure directories exist with proper error handling
 ensure_dir() {
@@ -36,6 +37,23 @@ ensure_file() {
   fi
   return 0
 }
+
+# Create essential directories at startup
+init_directories() {
+  # Create all necessary directories for the agent to function
+  for dir in ".cursor" ".cursor/logs" ".git"; do
+    ensure_dir "$dir" || {
+      echo "CRITICAL: Failed to create essential directory: $dir" >&2
+      # Continue despite error - some directories might not be needed depending on flow
+    }
+  done
+  
+  # Ensure critical files exist
+  ensure_file "${CURSOR_AGENT_LOG}" || echo "WARNING: Could not create agent log file" >&2
+}
+
+# Call directory initialization early
+init_directories
 
 # Setup logging with proper error handling
 if ! ensure_dir "${CURSOR_LOG_DIR}"; then
@@ -97,7 +115,37 @@ trap 'handle_error $LINENO $?' ERR
 if [ -d "/agent_workspace" ] && [ "$(pwd)" != "/agent_workspace" ]; then
   log "Changing to /agent_workspace directory..."
   cd /agent_workspace
+  # Recreate essential directories after changing directory
+  init_directories
 fi
+
+# Improved git repository check and initialization
+init_git_repo() {
+  log "Checking git repository status..."
+  
+  if [ ! -d ".git" ]; then
+    log "No git repository found. Initializing basic repository..."
+    git init || { log "Failed to initialize git repository"; handle_error $LINENO $? "continue"; }
+    
+    # Configure default branch name before first commit
+    git config --global init.defaultBranch main || { log "Failed to set default branch"; handle_error $LINENO $? "continue"; }
+    
+    # Create a basic README file and make initial commit if it doesn't exist
+    if [ ! -f "README.md" ]; then
+      echo "# Cursor Background Agent Repository" > README.md
+      log "Created basic README.md file"
+    fi
+    
+    git add README.md || { log "Failed to add README to git"; handle_error $LINENO $? "continue"; }
+    git commit -m "Initial commit" || { log "Failed to make initial commit"; handle_error $LINENO $? "continue"; }
+    log "Git repository initialized successfully."
+  else
+    log "Git repository already exists."
+  fi
+}
+
+# Initialize git repository first
+init_git_repo
 
 # Validate GitHub repository - with graceful fallback
 log "Validating GitHub repository configuration..."
@@ -160,16 +208,6 @@ else
   fi
 fi
 
-# Create basic repository structure if it doesn't exist (for first-time setup)
-if [ ! -d ".git" ]; then
-  log "WARNING: Not in a git repository. Initializing basic repository..."
-  git init || handle_error $LINENO $? "continue"
-  git config --global init.defaultBranch main || handle_error $LINENO $? "continue"
-  touch README.md || handle_error $LINENO $? "continue"
-  git add README.md || handle_error $LINENO $? "continue"
-  git commit -m "Initial commit" || handle_error $LINENO $? "continue"
-fi
-
 # Install root dependencies
 if [ -f "package.json" ]; then
   log "Root package.json found. Running npm install in root..."
@@ -218,21 +256,29 @@ log "Creating a test file in the repository root..."
 echo "Background agent installation test - $(date)" > bg-agent-test.txt
 log "Test file created."
 
-# Document the environment for snapshot purposes
+# Document the environment for snapshot purposes - ensure directory exists first
 log "Documenting environment for snapshot purposes..."
-{
-  echo "--- Environment Documentation for Snapshots ---"
-  echo "Date: $(date)"
-  echo "Node version: $(node -v)"
-  echo "NPM version: $(npm -v)"
-  echo "Global NPM packages:"
-  npm list -g --depth=0
-  echo "Disk usage:"
-  df -h .
-  echo "Git configuration:"
-  git config --list
-  echo "----------------------------------------"
-} > .cursor/environment-snapshot-info.txt
+# Ensure .cursor directory exists before writing to it
+ensure_dir ".cursor" || log "WARNING: Failed to create .cursor directory"
+
+# Ensure we can create the snapshot info file
+if ensure_file "${CURSOR_ENV_INFO}"; then
+  {
+    echo "--- Environment Documentation for Snapshots ---"
+    echo "Date: $(date)"
+    echo "Node version: $(node -v)"
+    echo "NPM version: $(npm -v)"
+    echo "Global NPM packages:"
+    npm list -g --depth=0
+    echo "Disk usage:"
+    df -h .
+    echo "Git configuration:"
+    git config --list
+    echo "----------------------------------------"
+  } > "${CURSOR_ENV_INFO}" || log "WARNING: Failed to write environment snapshot info"
+else
+  log "WARNING: Failed to create environment snapshot info file"
+fi
 
 # Create a basic git commit to test GitHub integration
 if [ -f "bg-agent-test.txt" ]; then

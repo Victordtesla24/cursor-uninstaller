@@ -15,6 +15,7 @@ This directory contains the configuration files for the Cursor Background Agent,
 | `TROUBLESHOOTING.md` | Guide for solving common issues with the background agent |
 | `agent.log` | Log file for agent operations |
 | `logs/` | Directory for additional agent logs |
+| `error.md` | Error log file for debugging purposes |
 
 ## Configuration Approach
 
@@ -23,6 +24,30 @@ This repository uses the **Declarative (Dockerfile)** approach for setting up th
 - No project files are copied into the Dockerfile (these are cloned from GitHub)
 - Clean, version-controlled approach with explicit dependencies
 - Clear separation between environment setup and project code
+
+## Recent Enhancements
+
+Several improvements have been made to the Background Agent configuration:
+
+1. **Robust Directory Management**
+   - Enhanced error handling for missing directories
+   - Automatic creation of required directories like `.cursor/logs`
+   - Proper path validation and fallback mechanisms
+
+2. **Improved Git Repository Handling**
+   - Better handling of git initialization and remote configuration
+   - Graceful recovery from common git errors
+   - More informative error messages for troubleshooting
+
+3. **Enhanced Error Diagnostics**
+   - Added detailed error logging in `.cursor/error.md`
+   - Improved error recovery and continuation logic
+   - Better separation of critical vs. non-critical errors
+
+4. **New Validation Script**
+   - Added `validate_cursor_environment.sh` for comprehensive environment validation
+   - Automatically checks for required files, directories, and configurations
+   - Provides actionable insights for fixing issues
 
 ## Setup Steps
 
@@ -55,6 +80,7 @@ This repository uses the **Declarative (Dockerfile)** approach for setting up th
 3. **Verification**
    - Run `./test-background-agent.sh` to verify the configuration
    - Run `./test-agent-runtime.sh` to test the runtime environment
+   - Run `./validate_cursor_environment.sh` for comprehensive validation
    - Check the agent's log file at `.cursor/agent.log`
 
 ### Configuration Details
@@ -113,6 +139,11 @@ The agent is preconfigured with validation terminals:
 - `dashboard_dev_server`: Runs the UI dashboard
 - `log_monitor`: Monitors the agent's log file
 
+Additionally, you can run the following scripts manually:
+- `./test-background-agent.sh`: Tests basic configuration
+- `./test-agent-runtime.sh`: Tests the runtime environment
+- `./validate_cursor_environment.sh`: Performs comprehensive validation
+
 ## Security Considerations
 
 - Your code runs in Cursor's AWS infrastructure
@@ -134,7 +165,7 @@ If the agent encounters issues:
 2. Review `.cursor/agent.log` for detailed logs
 3. Examine the git configuration with `git config --list`
 4. Validate GitHub connectivity with the `git_status` terminal
-5. Run `test-background-agent.sh` and `test-agent-runtime.sh` for diagnostics
+5. Run `validate_cursor_environment.sh` for diagnostic insights
 6. Ensure privacy mode is disabled in Cursor settings
 7. Verify GitHub permissions are correctly set up
 8. Refer to the detailed `.cursor/TROUBLESHOOTING.md` guide

@@ -1,0 +1,23 @@
+--- Environment Documentation for Snapshots ---
+Date: Sun May 18 03:19:57 UTC 2025
+Node version: v20.19.2
+NPM version: 11.4.0
+Global NPM packages:
+Disk usage:
+Filesystem            Size  Used Avail Use% Mounted on
+/run/host_mark/Users  229G   82G  148G  36% /agent_workspace
+Git configuration:
+user.email=background-agent@cursor.sh
+user.name=Cursor Background Agent
+credential.helper=cache --timeout=3600
+core.repositoryformatversion=0
+core.filemode=true
+core.bare=false
+core.logallrefupdates=true
+core.ignorecase=true
+core.precomposeunicode=true
+remote.origin.url=https://github.com/Victordtesla24/cursor-uninstaller.git
+remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+branch.main.remote=origin
+branch.main.merge=refs/heads/main
+----------------------------------------

@@ -11,6 +11,7 @@ This document provides solutions to common issues that may arise with the Cursor
 5. [Docker-related Issues](#docker-related-issues)
 6. [Log File Creation Issues](#log-file-creation-issues)
 7. [Environment Configuration Issues](#environment-configuration-issues)
+8. [Git Repository Issues](#git-repository-issues)
 
 ## GitHub Authentication Issues
 
@@ -206,36 +207,58 @@ This document provides solutions to common issues that may arise with the Cursor
      bash -c "cd ui/dashboard && npm run dev -- --host --no-open"
      ```
 
-## Test Failure Issues
+## Git Repository Issues
 
 ### Symptoms
-- Jest tests failing with timeout errors
-- Mismatched expectations in UI component tests
-- Parameter validation errors
+- "fatal: not a git repository" errors
+- Failed git operations in install.sh
+- Agent unable to clone or push to repository
 
 ### Solutions
-1. **Increase Test Timeouts**
-   - Modify test configurations to increase timeouts:
-     ```javascript
-     // In jest.config.js or package.json
-     testTimeout: 30000
+1. **Initialize Repository Properly**
+   - If you're seeing errors with git repository initialization:
+     ```bash
+     git init
+     git config --global init.defaultBranch main
+     touch README.md
+     git add README.md
+     git commit -m "Initial commit"
      ```
 
-2. **Fix Mock Functions**
-   - Update tests that have parameter mismatch errors:
-     ```javascript
-     // Check mocked function calls
-     expect(mockFunction).toHaveBeenCalledWith(
-       expectedParam1,
-       expectedParam2
-     );
+2. **Check Working Directory**
+   - Ensure scripts are running in the correct directory:
+     ```bash
+     # Add to your scripts to debug:
+     echo "Current directory: $(pwd)"
+     ```
+   - If scripts expect to run in `/agent_workspace` but are running elsewhere, update scripts to change directory:
+     ```bash
+     if [ -d "/agent_workspace" ] && [ "$(pwd)" != "/agent_workspace" ]; then
+       cd /agent_workspace
+     fi
      ```
 
-3. **Update Test Expectations**
-   - For changed component behavior, update test expectations:
-     ```javascript
-     // Update expected values
-     expect(component.find('[data-testid="value"]').text()).toBe('Updated Text');
+3. **Fix Remote Issues**
+   - If remote operations are failing, verify and set the remote correctly:
+     ```bash
+     # Check current remote
+     git remote -v
+     
+     # Remove problematic remote if needed
+     git remote remove origin
+     
+     # Add correct remote
+     git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git
+     ```
+
+4. **Permission Issues**
+   - If git operations fail due to permission issues:
+     ```bash
+     # Make directories writable
+     chmod -R 755 .git
+     
+     # Ensure correct user ownership
+     sudo chown -R $(whoami) .git
      ```
 
 ## General Troubleshooting Steps
@@ -255,6 +278,7 @@ This document provides solutions to common issues that may arise with the Cursor
    ```bash
    bash ./test-background-agent.sh
    bash ./test-agent-runtime.sh
+   bash ./validate_cursor_environment.sh
    ```
 
 4. **Check GitHub configuration**
