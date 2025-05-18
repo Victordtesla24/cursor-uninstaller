@@ -7,28 +7,22 @@ This directory contains the configuration files for the Cursor Background Agent,
 | File | Purpose |
 |------|---------|
 | `environment.json` | Main configuration file for the Background Agent |
-| `environment-snapshot.json` | Alternative configuration using snapshot approach |
 | `Dockerfile` | Defines the container environment for the agent (declarative approach) |
 | `install.sh` | Script run during agent setup to install dependencies |
+| `github-setup.sh` | Script to set up GitHub authentication and configuration |
+| `retry-utils.sh` | Utility functions for retry logic and error handling |
 | `background-agent-prompt.md` | Contains guidance for the agent on how to work with this repository |
-| `create-snapshot.sh` | Helper script for snapshot creation (alternative approach) |
-| `logs/agent.log` | Log file for agent operations |
-| `environment-snapshot-info.txt` | Generated documentation about the environment |
+| `TROUBLESHOOTING.md` | Guide for solving common issues with the background agent |
+| `agent.log` | Log file for agent operations |
+| `logs/` | Directory for additional agent logs |
 
-## Configuration Approaches
+## Configuration Approach
 
-The Cursor Background Agent supports two main approaches for setting up the environment:
-
-1. **Declarative (Dockerfile)** - Used by default in this repository
-   - `.cursor/Dockerfile` specifies all tools and dependencies
-   - No project files are copied into the Dockerfile
-   - Clean, version-controlled approach
-
-2. **Interactive (Snapshot)** - Alternative approach 
-   - Use `environment-snapshot.json` instead of `environment.json`
-   - Run `create-snapshot.sh` in the interactive setup UI
-   - Take a snapshot of the resulting environment
-   - Update the "snapshot-id" in `environment-snapshot.json`
+This repository uses the **Declarative (Dockerfile)** approach for setting up the environment:
+- `.cursor/Dockerfile` specifies all tools and dependencies
+- No project files are copied into the Dockerfile (these are cloned from GitHub)
+- Clean, version-controlled approach with explicit dependencies
+- Clear separation between environment setup and project code
 
 ## Setup Steps
 
@@ -52,9 +46,8 @@ The Cursor Background Agent supports two main approaches for setting up the envi
 
 2. **Follow the Setup Wizard**
    - **GitHub Connection**: Follow the prompts to connect your GitHub account
-   - **Environment Selection**: Choose between Dockerfile or Interactive setup
-     - For Dockerfile: Select `.cursor/Dockerfile`
-     - For Snapshot: Run `.cursor/create-snapshot.sh` and take a snapshot
+   - **Environment Selection**: Choose Dockerfile setup
+     - Select `.cursor/Dockerfile` when prompted
    - **Maintenance Commands**: Set `./.cursor/install.sh` as the install command
    - **Startup Commands**: Set the start command from `environment.json`
    - **Terminals**: Configure the terminals as defined in `environment.json`
@@ -139,13 +132,14 @@ The agent is preconfigured with validation terminals:
 If the agent encounters issues:
 1. Check the terminal outputs for error messages
 2. Review `.cursor/agent.log` for detailed logs
-3. Examine `.cursor/environment-snapshot-info.txt` for environment information
+3. Examine the git configuration with `git config --list`
 4. Validate GitHub connectivity with the `git_status` terminal
 5. Run `test-background-agent.sh` and `test-agent-runtime.sh` for diagnostics
 6. Ensure privacy mode is disabled in Cursor settings
 7. Verify GitHub permissions are correctly set up
+8. Refer to the detailed `.cursor/TROUBLESHOOTING.md` guide
 
 ## References
 
 - [Cursor Background Agent Documentation](https://docs.cursor.com/background-agent)
-- [GitHub Repository](https://github.com/Victordtesla24/cursor-uninstaller.git) 
+- [GitHub Repository](https://github.com/Victordtesla24/cursor-uninstaller.git)

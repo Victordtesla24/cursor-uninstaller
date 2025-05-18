@@ -5,8 +5,8 @@
     "context": "."
   },
   "user": "node",
-  "install": "./.cursor/install.sh",
-  "start": "echo 'Background agent environment started.' && bash ./.cursor/github-setup.sh && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
+  "install": ".cursor/install.sh",
+  "start": "echo 'Background agent environment started.' && bash .cursor/github-setup.sh && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
   "terminals": [
     {
       "name": "dashboard_dev_server",

@@ -1,18 +1,67 @@
 #!/bin/bash
 set -e
 
-# Create log file directory if it doesn't exist
+# Default repository URL if not provided through environment
+: "${GITHUB_REPO_URL:=https://github.com/Victordtesla24/cursor-uninstaller.git}"
+
+# Create log file directory if it doesn't exist - with better error handling
 CURSOR_LOG_DIR=".cursor/logs"
 CURSOR_AGENT_LOG=".cursor/agent.log"
-mkdir -p "${CURSOR_LOG_DIR}"
-mkdir -p "$(dirname "${CURSOR_AGENT_LOG}")"
-touch "${CURSOR_AGENT_LOG}"
 
-# Setup logging function
-log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo "[${timestamp}] $1" | tee -a "${CURSOR_AGENT_LOG}"
+# Ensure directories exist with proper error handling
+ensure_dir() {
+  local dir="$1"
+  if [ ! -d "$dir" ]; then
+    mkdir -p "$dir" || {
+      echo "ERROR: Failed to create directory: $dir" >&2
+      return 1
+    }
+  fi
+  return 0
 }
+
+# Ensure log file exists with proper error handling
+ensure_file() {
+  local file="$1"
+  local dir=$(dirname "$file")
+
+  # First ensure parent directory exists
+  ensure_dir "$dir" || return 1
+
+  if [ ! -f "$file" ]; then
+    touch "$file" || {
+      echo "ERROR: Failed to create file: $file" >&2
+      return 1
+    }
+  fi
+  return 0
+}
+
+# Setup logging with proper error handling
+if ! ensure_dir "${CURSOR_LOG_DIR}"; then
+  echo "WARNING: Could not create log directory. Logging to console only." >&2
+  # Define a fallback log function that only prints to console
+  log() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "[${timestamp}] $1" >&2
+  }
+else
+  # Ensure log file exists
+  if ! ensure_file "${CURSOR_AGENT_LOG}"; then
+    echo "WARNING: Could not create log file. Logging to console only." >&2
+    # Define a fallback log function that only prints to console
+    log() {
+      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      echo "[${timestamp}] $1" >&2
+    }
+  else
+    # Regular log function that writes to both console and log file
+    log() {
+      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      echo "[${timestamp}] $1" | tee -a "${CURSOR_AGENT_LOG}" 2>/dev/null || echo "[${timestamp}] $1" >&2
+    }
+  fi
+fi
 
 log "--- Running Background Agent install.sh ---"
 
@@ -52,23 +101,23 @@ fi
 
 # Validate GitHub repository - with graceful fallback
 log "Validating GitHub repository configuration..."
-if ! git remote -v 2>/dev/null | grep -q "github.com/Victordtesla24/cursor-uninstaller"; then
-  log "WARNING: GitHub repository does not match expected repository (https://github.com/Victordtesla24/cursor-uninstaller.git)"
-  
+if ! git remote -v 2>/dev/null | grep -q "${GITHUB_REPO_URL}"; then
+  log "WARNING: GitHub repository does not match expected repository (${GITHUB_REPO_URL})"
+
   # Check if we can set the correct remote - using retry utility if available
   if ! git remote get-url origin >/dev/null 2>&1; then
     log "Setting GitHub repository remote..."
     if type retry >/dev/null 2>&1; then
-      retry 3 2 git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+      retry 3 2 git remote add origin "${GITHUB_REPO_URL}" || handle_error $LINENO $? "continue"
     else
-      git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+      git remote add origin "${GITHUB_REPO_URL}" || handle_error $LINENO $? "continue"
     fi
   else
     log "Updating GitHub repository remote..."
     if type retry >/dev/null 2>&1; then
-      retry 3 2 git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+      retry 3 2 git remote set-url origin "${GITHUB_REPO_URL}" || handle_error $LINENO $? "continue"
     else
-      git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git || handle_error $LINENO $? "continue"
+      git remote set-url origin "${GITHUB_REPO_URL}" || handle_error $LINENO $? "continue"
     fi
   fi
 fi
@@ -80,7 +129,7 @@ if ! git fetch origin --dry-run 2>/dev/null; then
   log "The background agent will need to use GitHub credentials provided through the Cursor GitHub app."
 else
   log "GitHub credentials validation successful."
-  
+
   # Update local repository
   log "Updating local repository from GitHub..."
   if type retry >/dev/null 2>&1; then
@@ -88,7 +137,7 @@ else
   else
     git fetch origin || handle_error $LINENO $? "continue"
   fi
-  
+
   # Check if we're on a branch
   current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
   if [ -z "$current_branch" ]; then
@@ -101,7 +150,7 @@ else
   else
     log "Currently on branch: $current_branch"
   fi
-  
+
   # Pull latest changes
   log "Pulling latest changes from origin..."
   if type retry >/dev/null 2>&1; then
@@ -189,19 +238,19 @@ log "Documenting environment for snapshot purposes..."
 if [ -f "bg-agent-test.txt" ]; then
   log "Testing GitHub integration with a sample commit..."
   git_branch="background-agent-test-$(date +%Y%m%d%H%M%S)"
-  
+
   # Create a new branch for this test
   if git checkout -b "$git_branch" 2>/dev/null; then
     git add bg-agent-test.txt
     if git commit -m "Test commit from Background Agent setup" 2>/dev/null; then
       log "Successfully created test commit on branch $git_branch"
-      
+
       # Try to push to remote (will fail without credentials, but agent should have them)
       log "Attempting to push to GitHub..."
       if type retry >/dev/null 2>&1; then
         if retry 3 5 git push --set-upstream origin "$git_branch" 2>/dev/null; then
           log "Successfully pushed to GitHub"
-          
+
           # Try to create a pull request if gh cli is available
           if command -v gh &>/dev/null; then
             log "Creating a pull request using GitHub CLI..."
@@ -215,7 +264,7 @@ if [ -f "bg-agent-test.txt" ]; then
       else
         if git push --set-upstream origin "$git_branch" 2>/dev/null; then
           log "Successfully pushed to GitHub"
-          
+
           # Try to create a pull request if gh cli is available
           if command -v gh &>/dev/null; then
             log "Creating a pull request using GitHub CLI..."
@@ -233,7 +282,7 @@ if [ -f "bg-agent-test.txt" ]; then
   else
     log "WARNING: Failed to create test branch $git_branch"
   fi
-  
+
   # Return to the original branch
   git checkout - 2>/dev/null || log "WARNING: Failed to return to original branch"
 fi

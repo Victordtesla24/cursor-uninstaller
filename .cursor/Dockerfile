@@ -32,26 +32,29 @@ ENV NODE_ENV=development
 ENV PATH="/home/node/.npm-global/bin:${PATH}"
 ENV NPM_CONFIG_PREFIX="/home/node/.npm-global"
 
-# Configure git for the node user
+# Create essential directories with proper permissions
 RUN mkdir -p /home/node/.config && \
+    mkdir -p /agent_workspace && \
+    mkdir -p /home/node/.cursor/logs && \
+    mkdir -p /home/node/.npm-global && \
+    # Ensure agent.log file exists and is writable
+    touch /home/node/.cursor/agent.log && \
+    # Set proper ownership
     chown -R node:node /home/node/.config && \
-    git config --system user.email "background-agent@cursor.sh" && \
+    chown -R node:node /agent_workspace && \
+    chown -R node:node /home/node/.cursor && \
+    chown -R node:node /home/node/.npm-global
+
+# Configure git for the node user
+RUN git config --system user.email "background-agent@cursor.sh" && \
     git config --system user.name "Cursor Background Agent"
-
-# Create workspace directories - Cursor will clone the repository into /agent_workspace
-RUN mkdir -p /agent_workspace && chown -R node:node /agent_workspace
-
-# Create log directory
-RUN mkdir -p /home/node/.cursor/logs && \
-    chown -R node:node /home/node/.cursor
 
 # Switch to non-root user for better security
 USER node
 WORKDIR /home/node
 
 # Configure npm for the non-root user
-RUN mkdir -p /home/node/.npm-global && \
-    npm config set prefix '/home/node/.npm-global'
+RUN npm config set prefix '/home/node/.npm-global'
 
 # Configure GitHub credentials helper to cache credentials
 RUN git config --global credential.helper 'cache --timeout=3600'

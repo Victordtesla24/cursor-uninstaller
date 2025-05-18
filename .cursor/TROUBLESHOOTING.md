@@ -1,164 +1,270 @@
 # Background Agent Troubleshooting Guide
 
-This guide helps you troubleshoot common issues with Cursor Background Agents.
+This document provides solutions to common issues that may arise with the Cursor Background Agent.
 
-## Common Issues and Solutions
+## Table of Contents
 
-### 1. GitHub Authentication Issues
+1. [GitHub Authentication Issues](#github-authentication-issues)
+2. [Logging Issues](#logging-issues)
+3. [Terminal Output Issues](#terminal-output-issues)
+4. [Dependencies Installation Issues](#dependencies-installation-issues)
+5. [Docker-related Issues](#docker-related-issues)
+6. [Log File Creation Issues](#log-file-creation-issues)
+7. [Environment Configuration Issues](#environment-configuration-issues)
 
-**Symptoms:**
-- Error messages about GitHub authentication failure
-- Failed pull/push operations 
-- Messages about "Permission denied" or "Could not read from remote repository"
+## GitHub Authentication Issues
 
-**Solutions:**
-1. **Verify GitHub Integration in Cursor:**
-   - Open Cursor settings and check that GitHub integration is enabled
-   - Make sure you've granted Cursor read-write permissions to your repository
-   - If needed, disconnect and reconnect your GitHub account in Cursor settings
+### Symptoms
+- Agent cannot push to GitHub
+- "Permission denied" errors when attempting to access GitHub
+- Failed GitHub operations in the log
 
-2. **Check Git Configuration:**
-   - Run `git config --list` to see your current configuration
-   - Ensure your user name and email are properly set
-   - Verify that credential helper is configured: `git config --global credential.helper 'cache --timeout=3600'`
+### Solutions
+1. **Verify GitHub App Installation**
+   - Ensure you've installed the Cursor GitHub App with read-write permissions for your repository
+   - Go to GitHub > Settings > Applications > Installed GitHub Apps and verify Cursor has access
 
-3. **Force Token Refresh:**
-   - Disconnect and reconnect GitHub in Cursor settings
-   - Restart Cursor and try again
+2. **Refresh Authentication**
+   - The background agent will automatically attempt to refresh GitHub tokens
+   - If issues persist, try disconnecting and reconnecting the GitHub integration in Cursor settings
 
-### 2. Agent Cannot Access Files or Directories
+3. **Manual GitHub Setup**
+   - Run the GitHub setup script manually:
+     ```bash
+     bash .cursor/github-setup.sh
+     ```
+   - Check the output for any errors
 
-**Symptoms:**
-- "Permission denied" errors
-- "No such file or directory" errors
-- File operation failures
+## Logging Issues
 
-**Solutions:**
-1. **Check Directory Structure:**
-   - Ensure the `.cursor` directory exists and has the right permissions
-   - Make sure all necessary subdirectories like `.cursor/logs` exist
+### Symptoms
+- Missing log files
+- "No such file or directory" errors when trying to write logs
+- Agent operations not being logged properly
 
-2. **Fix Ownership and Permissions:**
-   - Run `ls -la .cursor` to check file permissions
-   - Ensure files are owned by the correct user and have appropriate permissions
-   - Run `chmod +x .cursor/*.sh` to make scripts executable
+### Solutions
+1. **Create Log Directories**
+   - Ensure the log directories exist:
+     ```bash
+     mkdir -p .cursor/logs
+     touch .cursor/agent.log
+     ```
 
-3. **Create Missing Files/Directories:**
-   - Ensure `.cursor/agent.log` exists: `touch .cursor/agent.log` 
-   - Create missing directories: `mkdir -p .cursor/logs`
+2. **Check Permissions**
+   - Verify the agent user has write access to log locations:
+     ```bash
+     sudo chown -R node:node .cursor/logs .cursor/agent.log
+     ```
 
-### 3. Background Agent Startup Fails
+3. **Monitor Logs**
+   - Use the log_monitor terminal to watch the agent logs in real-time:
+     ```bash
+     tail -f .cursor/agent.log
+     ```
 
-**Symptoms:**
-- Agent status shows "Error" or "Failed"
-- Agent process terminates prematurely
+## Terminal Output Issues
 
-**Solutions:**
-1. **Check Docker Configuration:**
-   - Ensure Docker is installed and running
-   - Verify the Dockerfile in `.cursor/Dockerfile` is valid
-   - Try building the Docker image manually: `docker build -t cursor-agent-test -f .cursor/Dockerfile .`
+### Symptoms
+- Agent cannot read command output
+- PSReadLine errors in Windows PowerShell
+- Incomplete command outputs or missing results
 
-2. **Verify Environment.json:**
-   - Check `.cursor/environment.json` for syntax errors
-   - Remove any trailing commas or invalid JSON
-   - Ensure all paths in the file are correct
+### Solutions
+1. **Windows PowerShell Issues**
+   - If you're using Windows, the agent may have trouble with PowerShell output
+   - In Cursor settings, enable "Use Preview Box" in Terminal preferences
+   - Consider using WSL (Windows Subsystem for Linux) for more reliable terminal behavior
 
-3. **Run Validation Script:**
-   - Run `./test-background-agent.sh` to check for configuration issues
-   - Address any errors reported by the script
+2. **Command Output Handling**
+   - The agent may have trouble with complex table outputs
+   - Prefer commands that output simple, text-based results
+   - Consider redirecting command output to files for the agent to read:
+     ```bash
+     some_command > output.txt
+     ```
 
-### 4. Agent Cannot Install Dependencies
+3. **Background Process Issues**
+   - For long-running commands, ensure they provide clear output when completed
+   - Use the `wait` command to ensure processes complete before proceeding
 
-**Symptoms:**
-- npm install failures
-- Package resolution errors
-- Messages about network issues
+## Dependencies Installation Issues
 
-**Solutions:**
-1. **Check Package.json:**
-   - Ensure package.json files have valid syntax
-   - Verify that all dependencies exist and are accessible
+### Symptoms
+- Failed npm installations
+- Missing dependencies
+- Timeout errors during installation
 
-2. **Network Issues:**
-   - Check if npm registry is accessible
-   - If behind a proxy, configure npm to use it: `npm config set proxy YOUR_PROXY`
+### Solutions
+1. **Retry with Timeout Control**
+   - The agent uses retry logic for npm installations
+   - You can adjust the timeout in `.cursor/retry-utils.sh`
+   - For manual retries with longer timeouts:
+     ```bash
+     run_with_timeout 600 npm install
+     ```
 
-3. **Clear npm Cache:**
-   - In the agent environment, try: `npm cache clean --force` 
-   - Then retry installation
+2. **Network Issues**
+   - If npm install fails due to network issues, try:
+     ```bash
+     npm config set registry https://registry.npmjs.org/
+     npm cache clean --force
+     ```
 
-### 5. Agent Cannot Start Services or Terminals
+3. **Package Lock Issues**
+   - If package-lock.json conflicts occur:
+     ```bash
+     rm -f package-lock.json
+     npm install
+     ```
 
-**Symptoms:**
-- Terminals fail to start or crash immediately
-- Services report errors or don't respond
+## Docker-related Issues
 
-**Solutions:**
-1. **Check Terminal Commands:**
-   - Verify commands in `environment.json` terminals section
-   - Make sure paths in commands are correct
-   - Consider using absolute paths rather than relative ones
+### Symptoms
+- Docker service not starting
+- Docker command not found
+- Container permission issues
 
-2. **Port Conflicts:**
-   - If services fail because ports are in use, modify them in your config
-   - Check if multiple services try to use the same port
+### Solutions
+1. **Docker Service Management**
+   - The agent tries to start Docker if available
+   - Ensure Docker is properly installed in the agent environment
+   - Check if Docker needs to be started with different commands:
+     ```bash
+     # Add to .cursor/environment.json start command if needed
+     systemctl start docker || service docker start
+     ```
 
-3. **Run Commands Manually:**
-   - Connect to the agent environment
-   - Run terminal commands manually to identify specific errors
+2. **Docker Permissions**
+   - If the agent user needs Docker access:
+     ```bash
+     sudo usermod -aG docker node
+     ```
 
-## Advanced Troubleshooting
+3. **Docker Not Required**
+   - If your project doesn't need Docker, you can remove or comment out Docker-related commands in the environment.json file
 
-### Accessing Logs
+## Log File Creation Issues
 
-Background agent logs are stored in the following locations:
-- `.cursor/agent.log` - Main agent log
-- `.cursor/logs/` - Additional log files
-- `.cursor/environment-snapshot-info.txt` - Environment information
+### Symptoms
+- `tee: .cursor/agent.log: No such file or directory` errors
+- Agent scripts failing when attempting to write logs
+- Missing log directories or files
 
-To inspect logs:
-```bash
-cat .cursor/agent.log
-ls -la .cursor/logs/
-```
+### Solutions
+1. **Ensure Directory Structure in Dockerfile**
+   - Verify the Dockerfile creates the necessary directories:
+     ```docker
+     RUN mkdir -p /home/node/.cursor/logs && \
+         touch /home/node/.cursor/agent.log && \
+         chown -R node:node /home/node/.cursor
+     ```
 
-### Running Validation Tests
+2. **Pre-Create Logs in Scripts**
+   - Scripts have been updated to create log directories and files at runtime
+   - Ensure you're using the latest script versions from this repository
+   - If you encounter issues, manually create the directories and files:
+     ```bash
+     mkdir -p .cursor/logs
+     touch .cursor/agent.log
+     chmod 664 .cursor/agent.log
+     ```
 
-```bash
-# Run basic validation
-./test-background-agent.sh
+3. **Verify Working Directory**
+   - Issues can occur if scripts run from unexpected directories
+   - Make sure commands run from the repository root or with absolute paths
+   - Add `cd /agent_workspace` to scripts if needed
 
-# Run runtime validation
-./test-agent-runtime.sh
-```
+## Environment Configuration Issues
 
-### Manual Environment Testing
+### Symptoms
+- Agent cannot start properly
+- Missing or incorrect environment configuration
+- Errors about the environment.json file
 
-You can test building the environment manually:
-```bash
-# Build Docker image
-docker build -t cursor-agent-test -f .cursor/Dockerfile .
+### Solutions
+1. **Validate Environment JSON**
+   - Check that your environment.json follows the correct format:
+     ```bash
+     cat .cursor/environment.json | jq
+     ```
+   - Required fields: user, install, start, terminals
 
-# Run container with mounted directory
-docker run -it --rm -v "$(pwd):/agent_workspace" cursor-agent-test bash
+2. **Snapshot vs Dockerfile Approach**
+   - This project uses the Dockerfile approach - ensure you're not trying to use a snapshot ID
+   - If using the Dockerfile approach, include the build section:
+     ```json
+     "build": {
+       "dockerfile": "Dockerfile",
+       "context": "."
+     }
+     ```
 
-# Inside the container, run the install script
-cd /agent_workspace
-bash ./.cursor/install.sh
-```
+3. **Terminal Configuration**
+   - Ensure each terminal entry has name, command, and description fields
+   - Test terminals manually to ensure commands work:
+     ```bash
+     bash -c "cd ui/dashboard && npm run dev -- --host --no-open"
+     ```
 
-## Contacting Support
+## Test Failure Issues
 
-If you've tried the above troubleshooting steps and still encounter issues:
+### Symptoms
+- Jest tests failing with timeout errors
+- Mismatched expectations in UI component tests
+- Parameter validation errors
 
-1. Collect the following information:
-   - Background agent logs
-   - Output from validation scripts
-   - Cursor version
-   - OS and environment details
+### Solutions
+1. **Increase Test Timeouts**
+   - Modify test configurations to increase timeouts:
+     ```javascript
+     // In jest.config.js or package.json
+     testTimeout: 30000
+     ```
 
-2. Contact Cursor support:
-   - Submit an issue on GitHub
-   - Share your logs and environment details
-   - Be specific about the error and steps to reproduce 
+2. **Fix Mock Functions**
+   - Update tests that have parameter mismatch errors:
+     ```javascript
+     // Check mocked function calls
+     expect(mockFunction).toHaveBeenCalledWith(
+       expectedParam1,
+       expectedParam2
+     );
+     ```
+
+3. **Update Test Expectations**
+   - For changed component behavior, update test expectations:
+     ```javascript
+     // Update expected values
+     expect(component.find('[data-testid="value"]').text()).toBe('Updated Text');
+     ```
+
+## General Troubleshooting Steps
+
+1. **Check the logs**
+   ```bash
+   cat .cursor/agent.log
+   cat .cursor/logs/*
+   ```
+
+2. **Verify environment configuration**
+   ```bash
+   cat .cursor/environment.json
+   ```
+
+3. **Run validation scripts**
+   ```bash
+   bash ./test-background-agent.sh
+   bash ./test-agent-runtime.sh
+   ```
+
+4. **Check GitHub configuration**
+   ```bash
+   git config --list
+   git remote -v
+   ```
+
+5. **Restart the agent**
+   - Sometimes, simply restarting the Cursor background agent can resolve issues
+   - Use `Cmd/Ctrl + '` to access the agent menu and create a new agent
+
+For issues not covered here, please report them to the Cursor team through the Discord #background-agent channel or via email to background-agent-feedback@cursor.com.

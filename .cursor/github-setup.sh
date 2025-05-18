@@ -1,88 +1,221 @@
 #!/bin/bash
-# GitHub setup script for background agent
+# GitHub Setup Script for Background Agent
+
+# Default repository URL if not provided through environment
+: "${GITHUB_REPO_URL:=https://github.com/Victordtesla24/cursor-uninstaller.git}"
+
+# Create log directory if it doesn't exist - with error handling
+CURSOR_LOG_DIR=".cursor/logs"
+CURSOR_AGENT_LOG=".cursor/agent.log"
+
+# Ensure directories exist with proper error handling
+ensure_dir() {
+  local dir="$1"
+  if [ ! -d "$dir" ]; then
+    mkdir -p "$dir" || {
+      echo "ERROR: Failed to create directory: $dir" >&2
+      return 1
+    }
+  fi
+  return 0
+}
+
+# Ensure log file exists with proper error handling
+ensure_file() {
+  local file="$1"
+  local dir=$(dirname "$file")
+
+  # First ensure parent directory exists
+  ensure_dir "$dir" || return 1
+
+  if [ ! -f "$file" ]; then
+    touch "$file" || {
+      echo "ERROR: Failed to create file: $file" >&2
+      return 1
+    }
+  fi
+  return 0
+}
+
+# Setup logging with proper error handling
+if ! ensure_dir "${CURSOR_LOG_DIR}"; then
+  echo "WARNING: Could not create log directory. Logging to console only." >&2
+  # Define a fallback log function that only prints to console
+  log() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "[${timestamp}] GITHUB-SETUP: $1" >&2
+  }
+else
+  # Ensure log file exists
+  if ! ensure_file "${CURSOR_AGENT_LOG}"; then
+    echo "WARNING: Could not create log file. Logging to console only." >&2
+    # Define a fallback log function that only prints to console
+    log() {
+      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      echo "[${timestamp}] GITHUB-SETUP: $1" >&2
+    }
+  else
+    # Regular log function that writes to both console and log file
+    log() {
+      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      echo "[${timestamp}] GITHUB-SETUP: $1" | tee -a "${CURSOR_AGENT_LOG}" 2>/dev/null || echo "[${timestamp}] GITHUB-SETUP: $1" >&2
+    }
+  fi
+fi
+
+log "Running GitHub setup script..."
 
 # Source retry utilities if available
 if [ -f ".cursor/retry-utils.sh" ]; then
+  log "Sourcing retry utilities..."
   source .cursor/retry-utils.sh
+else
+  log "Retry utilities not found. Creating basic retry function..."
+  # Simple retry function if the full script is not available
+  retry() {
+    local max_attempts=$1
+    local delay=$2
+    shift 2
+    local attempt=1
+
+    until "$@"; do
+      if [ $attempt -ge $max_attempts ]; then
+        log "Command '$*' failed after $max_attempts attempts."
+        return 1
+      fi
+
+      log "Command '$*' failed. Retrying in ${delay}s (attempt $attempt/$max_attempts)..."
+      sleep $delay
+      attempt=$((attempt + 1))
+    done
+
+    return 0
+  }
 fi
 
-# Initialize logging
-CURSOR_AGENT_LOG=".cursor/agent.log"
-ensure_dir "$(dirname "$CURSOR_AGENT_LOG")"
-ensure_file "$CURSOR_AGENT_LOG"
+# Refresh GitHub token to ensure we have access
+refresh_github_token() {
+  log "Refreshing GitHub access token..."
 
-# Log message to the agent log file
-log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo "[${timestamp}] $1" | tee -a "${CURSOR_AGENT_LOG}"
+  # Check for existing token-based URL configurations
+  if git config --global --get-regexp "url.https://x-access-token:.*@github.com/.insteadOf" > /dev/null 2>&1; then
+    log "Removing existing token-based URL configurations..."
+    git config --global --unset-all "url.https://x-access-token:.*@github.com/.insteadOf" || log "Failed to unset existing token configurations"
+  fi
+
+  # Check if we have a GitHub token environment variable set by Cursor
+  if [ -n "${GITHUB_TOKEN}" ]; then
+    log "Setting up GitHub access token for repository access..."
+    git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" || log "Failed to set token-based URL"
+    log "GitHub token configuration completed."
+  else
+    log "No GitHub token found in environment. Cursor background agent should provide this."
+  fi
+
+  # Update repository remotes if they exist
+  if git remote -v | grep -q "origin"; then
+    log "Updating remote URL for origin..."
+    git remote set-url origin "${GITHUB_REPO_URL}" || log "Failed to update remote URL"
+  else
+    log "Adding remote origin..."
+    git remote add origin "${GITHUB_REPO_URL}" || log "Failed to add remote origin"
+  fi
 }
 
-log "--- Running GitHub Setup Script ---"
+# Configure git identity for the agent
+configure_git_identity() {
+  log "Configuring git identity for the background agent..."
 
-# Configure git if not already done
-if [ -z "$(git config --global --get user.email)" ]; then
-  log "Setting up git user email"
-  git config --global user.email "background-agent@cursor.sh"
-fi
-
-if [ -z "$(git config --global --get user.name)" ]; then
-  log "Setting up git user name"
-  git config --global user.name "Cursor Background Agent"
-fi
-
-# Set git credential helper
-log "Setting git credential helper"
-git config --global credential.helper 'cache --timeout=3600'
-
-# Verify GitHub repository remote
-log "Verifying GitHub repository remote"
-if ! git remote -v 2>/dev/null | grep -q "github.com/Victordtesla24/cursor-uninstaller"; then
-  log "WARNING: GitHub repository does not match expected repository"
-  
-  # Check if we can set the correct remote
-  if ! git remote get-url origin >/dev/null 2>&1; then
-    log "Setting GitHub repository remote"
-    git remote add origin https://github.com/Victordtesla24/cursor-uninstaller.git || log "WARNING: Failed to add remote"
-  else
-    log "Updating GitHub repository remote"
-    git remote set-url origin https://github.com/Victordtesla24/cursor-uninstaller.git || log "WARNING: Failed to update remote URL"
+  # Check if git identity is already configured
+  if ! git config --get user.email > /dev/null 2>&1; then
+    log "Setting up git user email..."
+    git config --global user.email "background-agent@cursor.sh" || log "Failed to set git user email"
   fi
-fi
 
-# Check if we're in a git repository, if not initialize one
-if [ ! -d ".git" ]; then
-  log "Not in a git repository. Initializing..."
-  git init || log "WARNING: Failed to initialize git repository"
-  git config --global init.defaultBranch main || log "WARNING: Failed to set default branch"
-  touch README.md || log "WARNING: Failed to create README.md"
-  git add README.md || log "WARNING: Failed to add README.md to git"
-  git commit -m "Initial commit" || log "WARNING: Failed to create initial commit"
-fi
-
-# Test GitHub connectivity
-log "Testing GitHub connectivity"
-if ! git ls-remote --heads origin >/dev/null 2>&1; then
-  log "WARNING: Cannot access GitHub repository. Please ensure GitHub access token is properly configured."
-  log "GitHub integration may not work correctly."
-else
-  log "GitHub connectivity verified successfully"
-  
-  # Attempt to fetch the latest changes
-  log "Fetching latest changes from GitHub"
-  git fetch origin || log "WARNING: Failed to fetch from GitHub"
-  
-  # Determine current branch and ensure we're on a valid branch
-  current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
-  if [ -z "$current_branch" ]; then
-    log "Not on any branch. Checking out main branch..."
-    git checkout main || git checkout master || log "WARNING: Could not checkout main or master branch"
-  else
-    log "Currently on branch: $current_branch"
-    
-    # Pull latest changes
-    log "Pulling latest changes"
-    git pull origin "$current_branch" || log "WARNING: Failed to pull latest changes"
+  if ! git config --get user.name > /dev/null 2>&1; then
+    log "Setting up git user name..."
+    git config --global user.name "Cursor Background Agent" || log "Failed to set git user name"
   fi
-fi
 
-log "--- GitHub Setup Complete ---" 
+  log "Git identity configuration completed."
+}
+
+# Verify GitHub access and repository
+verify_github_access() {
+  log "Verifying GitHub access..."
+
+  # Try up to 3 times with increasing delay
+  local attempt=1
+  local max_attempts=3
+  local delay=2
+
+  while [ $attempt -le $max_attempts ]; do
+    # Check if we can access GitHub
+    if git ls-remote --quiet "${GITHUB_REPO_URL}" HEAD > /dev/null 2>&1; then
+      log "GitHub access verified successfully."
+      return 0
+    else
+      if [ $attempt -lt $max_attempts ]; then
+        log "GitHub access failed (attempt $attempt/$max_attempts). Retrying in ${delay}s..."
+        sleep $delay
+        delay=$((delay * 2))
+        attempt=$((attempt + 1))
+      else
+        log "GitHub access failed after $max_attempts attempts. Please ensure GitHub integration is properly configured in Cursor."
+        return 1
+      fi
+    fi
+  done
+}
+
+# Create a test PR branch if requested
+create_test_branch() {
+  if [ "$1" == "true" ]; then
+    log "Creating test branch to verify GitHub integration..."
+    local test_branch="bg-agent-test-$(date +%Y%m%d%H%M%S)"
+
+    if git checkout -b "$test_branch"; then
+      log "Created test branch: $test_branch"
+
+      # Create a test file
+      echo "Background agent GitHub test - $(date)" > .cursor/github-test.txt
+
+      # Commit changes
+      git add .cursor/github-test.txt
+      if git commit -m "Test commit from Background Agent GitHub setup"; then
+        log "Created test commit"
+
+        # Try to push
+        if git push --set-upstream origin "$test_branch"; then
+          log "Successfully pushed test branch to GitHub"
+        else
+          log "Failed to push test branch. GitHub push access may not be configured."
+        fi
+      else
+        log "Failed to create test commit"
+      fi
+
+      # Return to original branch
+      git checkout - || log "Failed to return to original branch"
+    else
+      log "Failed to create test branch"
+    fi
+  fi
+}
+
+# Main execution
+main() {
+  configure_git_identity
+  refresh_github_token
+
+  if verify_github_access; then
+    log "GitHub setup completed successfully."
+    # Uncomment the following line to create a test branch for GitHub integration
+    # create_test_branch "true"
+  else
+    log "GitHub setup completed with warnings. Some GitHub operations may fail."
+  fi
+}
+
+# Run the main function
+main
