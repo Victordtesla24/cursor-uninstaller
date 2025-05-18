@@ -18,8 +18,6 @@ INFO="ℹ"
 CURRENT_DIR=$(pwd)
 SCRIPT_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
-SCRIPTS_DIR="${CURSOR_DIR}/scripts"
-DOCS_DIR="${CURSOR_DIR}/docs"
 TESTS_DIR="${CURSOR_DIR}/tests"
 LOG_DIR="${CURSOR_DIR}/logs"
 
@@ -162,43 +160,43 @@ else
   ((failure_count++))
 fi
 
-if check_file "${SCRIPTS_DIR}/install.sh" "install.sh" "true"; then
+if check_file "${CURSOR_DIR}/install.sh" "install.sh" "true"; then
   ((success_count++))
 else
   ((failure_count++))
 fi
 
-if check_file "${CURSOR_DIR}/Dockerfile" "Dockerfile" "true"; then
+if check_file "${CURRENT_DIR}/Dockerfile" "Dockerfile" "true"; then
   ((success_count++))
 else
   ((failure_count++))
 fi
 
-if check_file "${SCRIPTS_DIR}/github-setup.sh" "github-setup.sh" "true"; then
+if check_file "${CURSOR_DIR}/github-setup.sh" "github-setup.sh" "true"; then
   ((success_count++))
 else
   ((failure_count++))
 fi
 
-if check_file "${SCRIPTS_DIR}/retry-utils.sh" "retry-utils.sh" "true"; then
+if check_file "${CURSOR_DIR}/retry-utils.sh" "retry-utils.sh" "true"; then
   ((success_count++))
 else
   ((failure_count++))
 fi
 
-if check_file "${DOCS_DIR}/background-agent-prompt.md" "background-agent-prompt.md" "false"; then
+if check_file "${CURSOR_DIR}/background-agent-prompt.md" "background-agent-prompt.md" "false"; then
   ((success_count++))
 else
   ((warning_count++))
 fi
 
-if check_file "${DOCS_DIR}/TROUBLESHOOTING.md" "TROUBLESHOOTING.md" "false"; then
+if check_file "${CURSOR_DIR}/TROUBLESHOOTING.md" "TROUBLESHOOTING.md" "false"; then
   ((success_count++))
 else
   ((warning_count++))
 fi
 
-if check_file "${DOCS_DIR}/README.md" "README.md" "false"; then
+if check_file "${CURSOR_DIR}/README.md" "README.md for .cursor" "false"; then
   ((success_count++))
 else
   ((warning_count++))
@@ -206,36 +204,29 @@ fi
 
 echo -e "\n===== Checking File Permissions ====="
 
-# Check file permissions for scripts
-check_permissions "${SCRIPTS_DIR}/install.sh" "install.sh"
-status=$?
-if [ $status -eq 0 ]; then
+# Check permissions for scripts directly in .cursor/
+if check_permissions "${CURSOR_DIR}/install.sh" "install.sh"; then
   ((success_count++))
-elif [ $status -eq 1 ]; then
+else
   ((failure_count++))
 fi
 
-check_permissions "${SCRIPTS_DIR}/github-setup.sh" "github-setup.sh"
-status=$?
-if [ $status -eq 0 ]; then
+if check_permissions "${CURSOR_DIR}/github-setup.sh" "github-setup.sh"; then
   ((success_count++))
-elif [ $status -eq 1 ]; then
+else
   ((failure_count++))
 fi
 
-check_permissions "${SCRIPTS_DIR}/retry-utils.sh" "retry-utils.sh"
-status=$?
-if [ $status -eq 0 ]; then
+if check_permissions "${CURSOR_DIR}/retry-utils.sh" "retry-utils.sh"; then
   ((success_count++))
-elif [ $status -eq 1 ]; then
+else
   ((failure_count++))
 fi
 
-check_permissions "${TESTS_DIR}/run-tests.sh" "run-tests.sh"
-status=$?
-if [ $status -eq 0 ]; then
+# Check permissions for run-tests.sh in .cursor/tests/
+if check_permissions "${TESTS_DIR}/run-tests.sh" "run-tests.sh"; then
   ((success_count++))
-elif [ $status -eq 1 ]; then
+else
   ((failure_count++))
 fi
 
@@ -326,49 +317,36 @@ fi
 
 # Validate Dockerfile content
 info "Validating Dockerfile content..."
-if [ -f "${CURSOR_DIR}/Dockerfile" ]; then
-  # Check that the Dockerfile uses a proper base image
-  if grep -q "FROM node" "${CURSOR_DIR}/Dockerfile"; then
-    success "Dockerfile uses node base image"
+if [ -f "${CURRENT_DIR}/Dockerfile" ]; then
+  if grep -q "FROM node:.*" "${CURRENT_DIR}/Dockerfile"; then
+    success "Dockerfile has FROM node instruction"
     ((success_count++))
   else
-    warning "Dockerfile does not use a node base image"
-    ((warning_count++))
-  fi
-
-  # Check that the Dockerfile installs git
-  if grep -q "git" "${CURSOR_DIR}/Dockerfile"; then
-    success "Dockerfile installs git"
-    ((success_count++))
-  else
-    warning "Dockerfile might not install git"
-    ((warning_count++))
-  fi
-
-  # Check that the Dockerfile does not COPY the project (it should be cloned)
-  if ! grep -q "COPY .*\.\." "${CURSOR_DIR}/Dockerfile"; then
-    success "Dockerfile does not attempt to COPY the project (good)"
-    ((success_count++))
-  else
-    error "Dockerfile appears to COPY the project. It should be cloned from GitHub instead."
+    error "Dockerfile is missing FROM node instruction"
     ((failure_count++))
   fi
 
-  # Check that the Dockerfile uses agent_workspace directory
-  if grep -q "agent_workspace" "${CURSOR_DIR}/Dockerfile"; then
-    success "Dockerfile references agent_workspace directory"
+  if grep -q "WORKDIR /agent_workspace" "${CURRENT_DIR}/Dockerfile"; then
+    success "Dockerfile has WORKDIR /agent_workspace"
     ((success_count++))
   else
-    warning "Dockerfile does not reference agent_workspace directory"
-    ((warning_count++))
+    error "Dockerfile is missing WORKDIR /agent_workspace"
+    ((failure_count++))
   fi
 
-  # Check that the Dockerfile switches to a non-root user
-  if grep -q "USER node" "${CURSOR_DIR}/Dockerfile" || grep -q "USER nobody" "${CURSOR_DIR}/Dockerfile"; then
-    success "Dockerfile switches to non-root user"
+  if grep -q "USER node" "${CURRENT_DIR}/Dockerfile"; then
+    success "Dockerfile has USER node instruction"
     ((success_count++))
   else
-    warning "Dockerfile might run as root user"
+    error "Dockerfile is missing USER node instruction"
+    ((failure_count++))
+  fi
+
+  if ! grep -q "COPY" "${CURRENT_DIR}/Dockerfile"; then
+    success "Dockerfile does not use COPY (as per recommendation)"
+    ((success_count++))
+  else
+    warning "Dockerfile uses COPY instruction. For background agents, project files are typically cloned, not copied."
     ((warning_count++))
   fi
 else

@@ -14,7 +14,8 @@ NC='\033[0m' # No Color
 # Define current directory and paths
 SCRIPT_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
-SCRIPTS_DIR="${CURSOR_DIR}/scripts"
+# SCRIPTS_DIR is no longer used, scripts are in CURSOR_DIR
+# SCRIPTS_DIR="${CURSOR_DIR}/scripts"
 LOG_DIR="${CURSOR_DIR}/logs"
 LOG_FILE="${LOG_DIR}/agent-runtime-test.log"
 
@@ -81,11 +82,11 @@ run_test() {
 log_info "Performing static configuration file checks..."
 
 critical_files=(
-  "${SCRIPTS_DIR}/install.sh:Install Script"
-  "${SCRIPTS_DIR}/github-setup.sh:GitHub Setup Script"
-  "${SCRIPTS_DIR}/retry-utils.sh:Retry Utilities Script"
+  "${CURSOR_DIR}/install.sh:Install Script"
+  "${CURSOR_DIR}/github-setup.sh:GitHub Setup Script"
+  "${CURSOR_DIR}/retry-utils.sh:Retry Utilities Script"
   "${CURSOR_DIR}/environment.json:Environment JSON"
-  "${CURSOR_DIR}/Dockerfile:Dockerfile"
+  "${CURSOR_DIR}/../Dockerfile:Dockerfile" # Corrected Dockerfile path
 )
 
 missing_critical_files=false
@@ -122,9 +123,9 @@ fi
 log_info "Checking script permissions..."
 
 script_files=(
-  "${SCRIPTS_DIR}/install.sh"
-  "${SCRIPTS_DIR}/github-setup.sh"
-  "${SCRIPTS_DIR}/retry-utils.sh"
+  "${CURSOR_DIR}/install.sh"
+  "${CURSOR_DIR}/github-setup.sh"
+  "${CURSOR_DIR}/retry-utils.sh"
 )
 
 for script in "${script_files[@]}"; do
@@ -163,11 +164,16 @@ else
 
     # Check if Dockerfile is properly referenced
     if jq -e '.build.dockerfile' "${env_json}" >/dev/null 2>&1; then
-      dockerfile=$(jq -r '.build.dockerfile' "${env_json}")
-      if [ -f "${CURSOR_DIR}/${dockerfile}" ]; then
-        log_success "Dockerfile reference is valid: ${dockerfile}"
+      dockerfile_ref=$(jq -r '.build.dockerfile' "${env_json}")
+      # Assuming dockerfile_ref is a simple filename like "Dockerfile"
+      # And environment.json context is already corrected to ".."
+      # The actual Dockerfile path would be CURSOR_DIR/../<dockerfile_ref_value>
+      # For validation, we check this path.
+      expected_dockerfile_path="${CURSOR_DIR}/../${dockerfile_ref}"
+      if [ -f "${expected_dockerfile_path}" ]; then
+        log_success "Dockerfile reference '${dockerfile_ref}' is valid, found at ${expected_dockerfile_path}"
       else
-        log_error "Dockerfile reference is invalid. Referenced file not found: ${CURSOR_DIR}/${dockerfile}"
+        log_error "Dockerfile reference '${dockerfile_ref}' is invalid. Referenced file not found: ${expected_dockerfile_path}"
       fi
     else
       log_error "environment.json is missing build.dockerfile"
@@ -235,24 +241,33 @@ if command -v docker &>/dev/null; then
 
     # Create a temporary directory for the build context
     tmp_dir=$(mktemp -d)
-    cp "${CURSOR_DIR}/Dockerfile" "${tmp_dir}/"
-
-    if docker build -t cursor-agent-test:runtime "${tmp_dir}" >> "${LOG_FILE}" 2>&1; then
-      log_success "Docker image build successful"
-
-      # Test running a container with the built image
-      log_info "Testing container execution..."
-
-      if docker run --rm cursor-agent-test:runtime node --version >> "${LOG_FILE}" 2>&1; then
-        log_success "Container execution successful"
-      else
-        log_error "Container execution failed"
-      fi
-
-      # Clean up the test image
-      docker rmi cursor-agent-test:runtime &>/dev/null || true
+    # Dockerfile is in the parent directory of CURSOR_DIR
+    actual_dockerfile_path="${CURSOR_DIR}/../Dockerfile"
+    if [ ! -f "${actual_dockerfile_path}" ]; then
+      log_error "Dockerfile not found at ${actual_dockerfile_path} for build test."
     else
-      log_error "Docker image build failed"
+      cp "${actual_dockerfile_path}" "${tmp_dir}/Dockerfile" # Copy Dockerfile to context dir
+
+      # The context for docker build should be the directory containing the Dockerfile, which is CURSOR_DIR/..
+      # However, for this isolated test, we build from tmp_dir where Dockerfile is copied.
+      # If environment.json context is "..", actual agent build uses CURSOR_DIR/.. as context.
+      if docker build -t cursor-agent-test:runtime "${tmp_dir}" >> "${LOG_FILE}" 2>&1; then
+        log_success "Docker image build successful"
+
+        # Test running a container with the built image
+        log_info "Testing container execution..."
+
+        if docker run --rm cursor-agent-test:runtime node --version >> "${LOG_FILE}" 2>&1; then
+          log_success "Container execution successful"
+        else
+          log_error "Container execution failed"
+        fi
+
+        # Clean up the test image
+        docker rmi cursor-agent-test:runtime &>/dev/null || true
+      else
+        log_error "Docker image build failed"
+      fi
     fi
 
     # Clean up temporary directory

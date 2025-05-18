@@ -15,8 +15,8 @@ NC='\033[0m' # No Color
 TEST_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$TEST_DIR")"
 LOG_DIR="${CURSOR_DIR}/logs"
-SCRIPTS_DIR="${CURSOR_DIR}/scripts"
-DOCS_DIR="${CURSOR_DIR}/docs"
+# SCRIPTS_DIR="${CURSOR_DIR}/scripts" # Old incorrect path
+# DOCS_DIR="${CURSOR_DIR}/docs"       # Old incorrect path
 LOG_FILE="${LOG_DIR}/env-setup-test.log"
 
 # Create log directory if it doesn't exist
@@ -98,8 +98,8 @@ log "\n${BLUE}Testing directory structure...${NC}"
 
 directories=(
   "$CURSOR_DIR:Cursor"
-  "$SCRIPTS_DIR:Scripts"
-  "$DOCS_DIR:Docs"
+  # "$SCRIPTS_DIR:Scripts" # Obsolete check
+  # "$DOCS_DIR:Docs"       # Obsolete check
   "$TEST_DIR:Tests"
   "$LOG_DIR:Logs"
 )
@@ -115,16 +115,18 @@ done
 # Test required files
 log "\n${BLUE}Testing required files...${NC}"
 
+PROJECT_ROOT_DIR="$(dirname "$CURSOR_DIR")" # Get project root for Dockerfile
+
 files=(
   "$CURSOR_DIR/environment.json:Environment JSON:true"
-  "$CURSOR_DIR/Dockerfile:Dockerfile:true"
-  "$SCRIPTS_DIR/install.sh:Install Script:true"
-  "$SCRIPTS_DIR/github-setup.sh:GitHub Setup Script:true"
-  "$SCRIPTS_DIR/retry-utils.sh:Retry Utilities Script:true"
-  "$SCRIPTS_DIR/load-env.sh:Environment Loading Script:false"
-  "$SCRIPTS_DIR/cleanup.sh:Cleanup Script:false"
-  "$DOCS_DIR/README.md:README:false"
-  "$DOCS_DIR/TROUBLESHOOTING.md:Troubleshooting Guide:false"
+  "$PROJECT_ROOT_DIR/Dockerfile:Dockerfile:true" # Corrected path
+  "$CURSOR_DIR/install.sh:Install Script:true" # Corrected path
+  "$CURSOR_DIR/github-setup.sh:GitHub Setup Script:true" # Corrected path
+  "$CURSOR_DIR/retry-utils.sh:Retry Utilities Script:true" # Corrected path
+  "$CURSOR_DIR/load-env.sh:Environment Loading Script:false" # Corrected path
+  "$CURSOR_DIR/cleanup.sh:Cleanup Script:false" # Corrected path
+  "$CURSOR_DIR/README.md:README for .cursor:false" # Corrected path
+  "$CURSOR_DIR/TROUBLESHOOTING.md:Troubleshooting Guide:false" # Corrected path
 )
 
 for file_entry in "${files[@]}"; do
@@ -139,9 +141,12 @@ done
 log "\n${BLUE}Testing file permissions...${NC}"
 
 script_files=(
-  "$SCRIPTS_DIR/install.sh:Install Script"
-  "$SCRIPTS_DIR/github-setup.sh:GitHub Setup Script"
-  "$SCRIPTS_DIR/retry-utils.sh:Retry Utilities Script"
+  "$CURSOR_DIR/install.sh:Install Script"
+  "$CURSOR_DIR/github-setup.sh:GitHub Setup Script"
+  "$CURSOR_DIR/retry-utils.sh:Retry Utilities Script"
+  "$CURSOR_DIR/load-env.sh:Load Env Script"
+  "$CURSOR_DIR/cleanup.sh:Cleanup Script"
+  "$CURSOR_DIR/create-snapshot.sh:Create Snapshot Script"
   "$TEST_DIR/validate_cursor_environment.sh:Environment Validation Script"
   "$TEST_DIR/test-background-agent.sh:Background Agent Test Script"
   "$TEST_DIR/test-agent-runtime.sh:Agent Runtime Test Script"
@@ -173,9 +178,9 @@ done
 log "\n${BLUE}Testing environment variables...${NC}"
 
 # Load environment variables if load-env.sh exists
-if [ -f "$SCRIPTS_DIR/load-env.sh" ] && [ -x "$SCRIPTS_DIR/load-env.sh" ]; then
-  log "Sourcing environment variables from $SCRIPTS_DIR/load-env.sh"
-  source "$SCRIPTS_DIR/load-env.sh"
+if [ -f "$CURSOR_DIR/load-env.sh" ] && [ -x "$CURSOR_DIR/load-env.sh" ]; then # Corrected path
+  log "Sourcing environment variables from $CURSOR_DIR/load-env.sh"
+  source "$CURSOR_DIR/load-env.sh"
 fi
 
 # Check for env.txt and try to load it if it exists

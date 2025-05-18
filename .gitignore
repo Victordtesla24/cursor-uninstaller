@@ -60,3 +60,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Cursor Background Agent sensitive files
+.cursor/.env
+.cursor/environment-snapshot-info.txt
+.cursor/logs/*.log

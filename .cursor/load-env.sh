@@ -37,29 +37,13 @@ export PORT
 if [ -f "${DOT_ENV_FILE}" ]; then
   log "Loading environment variables from ${DOT_ENV_FILE}"
 
-  # Read .env file and export variables
-  while IFS= read -r line || [ -n "$line" ]; do
-    # Skip comments and empty lines
-    if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
-      continue
-    fi
-
-    # Extract variable name and value
-    if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
-      var_name="${BASH_REMATCH[1]}"
-      var_value="${BASH_REMATCH[2]}"
-
-      # Remove quotes if present
-      var_value="${var_value#\"}"
-      var_value="${var_value%\"}"
-      var_value="${var_value#\'}"
-      var_value="${var_value%\'}"
-
-      # Export the variable
-      export "$var_name"="$var_value"
-      log "Exported $var_name from .env file"
-    fi
-  done < "${DOT_ENV_FILE}"
+  # Use allexport to export all variables defined in the .env file
+  # This handles lines without 'export' keyword and comments
+  set -o allexport
+  # shellcheck source=/dev/null
+  source "${DOT_ENV_FILE}"
+  set +o allexport
+  echo "[LOAD_ENV] Loaded environment variables from ${DOT_ENV_FILE}" # Log to stdout for clarity during sourcing
 fi
 
 # Load variables from env.txt file if it exists and .env doesn't exist

@@ -5,9 +5,9 @@
 set -e
 
 # Define paths
-SCRIPT_DIR="$(dirname "$0")"
-CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
-LOG_DIR="${CURSOR_DIR}/logs"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)" # Assuming .cursor is in workspace root
+LOG_DIR="${WORKSPACE_ROOT}/.cursor/logs" # Corrected Log Directory
 LOG_FILE="${LOG_DIR}/cleanup.log"
 
 # Create log directory if it doesn't exist
@@ -45,11 +45,22 @@ safe_remove() {
 
 log "Starting cleanup process..."
 
-# Clean up temporary test files
-log "Cleaning up temporary test files..."
-safe_remove "${CURSOR_DIR}/bg-agent-test.txt"
-safe_remove "${CURSOR_DIR}/github-test.txt"
-safe_remove "${CURSOR_DIR}/github-test-"*".txt" 2>/dev/null || true
+# Remove test files created by install/setup scripts
+if [ -f "${WORKSPACE_ROOT}/bg-agent-test.txt" ]; then
+  rm -f "${WORKSPACE_ROOT}/bg-agent-test.txt"
+  log "Removed ${WORKSPACE_ROOT}/bg-agent-test.txt"
+fi
+
+if [ -f "${WORKSPACE_ROOT}/.cursor/github-test.txt" ]; then # Check specific path from an old script version
+    rm -f "${WORKSPACE_ROOT}/.cursor/github-test.txt"
+    log "Removed ${WORKSPACE_ROOT}/.cursor/github-test.txt"
+fi
+
+# General pattern for github test files that might have been created by older script versions
+find "${WORKSPACE_ROOT}/.cursor/" -maxdepth 1 -name 'github-test-*.txt' -print -delete
+if [ $? -eq 0 ]; then
+    log "Removed any .cursor/github-test-*.txt files"
+fi
 
 # Clean up old log files
 log "Cleaning up old log files..."
@@ -120,6 +131,12 @@ if command -v npm &>/dev/null; then
 else
   log "npm is not available, skipping npm cache cleanup"
 fi
+
+# Clean up __pycache__ directories
+find "${WORKSPACE_ROOT}" -type d -name '__pycache__' -print -exec rm -rf {} + && log "Removed __pycache__ directories."
+
+# Clean up .pyc files
+find "${WORKSPACE_ROOT}" -type f -name '*.pyc' -print -delete && log "Removed .pyc files."
 
 log "Cleanup process completed successfully"
 exit 0

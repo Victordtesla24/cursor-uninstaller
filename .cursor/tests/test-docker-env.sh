@@ -158,28 +158,35 @@ if [ "$docker_installed" = "true" ]; then
   log "\n${BLUE}Testing Dockerfile validation...${NC}"
   total_tests=$((total_tests + 1))
 
+  # Define Dockerfile path relative to CURSOR_DIR (which is .cursor)
+  DOCKERFILE_PATH_RELATIVE_TO_CURSOR_DIR="../Dockerfile"
+  DOCKERFILE_FULL_PATH="${CURSOR_DIR}/${DOCKERFILE_PATH_RELATIVE_TO_CURSOR_DIR}"
+
   # Check if the Dockerfile exists
-  if [ -f "${CURSOR_DIR}/Dockerfile" ]; then
-    log "${GREEN}✓ Dockerfile exists${NC}"
+  if [ -f "${DOCKERFILE_FULL_PATH}" ]; then
+    log "${GREEN}✓ Dockerfile exists at ${DOCKERFILE_FULL_PATH}${NC}"
 
     # Get absolute path for Dockerfile
-    DOCKERFILE_PATH=$(realpath "${CURSOR_DIR}/Dockerfile")
+    # Ensure CURSOR_DIR is an absolute path or realpath might behave unexpectedly from different PWDs
+    ABS_CURSOR_DIR=$(cd "${CURSOR_DIR}" && pwd)
+    ABS_DOCKERFILE_PATH=$(cd "${ABS_CURSOR_DIR}/../" && pwd)/Dockerfile # More robust way to get absolute path
 
     # Validate Dockerfile - using absolute path to avoid Docker volume mount issues
-    if docker run --rm -v "${DOCKERFILE_PATH}:/Dockerfile" hadolint/hadolint hadolint /Dockerfile > /dev/null 2>&1; then
+    if docker run --rm -v "${ABS_DOCKERFILE_PATH}:/Dockerfile" hadolint/hadolint hadolint /Dockerfile > /dev/null 2>&1; then
       log "${GREEN}✓ Dockerfile passed linting${NC}"
       passed_tests=$((passed_tests + 1))
     else
       # If hadolint fails, try a simpler validation
-      if docker run --rm -v "${DOCKERFILE_PATH}:/Dockerfile" alpine sh -c "cat /Dockerfile | grep -q FROM"; then
-        log "${YELLOW}⚠ Dockerfile contains a FROM instruction but might have minor issues${NC}"
+      log "${YELLOW}Hadolint validation failed or image not available. Performing basic check...${NC}"
+      if docker run --rm -v "${ABS_DOCKERFILE_PATH}:/Dockerfile" alpine sh -c "cat /Dockerfile | grep -iq FROM"; then # ignore case for FROM
+        log "${GREEN}✓ Dockerfile contains a FROM instruction (basic check passed)${NC}"
         passed_tests=$((passed_tests + 1))
       else
-        log "${RED}✗ Dockerfile validation failed${NC}"
+        log "${RED}✗ Dockerfile basic validation failed (FROM instruction not found)${NC}"
       fi
     fi
   else
-    log "${RED}✗ Dockerfile not found at ${CURSOR_DIR}/Dockerfile${NC}"
+    log "${RED}✗ Dockerfile not found at ${DOCKERFILE_FULL_PATH}${NC}"
   fi
 
   # Test environment.json Docker configuration
