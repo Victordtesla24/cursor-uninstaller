@@ -14,10 +14,9 @@ NC='\033[0m' # No Color
 # Define paths
 TEST_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$TEST_DIR")"
+PROJECT_ROOT="$(dirname "$CURSOR_DIR")"
 LOG_DIR="${CURSOR_DIR}/logs"
-# SCRIPTS_DIR="${CURSOR_DIR}/scripts" # Old incorrect path
-# DOCS_DIR="${CURSOR_DIR}/docs"       # Old incorrect path
-LOG_FILE="${LOG_DIR}/env-setup-test.log"
+LOG_FILE="${CURSOR_DIR}/logs/test-env-setup.log"
 
 # Create log directory if it doesn't exist
 mkdir -p "${LOG_DIR}"
@@ -98,8 +97,6 @@ log "\n${BLUE}Testing directory structure...${NC}"
 
 directories=(
   "$CURSOR_DIR:Cursor"
-  # "$SCRIPTS_DIR:Scripts" # Obsolete check
-  # "$DOCS_DIR:Docs"       # Obsolete check
   "$TEST_DIR:Tests"
   "$LOG_DIR:Logs"
 )
@@ -115,18 +112,16 @@ done
 # Test required files
 log "\n${BLUE}Testing required files...${NC}"
 
-PROJECT_ROOT_DIR="$(dirname "$CURSOR_DIR")" # Get project root for Dockerfile
-
 files=(
   "$CURSOR_DIR/environment.json:Environment JSON:true"
-  "$PROJECT_ROOT_DIR/Dockerfile:Dockerfile:true" # Corrected path
-  "$CURSOR_DIR/install.sh:Install Script:true" # Corrected path
-  "$CURSOR_DIR/github-setup.sh:GitHub Setup Script:true" # Corrected path
-  "$CURSOR_DIR/retry-utils.sh:Retry Utilities Script:true" # Corrected path
-  "$CURSOR_DIR/load-env.sh:Environment Loading Script:false" # Corrected path
-  "$CURSOR_DIR/cleanup.sh:Cleanup Script:false" # Corrected path
-  "$CURSOR_DIR/README.md:README for .cursor:false" # Corrected path
-  "$CURSOR_DIR/TROUBLESHOOTING.md:Troubleshooting Guide:false" # Corrected path
+  "$PROJECT_ROOT/Dockerfile:Dockerfile:true"
+  "$CURSOR_DIR/install.sh:Install Script:true"
+  "$CURSOR_DIR/github-setup.sh:GitHub Setup Script:true"
+  "$CURSOR_DIR/retry-utils.sh:Retry Utilities Script:true"
+  "$CURSOR_DIR/load-env.sh:Environment Loading Script:false"
+  "$CURSOR_DIR/cleanup.sh:Cleanup Script:false"
+  "$CURSOR_DIR/README.md:README for .cursor:false"
+  "$CURSOR_DIR/TROUBLESHOOTING.md:Troubleshooting Guide:false"
 )
 
 for file_entry in "${files[@]}"; do
@@ -178,7 +173,7 @@ done
 log "\n${BLUE}Testing environment variables...${NC}"
 
 # Load environment variables if load-env.sh exists
-if [ -f "$CURSOR_DIR/load-env.sh" ] && [ -x "$CURSOR_DIR/load-env.sh" ]; then # Corrected path
+if [ -f "$CURSOR_DIR/load-env.sh" ] && [ -x "$CURSOR_DIR/load-env.sh" ]; then
   log "Sourcing environment variables from $CURSOR_DIR/load-env.sh"
   source "$CURSOR_DIR/load-env.sh"
 fi

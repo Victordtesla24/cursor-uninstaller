@@ -14,8 +14,7 @@ NC='\033[0m' # No Color
 # Define current directory and paths
 SCRIPT_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
-# SCRIPTS_DIR is no longer used, scripts are in CURSOR_DIR
-# SCRIPTS_DIR="${CURSOR_DIR}/scripts"
+PROJECT_ROOT="$(dirname "$CURSOR_DIR")"
 LOG_DIR="${CURSOR_DIR}/logs"
 LOG_FILE="${LOG_DIR}/agent-runtime-test.log"
 
@@ -86,7 +85,7 @@ critical_files=(
   "${CURSOR_DIR}/github-setup.sh:GitHub Setup Script"
   "${CURSOR_DIR}/retry-utils.sh:Retry Utilities Script"
   "${CURSOR_DIR}/environment.json:Environment JSON"
-  "${CURSOR_DIR}/../Dockerfile:Dockerfile" # Corrected Dockerfile path
+  "${PROJECT_ROOT}/Dockerfile:Dockerfile" # Corrected Dockerfile path
 )
 
 missing_critical_files=false
@@ -165,11 +164,8 @@ else
     # Check if Dockerfile is properly referenced
     if jq -e '.build.dockerfile' "${env_json}" >/dev/null 2>&1; then
       dockerfile_ref=$(jq -r '.build.dockerfile' "${env_json}")
-      # Assuming dockerfile_ref is a simple filename like "Dockerfile"
-      # And environment.json context is already corrected to ".."
-      # The actual Dockerfile path would be CURSOR_DIR/../<dockerfile_ref_value>
-      # For validation, we check this path.
-      expected_dockerfile_path="${CURSOR_DIR}/../${dockerfile_ref}"
+      # Dockerfile is expected to be in the project root
+      expected_dockerfile_path="${PROJECT_ROOT}/${dockerfile_ref}"
       if [ -f "${expected_dockerfile_path}" ]; then
         log_success "Dockerfile reference '${dockerfile_ref}' is valid, found at ${expected_dockerfile_path}"
       else
@@ -241,16 +237,15 @@ if command -v docker &>/dev/null; then
 
     # Create a temporary directory for the build context
     tmp_dir=$(mktemp -d)
-    # Dockerfile is in the parent directory of CURSOR_DIR
-    actual_dockerfile_path="${CURSOR_DIR}/../Dockerfile"
+    # Dockerfile is in the project root
+    actual_dockerfile_path="${PROJECT_ROOT}/Dockerfile"
     if [ ! -f "${actual_dockerfile_path}" ]; then
       log_error "Dockerfile not found at ${actual_dockerfile_path} for build test."
     else
       cp "${actual_dockerfile_path}" "${tmp_dir}/Dockerfile" # Copy Dockerfile to context dir
 
-      # The context for docker build should be the directory containing the Dockerfile, which is CURSOR_DIR/..
+      # The context for docker build should be the directory containing the Dockerfile, which is PROJECT_ROOT
       # However, for this isolated test, we build from tmp_dir where Dockerfile is copied.
-      # If environment.json context is "..", actual agent build uses CURSOR_DIR/.. as context.
       if docker build -t cursor-agent-test:runtime "${tmp_dir}" >> "${LOG_FILE}" 2>&1; then
         log_success "Docker image build successful"
 

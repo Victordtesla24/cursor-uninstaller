@@ -14,8 +14,8 @@ NC='\033[0m' # No Color
 # Define paths
 TEST_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$TEST_DIR")"
+PROJECT_ROOT="$(dirname "$CURSOR_DIR")"
 LOG_DIR="${CURSOR_DIR}/logs"
-SCRIPTS_DIR="${CURSOR_DIR}/scripts"
 LOG_FILE="${LOG_DIR}/docker-env-test.log"
 
 # Create log directory if it doesn't exist
@@ -158,18 +158,15 @@ if [ "$docker_installed" = "true" ]; then
   log "\n${BLUE}Testing Dockerfile validation...${NC}"
   total_tests=$((total_tests + 1))
 
-  # Define Dockerfile path relative to CURSOR_DIR (which is .cursor)
-  DOCKERFILE_PATH_RELATIVE_TO_CURSOR_DIR="../Dockerfile"
-  DOCKERFILE_FULL_PATH="${CURSOR_DIR}/${DOCKERFILE_PATH_RELATIVE_TO_CURSOR_DIR}"
+  # Define Dockerfile path in project root
+  DOCKERFILE_PATH="${PROJECT_ROOT}/Dockerfile"
 
   # Check if the Dockerfile exists
-  if [ -f "${DOCKERFILE_FULL_PATH}" ]; then
-    log "${GREEN}✓ Dockerfile exists at ${DOCKERFILE_FULL_PATH}${NC}"
+  if [ -f "${DOCKERFILE_PATH}" ]; then
+    log "${GREEN}✓ Dockerfile exists at ${DOCKERFILE_PATH}${NC}"
 
     # Get absolute path for Dockerfile
-    # Ensure CURSOR_DIR is an absolute path or realpath might behave unexpectedly from different PWDs
-    ABS_CURSOR_DIR=$(cd "${CURSOR_DIR}" && pwd)
-    ABS_DOCKERFILE_PATH=$(cd "${ABS_CURSOR_DIR}/../" && pwd)/Dockerfile # More robust way to get absolute path
+    ABS_DOCKERFILE_PATH=$(cd "${PROJECT_ROOT}" && pwd)/Dockerfile
 
     # Validate Dockerfile - using absolute path to avoid Docker volume mount issues
     if docker run --rm -v "${ABS_DOCKERFILE_PATH}:/Dockerfile" hadolint/hadolint hadolint /Dockerfile > /dev/null 2>&1; then
@@ -186,7 +183,7 @@ if [ "$docker_installed" = "true" ]; then
       fi
     fi
   else
-    log "${RED}✗ Dockerfile not found at ${DOCKERFILE_FULL_PATH}${NC}"
+    log "${RED}✗ Dockerfile not found at ${DOCKERFILE_PATH}${NC}"
   fi
 
   # Test environment.json Docker configuration

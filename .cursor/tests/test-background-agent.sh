@@ -9,7 +9,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 CURSOR_DIR="$REPO_ROOT/.cursor"
 ENV_JSON="$CURSOR_DIR/environment.json"
 INSTALL_SH="$CURSOR_DIR/install.sh"
-DOCKERFILE="$CURSOR_DIR/Dockerfile"
+DOCKERFILE="$REPO_ROOT/Dockerfile"
 AGENT_PROMPT="$CURSOR_DIR/background-agent-prompt.md"
 
 # Initialize error count

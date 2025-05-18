@@ -20,6 +20,7 @@ SCRIPT_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
 TESTS_DIR="${CURSOR_DIR}/tests"
 LOG_DIR="${CURSOR_DIR}/logs"
+PROJECT_ROOT="$(dirname "$CURSOR_DIR")"
 
 # Create the log directory if it doesn't exist
 mkdir -p "${LOG_DIR}"
@@ -166,7 +167,7 @@ else
   ((failure_count++))
 fi
 
-if check_file "${CURRENT_DIR}/Dockerfile" "Dockerfile" "true"; then
+if check_file "${PROJECT_ROOT}/Dockerfile" "Dockerfile" "true"; then
   ((success_count++))
 else
   ((failure_count++))
@@ -317,8 +318,8 @@ fi
 
 # Validate Dockerfile content
 info "Validating Dockerfile content..."
-if [ -f "${CURRENT_DIR}/Dockerfile" ]; then
-  if grep -q "FROM node:.*" "${CURRENT_DIR}/Dockerfile"; then
+if [ -f "${PROJECT_ROOT}/Dockerfile" ]; then
+  if grep -q "FROM node:.*" "${PROJECT_ROOT}/Dockerfile"; then
     success "Dockerfile has FROM node instruction"
     ((success_count++))
   else
@@ -326,7 +327,7 @@ if [ -f "${CURRENT_DIR}/Dockerfile" ]; then
     ((failure_count++))
   fi
 
-  if grep -q "WORKDIR /agent_workspace" "${CURRENT_DIR}/Dockerfile"; then
+  if grep -q "WORKDIR /agent_workspace" "${PROJECT_ROOT}/Dockerfile"; then
     success "Dockerfile has WORKDIR /agent_workspace"
     ((success_count++))
   else
@@ -334,7 +335,7 @@ if [ -f "${CURRENT_DIR}/Dockerfile" ]; then
     ((failure_count++))
   fi
 
-  if grep -q "USER node" "${CURRENT_DIR}/Dockerfile"; then
+  if grep -q "USER node" "${PROJECT_ROOT}/Dockerfile"; then
     success "Dockerfile has USER node instruction"
     ((success_count++))
   else
@@ -342,7 +343,7 @@ if [ -f "${CURRENT_DIR}/Dockerfile" ]; then
     ((failure_count++))
   fi
 
-  if ! grep -q "COPY" "${CURRENT_DIR}/Dockerfile"; then
+  if ! grep -q "COPY" "${PROJECT_ROOT}/Dockerfile"; then
     success "Dockerfile does not use COPY (as per recommendation)"
     ((success_count++))
   else

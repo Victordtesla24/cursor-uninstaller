@@ -13,7 +13,6 @@ NC='\033[0m' # No Color
 TEST_DIR="$(dirname "$0")"
 CURSOR_DIR="$(dirname "$TEST_DIR")"
 LOG_DIR="${CURSOR_DIR}/logs"
-SCRIPTS_DIR="${CURSOR_DIR}/scripts"
 LOG_FILE="${LOG_DIR}/github-integration-test.log"
 
 # Create log directory if it doesn't exist
@@ -55,10 +54,10 @@ total_tests=0
 passed_tests=0
 
 # Load environment variables
-if [ -f "$SCRIPTS_DIR/load-env.sh" ] && [ -x "$SCRIPTS_DIR/load-env.sh" ]; then
-  log "Sourcing environment variables from $SCRIPTS_DIR/load-env.sh"
+if [ -f "$CURSOR_DIR/load-env.sh" ] && [ -x "$CURSOR_DIR/load-env.sh" ]; then
+  log "Sourcing environment variables from $CURSOR_DIR/load-env.sh"
   # Use . for POSIX compliance instead of source
-  . "$SCRIPTS_DIR/load-env.sh"
+  . "$CURSOR_DIR/load-env.sh"
 fi
 
 # Set default GitHub repo URL if not defined
