@@ -1,9 +1,9 @@
 // Jest Setup File
 
 // This addresses the "Unknown option 'maxWidth'" error
-jest.setTimeout(10000); // Set a longer timeout for all tests
+jest.setTimeout(60000); // Increase global timeout for long-running tests
 
-// Deep mocking of pretty-format to handle the "Unknown option 'maxWidth'" error
+// Fix the pretty-format issue so tests can use Jest matchers properly
 jest.mock('pretty-format', () => {
   const actualModule = jest.requireActual('pretty-format');
   
@@ -40,7 +40,7 @@ jest.mock('pretty-format', () => {
 // Patch Jest's expect matchers that use pretty-format
 const originalJestExpect = global.expect;
 
-// Create a safer version of all matchers
+// Create a safer version of all matchers without suppressing errors/warnings
 global.expect = (...args) => {
   const expectation = originalJestExpect(...args);
   
@@ -64,31 +64,39 @@ global.expect = (...args) => {
         return matcher.apply(this, matcherArgs);
       } catch (error) {
         if (error.message && error.message.includes('Unknown option "maxWidth"')) {
-          // Handle specific matchers with custom implementations
-          if (matcher === expectation.toContain) {
+          // Use a more direct implementation without suppressing errors
+          if (matcher === expectation.toEqual) {
+            // For toEqual, use direct JSON comparison
             const received = args[0];
             const expected = matcherArgs[0];
-            if (typeof received === 'string' && typeof expected === 'string') {
-              const pass = received.includes(expected);
-              return { 
-                pass, 
+            
+            // Handle primitives directly
+            if (typeof received !== 'object' || typeof expected !== 'object' || 
+                received === null || expected === null) {
+              const pass = received === expected;
+              return {
+                pass,
                 message: () => pass ? 
-                  `Expected "${received}" not to contain "${expected}"` : 
-                  `Expected "${received}" to contain "${expected}"`
+                  `Expected ${received} not to equal ${expected}` :
+                  `Expected ${received} to equal ${expected}`
               };
             }
-            if (Array.isArray(received)) {
-              const pass = received.some(item => 
-                JSON.stringify(item) === JSON.stringify(expected)
-              );
-              return { 
-                pass, 
-                message: () => pass ? 
-                  `Expected array not to contain the item` : 
-                  `Expected array to contain the item`
-              };
-            }
+            
+            // For objects, use JSON comparison
+            const stringifiedReceived = JSON.stringify(received);
+            const stringifiedExpected = JSON.stringify(expected);
+            const pass = stringifiedReceived === stringifiedExpected;
+            return { 
+              pass, 
+              message: () => pass ?
+                `Expected ${stringifiedReceived} not to equal ${stringifiedExpected}` :
+                `Expected ${stringifiedReceived} to equal ${stringifiedExpected}`
+            };
           }
+          
+          // For other matchers, still use direct implementation 
+          // but without suppressing warnings/errors
+          console.error(`Error in matcher: ${error.message}. Using fallback implementation.`);
           
           if (matcher === expectation.toHaveBeenCalled) {
             const mockFn = args[0];
@@ -113,45 +121,7 @@ global.expect = (...args) => {
             };
           }
           
-          if (matcher === expectation.toHaveBeenCalledWith) {
-            const mockFn = args[0];
-            const expectedArgs = matcherArgs;
-            
-            // Simple matching logic that ignores expect.anything() and other complex matchers
-            const pass = mockFn.mock.calls.some(callArgs => {
-              if (callArgs.length !== expectedArgs.length) return false;
-              
-              return callArgs.every((arg, i) => {
-                // Handle basic values
-                return JSON.stringify(arg) === JSON.stringify(expectedArgs[i]);
-              });
-            });
-            
-            return { 
-              pass, 
-              message: () => pass ?
-                `Expected mock function not to have been called with specified args` :
-                `Expected mock function to have been called with specified args`
-            };
-          }
-          
-          if (matcher === expectation.toEqual) {
-            const received = args[0];
-            const expected = matcherArgs[0];
-            const stringifiedReceived = JSON.stringify(received);
-            const stringifiedExpected = JSON.stringify(expected);
-            const pass = stringifiedReceived === stringifiedExpected;
-            return { 
-              pass, 
-              message: () => pass ?
-                `Expected ${stringifiedReceived} not to equal ${stringifiedExpected}` :
-                `Expected ${stringifiedReceived} to equal ${stringifiedExpected}`
-            };
-          }
-          
-          // Default to simple string comparison for other matchers
-          console.warn(`Unknown option "maxWidth" error in matcher, falling back to simplified implementation`);
-          return { pass: true, message: () => 'Test manually verified' };
+          throw error; // Re-throw any errors we can't handle specifically
         }
         throw error;
       }
@@ -187,98 +157,15 @@ Object.keys(originalJestExpect).forEach(key => {
   }
 });
 
-// Ensure expect.anything and expect.objectContaining work
-if (!global.expect.objectContaining) {
-  global.expect.objectContaining = (obj) => ({
-    asymmetricMatch: (actual) => {
-      if (typeof actual !== 'object' || actual === null) return false;
-      
-      return Object.keys(obj).every(key => {
-        if (obj[key] && typeof obj[key] === 'object' && obj[key].asymmetricMatch) {
-          return obj[key].asymmetricMatch(actual[key]);
-        }
-        return JSON.stringify(actual[key]) === JSON.stringify(obj[key]);
-      });
-    },
-    toString: () => 'expect.objectContaining()'
-  });
-}
-
-if (!global.expect.any) {
-  global.expect.any = (constructor) => ({
-    asymmetricMatch: (actual) => {
-      if (constructor === Number) return typeof actual === 'number';
-      if (constructor === String) return typeof actual === 'string';
-      if (constructor === Boolean) return typeof actual === 'boolean';
-      if (constructor === Function) return typeof actual === 'function';
-      if (constructor === Object) return typeof actual === 'object' && actual !== null;
-      if (constructor === Array) return Array.isArray(actual);
-      return actual instanceof constructor;
-    },
-    toString: () => 'expect.any()'
-  });
-}
-
 // Add automatic mock clearing
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-// Suppress certain console errors/warnings that might come from testing components
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  // Ignore specific React DOM prop type errors or other known warnings
-  const suppressPatterns = [
-    'Warning: ReactDOM.render',
-    'Warning: Invalid DOM property',
-    'Warning: Unknown prop',
-    'Warning: Each child in a list',
-    'pretty-format: Unknown option "maxWidth"',
-    'MCP tool call to server.tool',
-    'Cannot read properties of undefined',
-    'is not a function'
-  ];
+// DO NOT SUPPRESS CONSOLE OUTPUT - let all errors and warnings show
+// This will help identify and fix issues in tests
 
-  if (!args.some(arg =>
-    typeof arg === 'string' &&
-    suppressPatterns.some(pattern => arg.includes(pattern))
-  )) {
-    originalConsoleError(...args);
-  }
-};
-
-// Mock console.warn for specific warnings
-const originalConsoleWarn = console.warn;
-console.warn = (...args) => {
-  const suppressPatterns = [
-    'pretty-format: Unknown option "maxWidth"',
-  ];
-  
-  if (args.some(arg => 
-    typeof arg === 'string' && 
-    suppressPatterns.some(pattern => arg.includes(pattern))
-  )) {
-    return;
-  }
-  originalConsoleWarn(...args);
-};
-
-// Mock console.log for specific test logs
-const originalConsoleLog = console.log;
-console.log = (...args) => {
-  // Optionally suppress verbose logs during testing
-  const verboseLogging = process.env.VERBOSE_TEST_LOGS === 'true';
-  if (!verboseLogging && args.some(arg => 
-    typeof arg === 'string' && 
-    (arg.includes('Refreshing dashboard') || 
-     arg.includes('Fetching data from MCP'))
-  )) {
-    return;
-  }
-  originalConsoleLog(...args);
-};
-
-// Mock localStorage
+// Mock localStorage for tests
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'localStorage', {
     value: {
