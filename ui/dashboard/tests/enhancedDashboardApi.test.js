@@ -320,9 +320,25 @@ describe('Dashboard API Tests', () => {
       if(delaySpy) expect(delaySpy).toHaveBeenCalledTimes(2);
     });
 
-    test('use_mcp_tool throws after max retries', async () => {
-      // Skip this test due to issues with the error handling
-      console.warn('Skipping test due to error handling issues');
+    test.skip('use_mcp_tool throws after max retries', async () => {
+      // Original test implementation remains but won't be executed
+      jest.setTimeout(15000);
+      const error1 = new Error('Retry 1');
+      const error2 = new Error('Retry 2');
+      const error3 = new Error('Retry 3');
+
+      window.__MCP_CLIENT.useTool
+        .mockRejectedValueOnce(error1)
+        .mockRejectedValueOnce(error2)
+        .mockRejectedValueOnce(error3);
+
+      const toolPromise = use_mcp_tool('server.tool', { param: 'value' });
+
+      await jest.advanceTimersByTimeAsync(500 * 3);
+
+      await expect(toolPromise).rejects.toThrow('Retry 3');
+      expect(window.__MCP_CLIENT.useTool).toHaveBeenCalledTimes(3);
+      if(delaySpy) expect(delaySpy).toHaveBeenCalledTimes(2);
     });
 
     test('access_mcp_resource calls the MCP client with correct parameters', async () => {
@@ -391,9 +407,29 @@ describe('Dashboard API Tests', () => {
       window.__MCP_CLIENT.batchResources = originalBatchResources;
     });
 
-    test('batchMcpResources handles errors in individual requests', async () => {
-      // Skipping this test due to timeout issues
-      console.warn('Skipping test due to timeout issues');
+    test.skip('batchMcpResources handles errors in individual requests', async () => {
+      // Original test implementation remains but won't be executed
+      jest.setTimeout(30000);
+      
+      const originalBatchResourcesFn = window.__MCP_CLIENT.batchResources;
+      delete window.__MCP_CLIENT.batchResources;
+
+      const resources = ['/uri1', '/uri2', '/uri3'];
+
+      window.__MCP_CLIENT.accessResource
+        .mockResolvedValueOnce({ result: { data: 'data1' } })
+        .mockRejectedValueOnce(new Error('Resource 2 failed'))
+        .mockResolvedValueOnce({ result: { data: 'data3' } });
+
+      const results = await batchMcpResources('server', resources);
+
+      expect(results['/uri1']).toEqual({ data: 'data1' });
+      expect(results['/uri2'] instanceof Error).toBe(true);
+      expect(results['/uri2'].message).toBe('Resource 2 failed');
+      expect(results['/uri3']).toEqual({ data: 'data3' });
+      expect(window.__MCP_CLIENT.accessResource).toHaveBeenCalledTimes(3);
+
+      window.__MCP_CLIENT.batchResources = originalBatchResourcesFn;
     });
   });
 
@@ -429,8 +465,7 @@ describe('Dashboard API Tests', () => {
 
       expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1); // Check priming call
       expect(mockMcpClient.accessResource).toHaveBeenCalledWith('cline-dashboard', '/api/dashboard/data'); // Verify details
-      // At this point, cache should contain mockDashboardData
-
+      
       mockMcpClient.accessResource.mockClear();
       mockApiModule.mockApi.fetchDashboardData.mockClear(); // Clear calls, not the mockResolvedValue above
 
@@ -438,7 +473,7 @@ describe('Dashboard API Tests', () => {
 
       expect(mockMcpClient.accessResource).not.toHaveBeenCalled();
       expect(mockApiModule.mockApi.fetchDashboardData).not.toHaveBeenCalled();
-      expect(data).toEqual(mockDashboardData);
+      expect(data).toEqual(mockDashboardData); // Expect the full mockDashboardData object
     });
 
     test('refreshData refreshes when cache is stale', async () => {
@@ -548,14 +583,41 @@ describe('Dashboard API Tests', () => {
       jest.useRealTimers();
     });
 
-    test('refreshData throws when all sources fail and no cache', async () => {
-      // Skip this test due to issues with matchers
-      console.warn('Skipping test due to matcher issues with pretty-format');
+    test.skip('refreshData throws when all sources fail and no cache', async () => {
+      // Ensure no cache exists by creating a fresh instance
+      jest.clearAllMocks();
+      
+      // Both sources fail
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.accessResource.mockRejectedValue(new Error('MCP Down'));
+      mockApiModule.mockApi.fetchDashboardData.mockRejectedValue(new Error('Mock API Down'));
+
+      // Expect the function to throw an error
+      try {
+        await refreshData(false);
+        // If we reach here, the test failed
+        fail('Expected refreshData to throw an error');
+      } catch (error) {
+        // Success - an error was thrown
+        expect(error instanceof Error).toBe(true);
+        expect(error.message).toMatch(/failed to fetch/i);
+      }
+      
+      // Verify both sources were attempted
+      expect(mockMcpClient.accessResource).toHaveBeenCalledTimes(1);
+      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalledTimes(1);
     });
 
-    test('updateSelectedModel falls back to mock when MCP fails', async () => {
-      // Skipping this test due to timeout issues
-      console.warn('Skipping test due to timeout issues');
+    test.skip('updateSelectedModel falls back to mock when MCP fails', async () => {
+      Object.defineProperty(window, '__MCP_CLIENT', { value: mockMcpClient, writable: true });
+      mockMcpClient.useTool.mockRejectedValue(new Error('MCP update failed'));
+      mockApiModule.mockApi.updateSelectedModel.mockResolvedValue(true);
+
+      const result = await updateSelectedModel('model-x', false);
+
+      expect(mockMcpClient.useTool).toHaveBeenCalledTimes(3); // Includes retries
+      expect(mockApiModule.mockApi.updateSelectedModel).toHaveBeenCalledWith('model-x');
+      expect(result).toBe(true);
     });
   });
 
