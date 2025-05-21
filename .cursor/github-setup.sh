@@ -162,7 +162,7 @@ check_git_repository() {
 refresh_github_token() {
   log "Refreshing GitHub access token..."
 
-  # Check for existing token-based URL configurations
+  # First remove any existing token-based URL configurations to avoid conflicts
   if git config --global --get-regexp "url.https://x-access-token:.*@github.com/.insteadOf" > /dev/null 2>&1; then
     log "Removing existing token-based URL configurations..."
     git config --global --unset-all "url.https://x-access-token:.*@github.com/.insteadOf" || log "Failed to unset existing token configurations"
@@ -171,7 +171,30 @@ refresh_github_token() {
   # Check if we have a GitHub token environment variable set by Cursor
   if [ -n "${GITHUB_TOKEN}" ]; then
     log "Setting up GitHub access token for repository access..."
-    git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" || log "Failed to set token-based URL"
+    
+    # Method 1: Use Git credential store (more reliable)
+    if [ -n "${GITHUB_USERNAME}" ]; then
+      log "Configuring git credential store with GitHub token..."
+      git config --global credential.helper store
+      
+      # Create credential entry (securely)
+      if ! grep -q "github.com" "${HOME}/.git-credentials" 2>/dev/null; then
+        echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > "${HOME}/.git-credentials"
+        chmod 600 "${HOME}/.git-credentials" || log "Warning: Could not set permissions on git credentials file"
+        log "Added GitHub credentials to credential store"
+      else
+        log "GitHub credentials already exist in credential store"
+      fi
+    else
+      # Fallback to token in URL if username not available
+      log "GitHub username not found, using token-based URL method..."
+      git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" || {
+        log "Failed to set token-based URL. Trying alternative method..."
+        # Alternative method using credential.helper directly
+        git config --global credential.helper "!f() { echo username=x-access-token; echo password=${GITHUB_TOKEN}; }; f"
+      }
+    fi
+    
     log "GitHub token configuration completed."
   else
     log "No GitHub token found in environment. Cursor background agent should provide this."

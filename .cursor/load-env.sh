@@ -76,21 +76,60 @@ load_env_file "${REPO_ROOT}/.env" "repository root .env"
 # Load from repository root env.txt
 load_env_file "${REPO_ROOT}/env.txt" "repository root env.txt"
 
+# Function to validate GitHub token
+validate_github_token() {
+  local token="$1"
+  
+  # Check if the token is empty or a placeholder
+  if [ -z "$token" ] || [[ "$token" == *"REPLACE_THIS"* ]] || [[ "$token" == *"<"*">"* ]]; then
+    log "WARNING: GitHub token appears to be invalid, empty, or a placeholder"
+    return 1
+  fi
+  
+  # Basic format check (GitHub PATs have a specific format)
+  if [[ ! "$token" =~ ^github_pat_ ]]; then
+    log "WARNING: GitHub token does not appear to have the correct format"
+    return 1
+  fi
+  
+  # Token seems valid based on format
+  return 0
+}
+
+# After loading environment variables, validate critical ones
+log "Validating critical environment variables..."
+
 # Set default values for critical variables if not already set
 : "${GITHUB_REPO_URL:=https://github.com/Victordtesla24/cursor-uninstaller.git}"
 : "${NODE_ENV:=development}"
 : "${PORT:=3000}"
 : "${LOG_LEVEL:=debug}"
+: "${GITHUB_USERNAME:=Victordtesla24}"
 
-# Export default values if they weren't already set
+# Export default values
 export GITHUB_REPO_URL
 export NODE_ENV
 export PORT
 export LOG_LEVEL
+export GITHUB_USERNAME
+
+# Validate GitHub token if present
+if [ -n "${GITHUB_TOKEN}" ]; then
+  if validate_github_token "${GITHUB_TOKEN}"; then
+    log "GitHub token validation passed"
+  else
+    log "WARNING: GitHub token validation failed. GitHub operations may be limited."
+    log "Consider regenerating your GitHub token at https://github.com/settings/tokens"
+  fi
+else
+  log "WARNING: GITHUB_TOKEN is not set. GitHub operations will be limited."
+  log "Set GITHUB_TOKEN in your env.txt or .env file for full GitHub access."
+fi
 
 # Log the final values of important environment variables (mask sensitive values)
 log "Final environment configuration:"
 log "GITHUB_REPO_URL=${GITHUB_REPO_URL}"
+log "GITHUB_USERNAME=${GITHUB_USERNAME}"
 log "NODE_ENV=${NODE_ENV}"
 log "PORT=${PORT}"
 log "LOG_LEVEL=${LOG_LEVEL}"

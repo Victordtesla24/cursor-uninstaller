@@ -4,14 +4,36 @@ This document provides solutions to common issues that may arise with the Cursor
 
 ## Table of Contents
 
-1. [GitHub Authentication Issues](#github-authentication-issues)
-2. [Logging Issues](#logging-issues)
-3. [Terminal Output Issues](#terminal-output-issues)
-4. [Dependencies Installation Issues](#dependencies-installation-issues)
-5. [Docker-related Issues](#docker-related-issues)
-6. [Log File Creation Issues](#log-file-creation-issues)
-7. [Environment Configuration Issues](#environment-configuration-issues)
-8. [Git Repository Issues](#git-repository-issues)
+- [Background Agent Troubleshooting Guide](#background-agent-troubleshooting-guide)
+  - [Table of Contents](#table-of-contents)
+  - [GitHub Authentication Issues](#github-authentication-issues)
+    - [Symptoms](#symptoms)
+    - [Solutions](#solutions)
+  - [Logging Issues](#logging-issues)
+    - [Symptoms](#symptoms-1)
+    - [Solutions](#solutions-1)
+  - [Terminal Output Issues](#terminal-output-issues)
+    - [Symptoms](#symptoms-2)
+    - [Solutions](#solutions-2)
+  - [Dependencies Installation Issues](#dependencies-installation-issues)
+    - [Symptoms](#symptoms-3)
+    - [Solutions](#solutions-3)
+  - [Docker-related Issues](#docker-related-issues)
+    - [Symptoms](#symptoms-4)
+    - [Solutions](#solutions-4)
+  - [Log File Creation Issues](#log-file-creation-issues)
+    - [Symptoms](#symptoms-5)
+    - [Solutions](#solutions-5)
+  - [Environment Configuration Issues](#environment-configuration-issues)
+    - [Symptoms](#symptoms-6)
+    - [Solutions](#solutions-6)
+  - [Git Repository Issues](#git-repository-issues)
+    - [Symptoms](#symptoms-7)
+    - [Solutions](#solutions-7)
+  - [General Troubleshooting Steps](#general-troubleshooting-steps)
+  - [GitHub Permission Errors (403, 401)](#github-permission-errors-403-401)
+    - [Symptoms](#symptoms-8)
+    - [Solutions](#solutions-8)
 
 ## GitHub Authentication Issues
 
@@ -320,3 +342,64 @@ This document provides solutions to common issues that may arise with the Cursor
    - Use `Cmd/Ctrl + '` to access the agent menu and create a new agent
 
 For issues not covered here, please report them to the Cursor team through the Discord #background-agent channel or via email to background-agent-feedback@cursor.com.
+
+## GitHub Permission Errors (403, 401)
+
+### Symptoms
+- "Permission to [repository] denied to [username]" errors when pushing
+- "The requested URL returned error: 403" messages 
+- Push/pull operations fail with authentication errors
+- Error messages indicating "remote: Permission to [repo] denied"
+
+### Solutions
+
+1. **Check and Update GitHub Token**
+   - The most common cause of permission errors is an expired or invalid GitHub token
+   - Generate a new Personal Access Token (PAT) from GitHub Settings:
+     1. Go to https://github.com/settings/tokens
+     2. Click "Generate new token" and select "Classic"
+     3. Give it a name like "Cursor Background Agent"
+     4. Check the "repo" permission to grant full access to repositories
+     5. Copy the generated token and update your `.env` file:
+     ```
+     GITHUB_TOKEN=github_pat_YOUR_NEW_TOKEN_HERE
+     ```
+
+2. **Fix Authentication Configuration Issues**
+   - Clean up existing token configurations:
+   ```bash
+   # Remove all token-based URL configurations
+   git config --global --unset-all "url.https://x-access-token:*@github.com/.insteadOf"
+   
+   # Set up proper credential helper
+   git config --global credential.helper store
+   
+   # Add your credentials to the store (replace with your values)
+   echo "https://YOUR_USERNAME:YOUR_TOKEN@github.com" > ~/.git-credentials
+   chmod 600 ~/.git-credentials
+   ```
+
+3. **Run the GitHub Setup Script to Reconfigure**
+   - The `.cursor/github-setup.sh` script can automatically fix many GitHub authentication issues:
+   ```bash
+   bash .cursor/github-setup.sh
+   ```
+
+4. **Verify Repository Access**
+   - Ensure your GitHub account has proper access to the repository
+   - For organization repositories, check if your access is still valid
+   - Confirm you have write access to the repository in GitHub repository settings
+
+5. **Check for Two-Factor Authentication Issues**
+   - If you have 2FA enabled, you must use a PAT token instead of password
+   - Ensure your PAT has the necessary permissions for the repository
+
+6. **Correct Remote URL Format**
+   - Verify your remote URL is correctly formatted:
+   ```bash
+   # Check current remote
+   git remote -v
+   
+   # Set correct remote if needed
+   git remote set-url origin https://github.com/USERNAME/REPOSITORY.git
+   ```
