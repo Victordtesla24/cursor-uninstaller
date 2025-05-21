@@ -47,14 +47,24 @@ describe('TokenUtilization Coverage Tests', () => {
   });
 
   test('renders trend indicators correctly', () => {
-    render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
+    const { container } = render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
 
-    // Check for trend indicators
-    const decreaseTrend = screen.getByText(/5\.2%/);
-    expect(decreaseTrend).toBeInTheDocument();
-
-    const increaseTrend = screen.getByText(/3\.7%/);
-    expect(increaseTrend).toBeInTheDocument();
+    // Using a more flexible approach to find trend indicators
+    // Instead of using getByText with regex which might not work if text is split across elements
+    const containerText = container.textContent;
+    
+    // Check if the text content includes the trend values
+    expect(containerText).toMatch(/5\.2%/);
+    expect(containerText).toMatch(/3\.7%/);
+    
+    // Alternative approach using query selector for specific badge elements
+    const badges = container.querySelectorAll('.mock-badge');
+    const badgeTexts = Array.from(badges).map(badge => badge.textContent);
+    
+    // Check if any badge contains our trend values
+    const hasTrends = badgeTexts.some(text => text.includes('5.2')) && 
+                     badgeTexts.some(text => text.includes('3.7'));
+    expect(hasTrends).toBe(true);
   });
 
   test('handles no data gracefully', () => {
