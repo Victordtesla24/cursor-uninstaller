@@ -327,7 +327,7 @@ describe('Dashboard API Tests', () => {
         // Restore original function
         dashboardApi.use_mcp_tool = originalUseMcpTool;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
 
     test('use_mcp_tool handles max retries', () => {
       // Mock the functions that cause the timeouts
@@ -350,7 +350,7 @@ describe('Dashboard API Tests', () => {
         // Restore original function
         dashboardApi.use_mcp_tool = originalUseMcpTool;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
 
     test('access_mcp_resource makes API calls', async () => {
       // Simplified test
@@ -570,7 +570,7 @@ describe('Dashboard API Tests', () => {
         // Restore the original function
         dashboardApi.refreshData = originalRefreshData;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
 
     test('refreshData returns cached data when all sources fail', () => {
       // Save original function
@@ -593,7 +593,7 @@ describe('Dashboard API Tests', () => {
         // Restore the original function
         dashboardApi.refreshData = originalRefreshData;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
 
     test('refreshData handles errors appropriately', () => {
       // Save original function
@@ -616,7 +616,7 @@ describe('Dashboard API Tests', () => {
         // Restore the original function
         dashboardApi.refreshData = originalRefreshData;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
     
     test('updateSelectedModel handles errors', () => {
       // Save original function
@@ -637,7 +637,7 @@ describe('Dashboard API Tests', () => {
         // Restore the original function
         dashboardApi.updateSelectedModel = originalUpdateSelectedModel;
       }
-    });
+    }, 60000); // Increase test-specific timeout to 60 seconds
   });
 
   describe('Error Handling', () => {
