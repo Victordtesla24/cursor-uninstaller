@@ -20,22 +20,18 @@ const Switch = ({
   };
 
   return (
-    <button
-      type="button"
+    <input
+      type="checkbox"
       role="switch"
-      aria-checked={checked}
+      aria-checked={checked ? 'true' : 'false'}
       id={id}
-      data-state={checked ? 'checked' : 'unchecked'}
-      className={`peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-input'} ${className}`}
-      onClick={handleClick}
+      checked={checked}
+      onChange={(e) => onCheckedChange && onCheckedChange(e.target.checked)}
       disabled={disabled}
+      className={`peer relative inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer appearance-none items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-input'} ${className}`}
+      data-state={checked ? 'checked' : 'unchecked'}
       {...props}
-    >
-      <span
-        data-state={checked ? 'checked' : 'unchecked'}
-        className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
-      />
-    </button>
+    />
   );
 };
 

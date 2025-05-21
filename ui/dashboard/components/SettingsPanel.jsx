@@ -81,7 +81,11 @@ const SettingsPanel = ({
       settings: [
         { id: 'autoRefresh', label: 'Auto Refresh', description: 'Automatically refresh data at regular intervals', icon: <RefreshCwIcon className="h-4 w-4" /> },
         { id: 'darkMode', label: 'Dark Mode', description: 'Use dark color theme for the dashboard', icon: <MoonIcon className="h-4 w-4" /> },
-        { id: 'compactMode', label: 'Compact Mode', description: 'Display information in a more condensed layout', icon: <LayoutGrid className="h-4 w-4" /> }
+        { id: 'compactMode', label: 'Compact Mode', description: 'Display information in a more condensed layout', icon: <LayoutGrid className="h-4 w-4" /> },
+        { id: 'autoModelSelection', label: 'Auto Model Selection', description: 'Automatically select the most appropriate model based on context' },
+        { id: 'cachingEnabled', label: 'Caching Enabled', description: 'Enable response caching to reduce token usage' },
+        { id: 'contextWindowOptimization', label: 'Context Window Optimization', description: 'Optimize context window usage for better performance' },
+        { id: 'outputMinimization', label: 'Output Minimization', description: 'Minimize output tokens where possible' }
       ]
     },
     notifications: {
@@ -169,12 +173,8 @@ const SettingsPanel = ({
   // Handle budget input change
   const handleBudgetChange = (e) => {
     const value = e.target.value.replace(/,/g, '');
-
-    // Allow empty string or numbers
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setBudgetValue(value);
-      setBudgetError('');
-    }
+    setBudgetValue(value);
+    setBudgetError('');
   };
 
   // Get color for budget badges based on value
@@ -216,6 +216,7 @@ const SettingsPanel = ({
         <Switch
           id={`toggle-${settingId}`}
           checked={isEnabled}
+          aria-checked={isEnabled ? 'true' : 'false'}
           onCheckedChange={(checked) => onSettingChange(settingId, checked)}
           data-testid={`setting-${settingId}`}
           className="mt-1"

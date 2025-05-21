@@ -301,7 +301,7 @@ const TokenUtilization = ({
                             aria-label={`Trending down ${tokenData.trends[category].toFixed(1)} percent`}
                           >
                             <TrendingDown className="mr-1 h-3 w-3" aria-hidden="true" />
-                            <span>{tokenData.trends[category].toFixed(1)}</span>%
+                            {tokenData.trends[category].toFixed(1)}%
                           </Badge>
                         )}
                       </div>

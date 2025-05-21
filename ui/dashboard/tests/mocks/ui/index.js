@@ -30,8 +30,15 @@ export const CardTitle = ({ className = '', children, ...props }) => (
 );
 
 // Collapsible components
-export const Collapsible = ({ className = '', children, ...props }) => (
-  <div className={`mock-collapsible ${className}`} data-testid="mock-collapsible" {...props}>{children}</div>
+export const Collapsible = ({ className = '', children, open = false, ...props }) => (
+  <div
+    data-testid="mock-collapsible"
+    data-open={open ? 'true' : 'false'}
+    className={`mock-collapsible ${className}`.trim()}
+    {...props}
+  >
+    {children}
+  </div>
 );
 
 export const CollapsibleContent = ({ className = '', children, ...props }) => (
