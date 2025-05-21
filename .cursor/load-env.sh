@@ -15,7 +15,8 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] LOAD-ENV: $1" | tee -a "${ENV_LOG}"
 }
 

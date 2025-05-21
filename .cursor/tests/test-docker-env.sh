@@ -28,7 +28,8 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] DOCKER-TEST: $1" | tee -a "${DOCKER_LOG}"
 }
 
@@ -100,18 +101,15 @@ if ! docker info &> /dev/null; then
   log "${YELLOW}⚠ Attempting to start Docker daemon...${NC}"
   
   # Try to start Docker daemon based on system
-  DOCKER_STARTED=false
   if command -v systemctl &> /dev/null; then
     if sudo systemctl start docker; then
       log "${GREEN}✓ Docker daemon started successfully using systemctl${NC}"
-      DOCKER_STARTED=true
     else
       log "${RED}✗ Failed to start Docker daemon using systemctl${NC}"
     fi
   elif command -v service &> /dev/null; then
     if sudo service docker start; then
       log "${GREEN}✓ Docker daemon started successfully using service${NC}"
-      DOCKER_STARTED=true
     else
       log "${RED}✗ Failed to start Docker daemon using service${NC}"
     fi
@@ -382,7 +380,7 @@ if run_test "Docker image build" "docker build --no-cache -t ${TEST_TAG} -f \"${
     
     env_test_output=$(mktemp)
     if run_test "Environment variable propagation" "docker run --rm -e TEST_VAR='test_value' ${TEST_TAG} /bin/bash -c 'echo \$TEST_VAR'" "$env_test_output"; then
-      env_value=$(cat "$env_test_output" | tr -d '\r\n')
+      env_value=$(tr -d '\r\n' < "$env_test_output")
       if [ "$env_value" = "test_value" ]; then
         log "${GREEN}✓ Environment variable propagation works correctly: $env_value${NC}"
       else
@@ -400,7 +398,7 @@ if run_test "Docker image build" "docker build --no-cache -t ${TEST_TAG} -f \"${
     
     workdir_output=$(mktemp)
     if run_test "Working directory check" "docker run --rm ${TEST_TAG} pwd" "$workdir_output"; then
-      workdir_path=$(cat "$workdir_output" | tr -d '\r\n')
+      workdir_path=$(tr -d '\r\n' < "$workdir_output")
       if [ "$workdir_path" = "/agent_workspace" ]; then
         log "${GREEN}✓ Working directory is correctly set to: $workdir_path${NC}"
       else
@@ -418,7 +416,7 @@ if run_test "Docker image build" "docker build --no-cache -t ${TEST_TAG} -f \"${
     
     user_output=$(mktemp)
     if run_test "User context check" "docker run --rm ${TEST_TAG} id" "$user_output"; then
-      user_info=$(cat "$user_output")
+      user_info=$(<"$user_output")
       if echo "$user_info" | grep -q "uid=0(root)"; then
         log "${RED}✗ Container is running as root user, which violates Cursor's security guidelines${NC}"
         FAILURES=$((FAILURES + 1))

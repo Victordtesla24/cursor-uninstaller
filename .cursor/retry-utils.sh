@@ -44,7 +44,8 @@ ensure_dir() {
 # Ensure log file exists with proper error handling
 ensure_file() {
     local file="$1"
-    local dir=$(dirname "$file")
+    local dir
+    dir=$(dirname "$file")
 
     # First ensure parent directory exists
     ensure_dir "$dir" || return 1
@@ -76,7 +77,8 @@ init_logging() {
 # Logging function
 log_retry() {
     local message="$1"
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local log_message="[$timestamp] RETRY_UTIL: $message" # Changed prefix to RETRY_UTIL
 
     # First try to write to log file, fallback to stderr if that fails
@@ -94,71 +96,74 @@ log_retry() {
 retry() {
   local max_attempts=$1
   local backoff_factor=$2
-  local cmd="${@:3}"
+  local cmd=("${@:3}") # Fixed SC2124: Use array assignment
   local attempts=0
   local exit_code=0
   local wait_time=1
   
-  while [[ $attempts -lt $max_attempts ]]; do
-    attempts=$((attempts + 1))
-    
-    echo "Attempt $attempts/$max_attempts: $cmd"
-    
-    # Execute the command
-    eval "$cmd"
-    exit_code=$?
-    
-    # If command succeeds, return success
-    if [[ $exit_code -eq 0 ]]; then
-      echo "Command succeeded on attempt $attempts"
-      return 0
-    fi
-    
-    # If this was the last attempt, return failure
-    if [[ $attempts -eq $max_attempts ]]; then
-      echo "Command failed after $attempts attempts: $cmd (exit code: $exit_code)"
-      return $exit_code
-    fi
-    
-    # Calculate backoff time
-    wait_time=$(bc <<< "scale=1; $backoff_factor * $wait_time" 2>/dev/null || echo "$((backoff_factor * wait_time))")
-    
-    echo "Command failed (exit code: $exit_code). Retrying in $wait_time seconds..."
-    sleep "$wait_time"
-  done
+  echo "Attempt $attempts/$max_attempts: ${cmd[*]}" # Use ${cmd[*]} to print array elements
   
-  # This should not be reached, but return failure if it is
-  return 1
+  # Execute the command
+  eval "${cmd[*]}" # Use ${cmd[*]} to execute command from array
+  exit_code=$?
+  
+  # If command succeeds, return success
+  if [[ $exit_code -eq 0 ]]; then
+    echo "Command succeeded on attempt $attempts"
+    return 0
+  fi
+  
+  # If this was the last attempt, return failure
+  if [[ $attempts -eq $max_attempts ]]; then
+    echo "Command failed after $attempts attempts: ${cmd[*]} (exit code: $exit_code)" # Use ${cmd[*]}
+    return $exit_code
+  fi
+  
+  # Calculate backoff time
+  wait_time=$(bc <<< "scale=1; $backoff_factor * $wait_time" 2>/dev/null || echo "$((backoff_factor * wait_time))")
+  
+  echo "Command failed (exit code: $exit_code). Retrying in $wait_time seconds..."
+  sleep "$wait_time"
 }
 
 # Function to run a command with a timeout
 # Usage: run_with_timeout <timeout_seconds> <command>
 run_with_timeout() {
   local timeout=$1
-  local cmd="${@:2}"
+  local cmd=("${@:2}") # Fixed SC2124: Use array assignment
   local pid=""
   local exit_code=0
-  local timed_out=0
+  local timed_out_flag_file
+  timed_out_flag_file=$(mktemp)
+  echo "0" > "${timed_out_flag_file}" # 0 for not timed out, 1 for timed out
   
-  echo "Running command with ${timeout}s timeout: $cmd"
+  echo "Running command with ${timeout}s timeout: ${cmd[*]}" # Use ${cmd[*]}
   
   # Run command in the background
-  eval "$cmd" &
+  eval "${cmd[*]}" & # Use ${cmd[*]}
   pid=$!
   
   # Monitor the command with timeout
   {
     sleep "$timeout"
-    echo "Command timed out after ${timeout}s: $cmd"
-    kill -TERM $pid >/dev/null 2>&1 || true
-    timed_out=1
-  } &
+    # Check if the process is still running
+    if ps -p $pid > /dev/null; then
+      echo "Command timed out after ${timeout}s: ${cmd[*]}" # Use ${cmd[*]}
+      kill -TERM $pid >/dev/null 2>&1 || true
+      echo "1" > "${timed_out_flag_file}" # Set flag to 1 (timed out)
+    fi
+  } &  
   local monitor_pid=$!
   
   # Wait for the command to finish
   wait $pid
   exit_code=$?
   
+  # Check the timed_out flag from the file
+  local timed_out
+  timed_out=$(<"${timed_out_flag_file}")
+  rm -f "${timed_out_flag_file}"
+
   # Kill the monitor process if command completed before timeout
   if [[ $timed_out -eq 0 ]]; then
     kill -TERM $monitor_pid >/dev/null 2>&1 || true
@@ -177,9 +182,9 @@ retry_with_timeout() {
   local max_attempts=$1
   local backoff_factor=$2
   local timeout=$3
-  local cmd="${@:4}"
+  local cmd=("${@:4}") # Fixed SC2124: Use array assignment
   
-  retry "$max_attempts" "$backoff_factor" "run_with_timeout $timeout $cmd"
+  retry "$max_attempts" "$backoff_factor" "run_with_timeout $timeout ${cmd[*]}" # Pass cmd elements correctly
   return $?
 }
 
@@ -226,7 +231,7 @@ safe_git_pull() {
   
   # Determine current branch if not specified
   if [[ -z "$branch" ]]; then
-    branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main") # SC2155 is fine here as it's a common pattern for default assignment.
   fi
   
   echo "Pulling latest changes from $branch in $target_dir"
@@ -267,7 +272,8 @@ safe_npm_install() {
 log_message() {
     local log_file=$1
     local message=$2
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # Use RETRY_UTILS_AGENT_LOG if $log_file is empty or non-specific
     local target_log_file="${log_file:-${RETRY_UTILS_AGENT_LOG}}"
     local formatted_message="[$timestamp] RETRY_MSG: $message" # Changed prefix

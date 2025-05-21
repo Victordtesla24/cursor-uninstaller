@@ -31,6 +31,16 @@ RUN apt-get update && \
     vim-tiny=2:9.0.* \
     python3=3.11.* \
     python3-pip=23.0.* && \
+    # Setup Docker repository and install Docker CLI
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli=5:* && \
     # Add GitHub CLI installation
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -43,6 +53,10 @@ RUN apt-get update && \
 
 # Install npm global packages for diagnostics and development
 RUN npm install -g npm@10.2.5 vite@5.0.8 nodemon@3.0.2 concurrently@8.2.2
+
+# Configure sudo for the node user to start Docker services without a password
+RUN echo 'node ALL=(ALL) NOPASSWD: /usr/sbin/service docker start, /usr/sbin/service docker status, /usr/sbin/service docker stop, /bin/systemctl start docker, /bin/systemctl status docker, /bin/systemctl stop docker' > /etc/sudoers.d/node-docker && \
+    chmod 0440 /etc/sudoers.d/node-docker
 
 # Set environment variables
 ENV NODE_ENV=development

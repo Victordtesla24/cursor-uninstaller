@@ -26,7 +26,8 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] GITHUB-TEST: $1" | tee -a "${GIT_LOG}"
 }
 
@@ -81,7 +82,7 @@ if command -v git &> /dev/null; then
   # Check Git version
   git_output=$(mktemp)
   if run_test "Git version" "git --version" "$git_output"; then
-    git_version=$(cat "$git_output" | tr -d '\r\n')
+    git_version=$(tr -d '\r\n' < "$git_output")
     log "${GREEN}✓ Git available: ${git_version}${NC}"
   else
     log "${RED}✗ Unable to determine Git version${NC}"
@@ -134,9 +135,9 @@ if run_test "GitHub connectivity" "curl -s https://api.github.com/status -o ${co
   else
     # GitHub is accessible but may have issues
     log "${YELLOW}⚠ GitHub API is accessible but status might not be optimal:${NC}"
-    cat "${connectivity_output}" | while IFS= read -r line; do
+    while IFS= read -r line; do
       log "${YELLOW}ℹ | ${line}${NC}"
-    done
+    done < "${connectivity_output}"
     # Not counting as a failure as long as we can connect
   fi
 else
@@ -251,7 +252,7 @@ rm -f "$auth_check_output"
 # Check for SSH keys
 ssh_check_output=$(mktemp)
 if run_test "GitHub SSH key check" "find ~/.ssh -name 'id_*' -not -name '*.pub' 2>/dev/null | wc -l" "$ssh_check_output"; then
-  ssh_key_count=$(cat "$ssh_check_output" | tr -d '\r\n' | tr -d ' ')
+  ssh_key_count=$(tr -d '\r\n' < "$ssh_check_output" | tr -d ' ')
   if [ "$ssh_key_count" -gt 0 ]; then
     log "${GREEN}✓ SSH keys found (${ssh_key_count} keys)${NC}"
     

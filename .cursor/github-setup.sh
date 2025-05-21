@@ -35,7 +35,8 @@ ensure_dir() {
 # Ensure log file exists with proper error handling
 ensure_file() {
   local file="$1"
-  local dir=$(dirname "$file")
+  local dir
+  dir=$(dirname "$file")
 
   # First ensure parent directory exists
   ensure_dir "$dir" || return 1
@@ -69,7 +70,8 @@ if ! ensure_dir "${CURSOR_LOG_DIR}"; then
   echo "WARNING: Could not create log directory. Logging to console only." >&2
   # Define a fallback log function that only prints to console
   log() {
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "[${timestamp}] GITHUB-SETUP: $1" >&2
   }
 else
@@ -78,13 +80,15 @@ else
     echo "WARNING: Could not create log file. Logging to console only." >&2
     # Define a fallback log function that only prints to console
     log() {
-      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      local timestamp
+      timestamp=$(date +"%Y-%m-%d %H:%M:%S")
       echo "[${timestamp}] GITHUB-SETUP: $1" >&2
     }
   else
     # Regular log function that writes to both console and log file
     log() {
-      local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+      local timestamp
+      timestamp=$(date +"%Y-%m-%d %H:%M:%S")
       echo "[${timestamp}] GITHUB-SETUP: $1" | tee -a "${CURSOR_AGENT_LOG}" 2>/dev/null || echo "[${timestamp}] GITHUB-SETUP: $1" >&2
     }
   fi
@@ -310,7 +314,8 @@ verify_github_access() {
 create_test_branch() {
   if [ "$1" == "true" ]; then
     log "Creating test branch to verify GitHub integration..."
-    local test_branch="bg-agent-test-$(date +%Y%m%d%H%M%S)"
+    local test_branch
+    test_branch="bg-agent-test-$(date +%Y%m%d%H%M%S)"
 
     if git checkout -b "$test_branch"; then
       log "Created test branch: $test_branch"

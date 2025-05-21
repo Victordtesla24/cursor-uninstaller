@@ -26,7 +26,8 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] LINT-TEST: $1" | tee -a "${LINT_LOG}"
 }
 
@@ -55,7 +56,7 @@ run_test() {
     # Show line count if more than 20 lines
     line_count=$(wc -l < "$output_file")
     if [ "$line_count" -gt 20 ]; then
-      log "${BLUE}ℹ | ...and $(($line_count - 20)) more lines${NC}"
+      log "${BLUE}ℹ | ...and $((line_count - 20)) more lines${NC}"
     fi
   else
     log "${BLUE}ℹ Command produced no output${NC}"
@@ -108,7 +109,7 @@ else
   
   while IFS= read -r script; do
     syntax_check_output=$(mktemp)
-    script_rel_path="${script#$REPO_ROOT/}"
+    script_rel_path="${script#"$REPO_ROOT"/}"
     
     if run_test "Shell syntax: ${script_rel_path}" "bash -n \"${script}\"" "$syntax_check_output"; then
       log "${GREEN}✓ ${script_rel_path}: Shell syntax OK${NC}"
@@ -144,19 +145,19 @@ if command_exists shellcheck; then
     log "${YELLOW}⚠ No shell scripts found in .cursor directory for shellcheck analysis${NC}"
   else
     # Use shellcheck on each script with a reasonable subset of checks
-    shellcheck_errors=0
     
     while IFS= read -r script; do
       shellcheck_output=$(mktemp)
-      script_rel_path="${script#$REPO_ROOT/}"
+      script_rel_path="${script#"$REPO_ROOT"/}"
       
       # Run shellcheck with common rules, excluding some noisy ones
       # Use -W0 (zero) to treat warnings as informational only
-      if run_test "ShellCheck: ${script_rel_path}" "shellcheck -e SC1090,SC1091,SC2086 -W0 \"${script}\"" "$shellcheck_output"; then
+      if run_test "ShellCheck: ${script_rel_path}" "shellcheck -e SC1090,SC1091,SC2086 \"${script}\"" "$shellcheck_output"; then
         log "${GREEN}✓ ${script_rel_path}: No critical shellcheck issues found${NC}"
       else
         log "${YELLOW}⚠ ${script_rel_path}: ShellCheck found style suggestions${NC}"
         # Not counting warnings as errors that fail the test
+        FAILURES=$((FAILURES + 1)) # Count ShellCheck issues as failures
       fi
       
       rm -f "$shellcheck_output"
@@ -190,7 +191,7 @@ json_errors=0
 for json_file in "${json_files[@]}"; do
   if [ -f "${json_file}" ]; then
     json_check_output=$(mktemp)
-    json_rel_path="${json_file#$REPO_ROOT/}"
+    json_rel_path="${json_file#"$REPO_ROOT"/}"
     
     # Check JSON syntax using jq if available
     if command_exists jq; then
@@ -218,12 +219,12 @@ for json_file in "${json_files[@]}"; do
       fi
     else
       log "${YELLOW}⚠ No suitable JSON validator found (jq, python3, or node)${NC}"
-      log "${YELLOW}⚠ Cannot validate JSON syntax for ${json_rel_path}${NC}"
+      log "${YELLOW}⚠ Cannot validate JSON syntax for ${json_rel_path}"
     fi
     
     rm -f "$json_check_output"
   else
-    log "${YELLOW}⚠ JSON file not found: ${json_file#$REPO_ROOT/}${NC}"
+    log "${YELLOW}⚠ JSON file not found: ${json_file#"$REPO_ROOT"/}${NC}"
   fi
 done
 
@@ -340,18 +341,20 @@ if [ -f "${REPO_ROOT}/package.json" ]; then
       else
         # Try to run ESLint on the sample files
         if command_exists eslint; then
-          if run_test "ESLint sample check" "eslint --no-ignore --max-warnings=100 $(cat ${js_files_output})" "$eslint_output"; then
+          if run_test "ESLint sample check" "eslint --no-ignore --max-warnings=0 $(cat ${js_files_output})" "$eslint_output"; then # Set max-warnings to 0
             log "${GREEN}✓ ESLint sample check passed${NC}"
           else
             log "${YELLOW}⚠ ESLint found issues (expected during development)${NC}"
             # Not counting ESLint warnings as test failures since they're expected
+            FAILURES=$((FAILURES + 1)) # Count ESLint issues as failures
           fi
         elif [ -f "${REPO_ROOT}/node_modules/.bin/eslint" ]; then
-          if run_test "ESLint sample check (local)" "${REPO_ROOT}/node_modules/.bin/eslint --no-ignore --max-warnings=100 $(cat ${js_files_output})" "$eslint_output"; then
+          if run_test "ESLint sample check (local)" "${REPO_ROOT}/node_modules/.bin/eslint --no-ignore --max-warnings=0 $(cat ${js_files_output})" "$eslint_output"; then # Set max-warnings to 0
             log "${GREEN}✓ ESLint sample check passed${NC}"
           else
             log "${YELLOW}⚠ ESLint found issues (expected during development)${NC}"
             # Not counting ESLint warnings as test failures since they're expected
+            FAILURES=$((FAILURES + 1)) # Count ESLint issues as failures
           fi
         else
           log "${YELLOW}⚠ ESLint configured but not available to run${NC}"

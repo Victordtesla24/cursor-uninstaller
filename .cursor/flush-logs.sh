@@ -10,7 +10,8 @@ LOG_DIR="${SCRIPT_DIR}/logs"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] FLUSH-LOGS: $1"
 }
 

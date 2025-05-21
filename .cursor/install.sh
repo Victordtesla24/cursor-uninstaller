@@ -19,7 +19,8 @@ mkdir -p "${LOG_DIR}"
 
 # Log helper function
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] INSTALL: $1" | tee -a "${INSTALL_LOG}"
 }
 
@@ -143,18 +144,41 @@ log "Checking and installing dependencies..."
 
 # Install Node.js and npm if not already installed
 if ! command -v node &> /dev/null; then
-  log "Node.js not found, installing..."
-  # Install Node.js using appropriate method based on environment
+  log "Node.js not found, attempting installation..."
   if in_docker; then
-    apt-get update && apt-get install -y nodejs npm
+    log "Running in Docker. Node.js and npm should be pre-installed by the Dockerfile. Skipping installation."
+    # Verify Node.js and npm, log error if still not found.
+    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+        log "CRITICAL ERROR: Node.js or npm is unexpectedly missing in Docker environment even after Dockerfile setup."
+    fi
   elif [[ "$OSTYPE" == "darwin"* ]]; then
-    brew install node
+    log "On macOS, attempting to install Node.js using Homebrew..."
+    if command -v brew &> /dev/null; then
+      brew install node || log "ERROR: Failed to install Node.js using Homebrew."
+    else
+      log "ERROR: Homebrew not found. Cannot install Node.js on macOS."
+    fi
   else
-    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    log "On Linux (non-Docker), attempting to install Node.js using NodeSource (setup_20.x)..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || log "ERROR: Failed to setup NodeSource repository for Node.js 20.x."
+    sudo apt-get update || log "ERROR: Failed to apt-get update."
+    sudo apt-get install -y nodejs || log "ERROR: Failed to install Node.js via apt-get."
+  fi
+
+  # Re-check after attempting installation
+  if ! command -v node &> /dev/null; then
+    log "ERROR: Node.js installation failed or Node.js is still not found."
+  else
+    log "Node.js is now installed: $(node --version)"
   fi
 else
   log "Node.js is already installed: $(node --version)"
+fi
+
+if ! command -v npm &> /dev/null; then
+    log "ERROR: npm is not installed, even if Node.js might be."
+else
+    log "npm is already installed: $(npm --version)"
 fi
 
 # Install required npm packages
@@ -188,22 +212,7 @@ else
   log "ui/dashboard directory not found. Skipping dashboard setup."
 fi
 
-# Install Docker if needed
-if ! command -v docker &> /dev/null && ! in_docker; then
-  log "Docker not found, installing..."
-  # Install Docker using appropriate method based on OS
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    log "On macOS, please install Docker Desktop manually"
-  else
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
-    sudo usermod -aG docker $USER
-    log "Docker installed, you may need to log out and back in for group changes to take effect"
-  fi
-else
-  log "Docker is already installed or running inside a container"
-fi
-
+# Remove Docker installation block as it should be handled by Dockerfile
 # Installation completed successfully
 log "Background Agent installation completed successfully"
 

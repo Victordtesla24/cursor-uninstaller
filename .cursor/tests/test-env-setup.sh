@@ -21,11 +21,12 @@ TEST_SPECIFIC_LOG="${LOG_DIR}/test-env-setup.sh.log" # Changed from ENV_LOG
 
 # Ensure log directory exists and clear previous log for this script
 mkdir -p "${LOG_DIR}"
-> "${TEST_SPECIFIC_LOG}"
+true > "${TEST_SPECIFIC_LOG}"
 
 # Function to log messages for this specific test script
 log_test() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] ENV-SETUP-TEST: $1" | tee -a "${TEST_SPECIFIC_LOG}"
 }
 
@@ -90,19 +91,19 @@ required_files=(
 
 for file_path in "${required_files[@]}"; do
   [ -f "${file_path}" ]
-  evaluate_test "File exists: ${file_path#${REPO_ROOT}/}" $? "File ${file_path#${REPO_ROOT}/} exists." "File ${file_path#${REPO_ROOT}/} does not exist."
+  evaluate_test "File exists: ${file_path#"${REPO_ROOT}"/}" $? "File ${file_path#"${REPO_ROOT}"/} exists." "File ${file_path#"${REPO_ROOT}"/} does not exist."
 
   # If it's a .sh file, also check for executability
   if [[ "${file_path}" == *.sh ]]; then
     if [ -x "${file_path}" ]; then
-      evaluate_test "Script is executable: ${file_path#${REPO_ROOT}/}" 0 "Script ${file_path#${REPO_ROOT}/} is executable." "Script ${file_path#${REPO_ROOT}/} is not executable."
+      evaluate_test "Script is executable: ${file_path#"${REPO_ROOT}"/}" 0 "Script ${file_path#"${REPO_ROOT}"/} is executable." "Script ${file_path#"${REPO_ROOT}"/} is not executable."
     else
-      evaluate_test "Script is executable: ${file_path#${REPO_ROOT}/}" 1 "" "Script ${file_path#${REPO_ROOT}/} is not executable."
+      evaluate_test "Script is executable: ${file_path#"${REPO_ROOT}"/}" 1 "" "Script ${file_path#"${REPO_ROOT}"/} is not executable."
       # Attempt to make executable
       if chmod +x "${file_path}"; then
-        log_test "${YELLOW}⚠ Made script ${file_path#${REPO_ROOT}/} executable. This should be set by default.${NC}"
+        log_test "${YELLOW}⚠ Made script ${file_path#"${REPO_ROOT}"/} executable. This should be set by default.${NC}"
       else
-        log_test "${RED}✗ CRITICAL: Failed to make script ${file_path#${REPO_ROOT}/} executable.${NC}"
+        log_test "${RED}✗ CRITICAL: Failed to make script ${file_path#"${REPO_ROOT}"/} executable.${NC}"
         FAILURES=$((FAILURES + 1))
       fi
     fi

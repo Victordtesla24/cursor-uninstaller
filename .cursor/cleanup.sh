@@ -16,7 +16,8 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] CLEANUP: $1" | tee -a "${LOG_FILE}" 2>/dev/null || echo -e "[$timestamp] CLEANUP: $1"
 }
 
@@ -62,7 +63,6 @@ done
 
 # Clean up log files (rotate instead of delete)
 log "Rotating log files..."
-log_date=$(date +"%Y%m%d%H%M%S")
 mkdir -p "${LOG_DIR}/archive" 2>/dev/null || true
 
 # Find log files older than 7 days and move them to archive

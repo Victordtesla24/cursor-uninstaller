@@ -48,7 +48,7 @@ git config --global credential.helper 'cache --timeout=3600'
 # Create workspace directory
 echo "Creating workspace directory..."
 sudo mkdir -p /agent_workspace
-sudo chown -R $(whoami):$(whoami) /agent_workspace
+sudo chown -R "$(whoami)":"$(whoami)" /agent_workspace
 
 # Create npm global directory for non-root user
 echo "Setting up npm global directory..."

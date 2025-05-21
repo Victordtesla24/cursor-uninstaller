@@ -28,7 +28,8 @@ mkdir -p "${LOG_DIR}" || { echo "CRITICAL: Could not create log directory"; exit
 
 # Function to log messages - ensures output to both stdout and log file
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] BG-AGENT-TEST: $1" | tee -a "${AGENT_LOG}"
 }
 
@@ -104,7 +105,7 @@ if [ -f "${MARKER_FILE}" ]; then
   if [ -s "${MARKER_FILE}" ]; then
     log "${GREEN}✓ Installation marker file has content${NC}"
     # Display marker file content for verification
-    marker_content=$(cat "${MARKER_FILE}")
+    marker_content=$(<"${MARKER_FILE}")
     log "${BLUE}ℹ Marker file content: ${marker_content}${NC}"
   else
     log "${RED}✗ Installation marker file is empty${NC}"
@@ -285,7 +286,7 @@ if $USING_JQ; then
     log "${RED}✗ environment.json is not valid JSON${NC}"
     FAILURES=$((FAILURES + 1))
     # Show invalid JSON error details
-    cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+    sed 's/^/    /' < "$temp_file1" | while IFS= read -r line; do
       log "${RED}✗ $line${NC}"
     done
   fi
@@ -303,7 +304,7 @@ else
       log "${RED}✗ environment.json failed basic JSON syntax check${NC}"
       FAILURES=$((FAILURES + 1))
       # Show error details
-      cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+      sed 's/^/    /' < "$temp_file1" | while IFS= read -r line; do
         log "${RED}✗ $line${NC}"
       done
     fi
@@ -316,7 +317,7 @@ else
       log "${RED}✗ environment.json failed basic JSON syntax check${NC}"
       FAILURES=$((FAILURES + 1))
       # Show error details
-      cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+      sed 's/^/    /' < "$temp_file1" | while IFS= read -r line; do
         log "${RED}✗ $line${NC}"
       done
     fi
@@ -380,7 +381,7 @@ temp_file2=$(mktemp)
 if ! run_test "install.sh syntax check" "bash -n '${INSTALL_SCRIPT}'" "$temp_file2"; then
   log "${RED}✗ install.sh has syntax errors${NC}"
   FAILURES=$((FAILURES + 1))
-  cat "$temp_file2" | sed 's/^/    /' | while IFS= read -r line; do
+  sed 's/^/    /' < "$temp_file2" | while IFS= read -r line; do
     log "${RED}✗ $line${NC}"
   done
   # Critical script error - fail test
@@ -608,7 +609,7 @@ if [ -f "${CURSOR_DIR}/load-env.sh" ]; then
       if [ -s "${env_path}" ]; then
         log "${GREEN}✓ Environment file has content${NC}"
         # Count non-comment lines as an additional check
-        env_var_count=$(grep -v "^#" "${env_path}" | grep -v "^$" | wc -l | tr -d ' ' || echo 0)
+        env_var_count=$(grep -c -v -e "^#" -e "^$" "${env_path}" || echo 0)
         log "${BLUE}ℹ File contains approximately ${env_var_count} environment variables${NC}"
       else
         log "${RED}✗ Environment file is empty${NC}"

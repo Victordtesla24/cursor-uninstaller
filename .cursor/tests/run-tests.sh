@@ -26,16 +26,19 @@ mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] MASTER-TEST: $1" | tee -a "${MASTER_LOG}"
 }
 
 # Function to run a test script with improved reporting
 run_test_script() {
   local test_script="$1"
-  local test_name="$(basename "${test_script}")"
+  local test_name
+  test_name="$(basename "${test_script}")"
   local test_log="${LOG_DIR}/${test_name}.log"
-  local start_time=$(date +%s)
+  local start_time
+  start_time=$(date +%s)
   
   log "${BLUE}ℹ Starting test: ${test_name}${NC}"
   
@@ -45,7 +48,8 @@ run_test_script() {
   local exit_code=$?
   set -e # Re-enable exit on error
   
-  local end_time=$(date +%s)
+  local end_time
+  end_time=$(date +%s)
   local duration=$((end_time - start_time))
   
   # Report result
@@ -61,9 +65,10 @@ run_test_script() {
 }
 
 # Clear the main log file to start fresh
-> "${MASTER_LOG}"
+true > "${MASTER_LOG}"
 
 # Record current time for overall timing
+OVERALL_START_TIME=
 OVERALL_START_TIME=$(date +%s)
 
 # Display header
@@ -148,6 +153,7 @@ for script in "${TEST_SCRIPTS[@]}"; do
 done
 
 # Calculate overall execution time
+OVERALL_END_TIME=
 OVERALL_END_TIME=$(date +%s)
 OVERALL_DURATION=$((OVERALL_END_TIME - OVERALL_START_TIME))
 

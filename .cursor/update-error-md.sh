@@ -12,14 +12,15 @@ LATEST_RUN=$(ls -t "${WORKSPACE_ROOT}/.cursor/logs/master-test-run.log" 2>/dev/n
 
 # Function to log messages
 log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo -e "[$timestamp] UPDATE-ERROR-MD: $1"
 }
 
 log "Starting update of error.md file..."
 
 # Clear existing error.md file
-> "${ERROR_MD}"
+true > "${ERROR_MD}"
 
 # Get the current user and working directory info
 CURRENT_USER="$(whoami)"
