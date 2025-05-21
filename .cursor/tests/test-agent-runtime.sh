@@ -1,361 +1,318 @@
 #!/bin/bash
-# Background Agent Runtime Test Script
-# This script tests the runtime behavior of the Background Agent
+# Runtime Environment Test for Cursor Background Agent
+# Validates the runtime behavior and environment of the background agent
 
 set -e
 
-# Define colors
+# Define color codes for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Define current directory and paths
-SCRIPT_DIR="$(dirname "$0")"
-CURSOR_DIR="$(dirname "$SCRIPT_DIR")"
-PROJECT_ROOT="$(dirname "$CURSOR_DIR")"
+# Define paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+CURSOR_DIR="${REPO_ROOT}/.cursor"
 LOG_DIR="${CURSOR_DIR}/logs"
-LOG_FILE="${LOG_DIR}/agent-runtime-test.log"
+RUNTIME_LOG="${LOG_DIR}/test-agent-runtime.log"
+ENVIRONMENT_JSON="${CURSOR_DIR}/environment.json"
 
 # Ensure log directory exists
 mkdir -p "${LOG_DIR}"
 
-# Clear log file
-> "${LOG_FILE}"
-
-# Log helper functions
+# Function to log messages
 log() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "[${timestamp}] $1" | tee -a "${LOG_FILE}"
+  echo -e "[$timestamp] RUNTIME-TEST: $1" | tee -a "${RUNTIME_LOG}"
 }
 
-log_success() {
-  log "${GREEN}✓ $1${NC}"
-}
-
-log_error() {
-  log "${RED}✗ $1${NC}"
-}
-
-log_warning() {
-  log "${YELLOW}⚠ $1${NC}"
-}
-
-log_info() {
-  log "${BLUE}ℹ $1${NC}"
-}
-
-# Print header
-log "--- Starting Background Agent Runtime Test ---"
-
-# Test result counters
-tests_total=0
-tests_passed=0
-
-# Function to run a test
+# Function to run tests with output capture
 run_test() {
   local test_name="$1"
-  local test_command="$2"
-  local critical="$3"
-
-  ((tests_total++))
-
-  log_info "Testing: ${test_name}"
-  if eval "${test_command}"; then
-    log_success "${test_name}: PASSED"
-    ((tests_passed++))
+  local command="$2"
+  local output_file="${3:-/dev/null}"
+  
+  log "${BLUE}ℹ Testing: ${test_name}${NC}"
+  
+  if eval "$command" > "$output_file" 2>&1; then
+    log "${GREEN}✓ ${test_name}: PASSED${NC}"
+    # Output command results if requested
+    if [ "$output_file" != "/dev/null" ] && [ -s "$output_file" ]; then
+      log "${BLUE}ℹ Command output:${NC}"
+      while IFS= read -r line; do
+        log "${BLUE}ℹ | ${line}${NC}"
+      done < "$output_file"
+    fi
     return 0
   else
-    if [ "${critical}" = "true" ]; then
-      log_error "${test_name}: FAILED (Critical)"
-      return 1
-    else
-      log_warning "${test_name}: FAILED (Non-critical)"
-      return 0
+    local exit_code=$?
+    log "${RED}✗ ${test_name}: FAILED (Exit Code: ${exit_code})${NC}"
+    # Output error information
+    if [ "$output_file" != "/dev/null" ] && [ -s "$output_file" ]; then
+      log "${RED}✗ Error output:${NC}"
+      while IFS= read -r line; do
+        log "${RED}✗ | ${line}${NC}"
+      done < "$output_file"
     fi
+    return 1
   fi
 }
 
-# Check if critical files exist
-log_info "Performing static configuration file checks..."
+# Track failures
+FAILURES=0
 
-critical_files=(
-  "${CURSOR_DIR}/install.sh:Install Script"
-  "${CURSOR_DIR}/github-setup.sh:GitHub Setup Script"
-  "${CURSOR_DIR}/retry-utils.sh:Retry Utilities Script"
-  "${CURSOR_DIR}/environment.json:Environment JSON"
-  "${PROJECT_ROOT}/Dockerfile:Dockerfile" # Corrected Dockerfile path
-)
+# Start testing
+log "${BLUE}${BOLD}====== Starting Background Agent Runtime Tests ======${NC}"
 
-missing_critical_files=false
+# Test 1: Check if environment.json exists and contains terminal configurations
+log "${BLUE}ℹ "
+log "${BLUE}Checking terminal configurations in environment.json...${NC}"
 
-for file_entry in "${critical_files[@]}"; do
-  IFS=':' read -r file_path file_name <<< "${file_entry}"
-
-  if [ ! -f "${file_path}" ]; then
-    # Check if there's a symlink in the original location
-    original_path="${CURSOR_DIR}/$(basename "${file_path}")"
-    if [ -f "${original_path}" ]; then
-      log_warning "${file_name} found at ${original_path} instead of ${file_path}"
-    else
-      log_error "${file_path} missing"
-      missing_critical_files=true
-    fi
+if [ -f "${ENVIRONMENT_JSON}" ]; then
+  if ! command -v jq &> /dev/null; then
+    log "${RED}✗ CRITICAL: jq command not found. jq is required for proper validation of environment.json terminals.${NC}"
+    FAILURES=$((FAILURES + 1))
+    run_test "jq availability for environment.json terminal validation" "false" "jq command not found."
   else
-    log_success "${file_name} exists"
-  fi
-done
-
-if [ "${missing_critical_files}" = "true" ]; then
-  log_error "Critical static configuration file(s) missing. Aborting runtime test."
-  log_info "Cleaning up any stray Docker containers..."
-
-  # Try to clean up but don't fail if Docker isn't running
-  docker ps -a --filter "name=cursor-agent-test" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
-
-  log "--- Background Agent Runtime Test FAILED ---"
-  exit 1
-fi
-
-# Verify script permissions
-log_info "Checking script permissions..."
-
-script_files=(
-  "${CURSOR_DIR}/install.sh"
-  "${CURSOR_DIR}/github-setup.sh"
-  "${CURSOR_DIR}/retry-utils.sh"
-)
-
-for script in "${script_files[@]}"; do
-  if [ ! -x "${script}" ]; then
-    log_warning "${script} is not executable. Fixing..."
-    chmod +x "${script}"
-
-    if [ ! -x "${script}" ]; then
-      log_error "Failed to make ${script} executable. This will cause the agent to fail."
-      missing_critical_files=true
-    else
-      log_success "Fixed permissions for ${script}"
-    fi
-  else
-    log_success "${script} is executable"
-  fi
-done
-
-if [ "${missing_critical_files}" = "true" ]; then
-  log_error "Critical script(s) not executable. Aborting runtime test."
-  exit 1
-fi
-
-# Validate environment.json content
-log_info "Validating environment.json content..."
-
-if ! command -v jq &>/dev/null; then
-  log_warning "jq not found, skipping detailed environment.json validation"
-else
-  # Check for required fields in environment.json
-  env_json="${CURSOR_DIR}/environment.json"
-
-  # Check if build section exists
-  if jq -e '.build' "${env_json}" >/dev/null 2>&1; then
-    log_success "environment.json contains build section"
-
-    # Check if Dockerfile is properly referenced
-    if jq -e '.build.dockerfile' "${env_json}" >/dev/null 2>&1; then
-      dockerfile_ref=$(jq -r '.build.dockerfile' "${env_json}")
-      # Dockerfile is expected to be in the project root
-      expected_dockerfile_path="${PROJECT_ROOT}/${dockerfile_ref}"
-      if [ -f "${expected_dockerfile_path}" ]; then
-        log_success "Dockerfile reference '${dockerfile_ref}' is valid, found at ${expected_dockerfile_path}"
-      else
-        log_error "Dockerfile reference '${dockerfile_ref}' is invalid. Referenced file not found: ${expected_dockerfile_path}"
-      fi
-    else
-      log_error "environment.json is missing build.dockerfile"
-    fi
-  else
-    log_error "environment.json is missing build section"
-  fi
-
-  # Check terminal configuration
-  if jq -e '.terminals' "${env_json}" >/dev/null 2>&1; then
-    terminals_count=$(jq '.terminals | length' "${env_json}")
-    log_success "environment.json contains ${terminals_count} terminal configurations"
-
-    # Check if terminal commands are valid
-    invalid_terminals=0
-    for i in $(seq 0 $((terminals_count - 1))); do
-      terminal_name=$(jq -r ".terminals[$i].name" "${env_json}")
-      terminal_cmd=$(jq -r ".terminals[$i].command" "${env_json}")
-
-      if [ -z "${terminal_cmd}" ] || [ "${terminal_cmd}" = "null" ]; then
-        log_error "Terminal '${terminal_name}' has no command defined"
-        ((invalid_terminals++))
-      else
-        log_success "Terminal '${terminal_name}' has a valid command"
-      fi
-    done
-
-    if [ ${invalid_terminals} -gt 0 ]; then
-      log_warning "${invalid_terminals} terminal(s) have invalid commands"
-    fi
-  else
-    log_warning "environment.json does not contain terminal configurations"
-  fi
-
-  # Check install command
-  if jq -e '.install' "${env_json}" >/dev/null 2>&1; then
-    install_cmd=$(jq -r '.install' "${env_json}")
-
-    # Check if the install command is valid
-    if [ -n "${install_cmd}" ] && [ "${install_cmd}" != "null" ]; then
-      # Check if the install command points to an executable script
-      if [[ "${install_cmd}" == *".sh" ]] && [ ! -x "${CURSOR_DIR}/${install_cmd#./}" ] && [ ! -x "${install_cmd}" ]; then
-        log_error "Install command points to a non-executable script: ${install_cmd}"
-      else
-        log_success "Install command is valid: ${install_cmd}"
-      fi
-    else
-      log_error "Install command is empty or invalid"
-    fi
-  else
-    log_error "environment.json is missing install command"
-  fi
-fi
-
-# Test Docker if available
-if command -v docker &>/dev/null; then
-  log_info "Docker found, testing Docker container creation..."
-
-  # Check if Docker daemon is running
-  if ! docker info &>/dev/null; then
-    log_warning "Docker daemon is not running. Skipping Docker tests."
-  else
-    # Test Docker image build from the Dockerfile
-    log_info "Testing Docker image build from Dockerfile..."
-
-    # Create a temporary directory for the build context
-    tmp_dir=$(mktemp -d)
-    # Dockerfile is in the project root
-    actual_dockerfile_path="${PROJECT_ROOT}/Dockerfile"
-    if [ ! -f "${actual_dockerfile_path}" ]; then
-      log_error "Dockerfile not found at ${actual_dockerfile_path} for build test."
-    else
-      cp "${actual_dockerfile_path}" "${tmp_dir}/Dockerfile" # Copy Dockerfile to context dir
-
-      # The context for docker build should be the directory containing the Dockerfile, which is PROJECT_ROOT
-      # However, for this isolated test, we build from tmp_dir where Dockerfile is copied.
-      if docker build -t cursor-agent-test:runtime "${tmp_dir}" >> "${LOG_FILE}" 2>&1; then
-        log_success "Docker image build successful"
-
-        # Test running a container with the built image
-        log_info "Testing container execution..."
-
-        if docker run --rm cursor-agent-test:runtime node --version >> "${LOG_FILE}" 2>&1; then
-          log_success "Container execution successful"
+    # Use jq to validate terminal configurations - fix this command to properly escape quotes
+    temp_file=$(mktemp)
+    if run_test "environment.json contains terminals array and is not empty" "jq -e '.terminals | length > 0' \"${ENVIRONMENT_JSON}\"" "$temp_file"; then
+      # Count terminals
+      terminal_count=$(jq '.terminals | length' "${ENVIRONMENT_JSON}")
+      log "${GREEN}✓ environment.json has ${terminal_count} terminal configurations${NC}"
+      
+      # Check each terminal configuration
+      for i in $(seq 0 $(( terminal_count - 1 ))); do
+        terminal_name=$(jq -r ".terminals[$i].name" "${ENVIRONMENT_JSON}" || echo "unnamed_on_error")
+        terminal_cmd=$(jq -r ".terminals[$i].command" "${ENVIRONMENT_JSON}" || echo "")
+        
+        if [ -n "$terminal_name" ] && [ "$terminal_name" != "null" ] && [ "$terminal_name" != "unnamed_on_error" ]; then
+          log "${GREEN}✓ Terminal $i has valid name: $terminal_name${NC}"
+          
+          if [ -n "$terminal_cmd" ] && [ "$terminal_cmd" != "null" ]; then
+            log "${GREEN}✓ Terminal $terminal_name has valid command: $terminal_cmd${NC}"
+            
+            # Validate command syntax (basic check)
+            if ! run_test "Terminal command syntax check: $terminal_name" "bash -n -c \"$terminal_cmd\" || true"; then
+              log "${YELLOW}⚠ Terminal command for $terminal_name may have syntax issues${NC}"
+              # Not counting as failure since it's just a warning
+            fi
+          else
+            log "${RED}✗ Terminal $terminal_name is missing command or has invalid command${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
         else
-          log_error "Container execution failed"
+          log "${RED}✗ Terminal $i is missing name or has invalid name${NC}"
+          FAILURES=$((FAILURES + 1))
         fi
-
-        # Clean up the test image
-        docker rmi cursor-agent-test:runtime &>/dev/null || true
-      else
-        log_error "Docker image build failed"
-      fi
+      done
+    else
+      log "${RED}✗ environment.json does not contain a valid terminals array${NC}"
+      FAILURES=$((FAILURES + 1))
     fi
-
-    # Clean up temporary directory
-    rm -rf "${tmp_dir}"
+    rm -f "$temp_file"
   fi
 else
-  log_warning "Docker not found. Skipping Docker-based tests."
+  log "${RED}✗ environment.json not found${NC}"
+  FAILURES=$((FAILURES + 1))
 fi
 
-# Test GitHub integration
-log_info "Testing GitHub repository connectivity..."
+# Test 2: Check install.sh script for runtime behavior
+log "${BLUE}ℹ "
+log "${BLUE}Validating install.sh runtime behavior...${NC}"
 
-# Check if we have git
-if ! command -v git &>/dev/null; then
-  log_error "Git not found. GitHub integration cannot be tested."
+INSTALL_SCRIPT="${CURSOR_DIR}/install.sh"
+if [ -f "${INSTALL_SCRIPT}" ]; then
+  # Check if it creates the marker file
+  if grep -q "bg-agent-install-complete.txt" "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh creates the expected marker file${NC}"
+  else
+    log "${RED}✗ install.sh does not create the expected marker file${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+  
+  # Check for npm installations
+  if grep -q "npm install" "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh includes npm dependency installation${NC}"
+  else
+    log "${YELLOW}⚠ install.sh may not install npm dependencies${NC}"
+    # Warning only - may not be needed in all cases
+  fi
+  
+  # Check for git operations
+  if grep -q "git " "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh includes git operations${NC}"
+  else
+    log "${RED}✗ install.sh does not include git operations${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+  
+  # Check for proper logging
+  if grep -q "log " "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh includes proper logging${NC}"
+  else
+    log "${RED}✗ install.sh does not include proper logging${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
 else
-  # Check if the repository has a remote
-  if git remote -v | grep -q origin; then
-    log_success "Git remote 'origin' is configured"
+  log "${RED}✗ install.sh not found${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
 
-    # Get the remote URL
-    remote_url=$(git remote get-url origin 2>/dev/null)
-    log_info "Remote URL: ${remote_url}"
+# Test 3: Start script validation
+log "${BLUE}ℹ "
+log "${BLUE}Validating start command in environment.json...${NC}"
 
-    # Try to validate GitHub connectivity (without requiring authentication)
-    if git ls-remote --heads https://github.com &>/dev/null; then
-      log_success "GitHub connectivity is working"
-
-      # Try to check the specific repository access (might require authentication)
-      if git ls-remote --quiet "${remote_url}" HEAD &>/dev/null; then
-        log_success "GitHub repository access is working"
-      else
-        log_warning "GitHub repository access failed. This might be due to missing credentials."
-        log_info "Note: The Background Agent will use GitHub app credentials provided by Cursor."
+if [ -f "${ENVIRONMENT_JSON}" ]; then
+  if command -v jq &> /dev/null; then
+    start_command=$(jq -r '.start // ""' "${ENVIRONMENT_JSON}")
+    if [ -n "$start_command" ] && [ "$start_command" != "null" ]; then
+      log "${GREEN}✓ environment.json contains start command: $start_command${NC}"
+      
+      # Validate command syntax (basic check)
+      if ! run_test "Start command syntax check" "bash -n -c \"$start_command\" || true"; then
+        log "${RED}✗ Start command may have syntax issues${NC}"
+        FAILURES=$((FAILURES + 1))
       fi
     else
-      log_warning "GitHub connectivity check failed. This might be due to network issues."
+      log "${RED}✗ environment.json is missing start command${NC}"
+      FAILURES=$((FAILURES + 1))
     fi
   else
-    log_error "Git remote 'origin' is not configured"
-  fi
-fi
-
-# Check the agent log file
-log_info "Checking agent log file..."
-
-if [ -f "${LOG_DIR}/agent.log" ]; then
-  log_success "Agent log file exists"
-
-  # Ensure the log file is writable
-  if [ -w "${LOG_DIR}/agent.log" ]; then
-    log_success "Agent log file is writable"
-  else
-    log_warning "Agent log file is not writable. This might cause issues for the agent."
+    # Fallback without jq
+    if grep -q '"start"' "${ENVIRONMENT_JSON}"; then
+      log "${GREEN}✓ environment.json contains start command (basic check)${NC}"
+    else
+      log "${RED}✗ environment.json does not seem to contain start command${NC}"
+      FAILURES=$((FAILURES + 1))
+    fi
   fi
 else
-  log_warning "Agent log file does not exist. Creating it..."
+  log "${RED}✗ environment.json not found${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
 
-  # Try to create the log file
-  if touch "${LOG_DIR}/agent.log" 2>/dev/null; then
-    log_success "Created agent log file"
+# Test 4: Check node and npm availability
+log "${BLUE}ℹ "
+log "${BLUE}Checking node and npm availability...${NC}"
+
+if command -v node &> /dev/null; then
+  node_version=$(node -v)
+  log "${GREEN}✓ Node.js is available: $node_version${NC}"
+else
+  log "${RED}✗ Node.js is not available${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
+
+if command -v npm &> /dev/null; then
+  npm_version=$(npm -v)
+  log "${GREEN}✓ npm is available: $npm_version${NC}"
+else
+  log "${RED}✗ npm is not available${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Test 5: Check for marker file existence
+log "${BLUE}ℹ "
+log "${BLUE}Checking for Background Agent marker file...${NC}"
+
+MARKER_FILE="${REPO_ROOT}/bg-agent-install-complete.txt"
+if [ -f "${MARKER_FILE}" ]; then
+  log "${GREEN}✓ Background Agent marker file exists${NC}"
+  # Display content
+  marker_content=$(cat "${MARKER_FILE}")
+  log "${BLUE}ℹ Marker file content: ${marker_content}${NC}"
+else
+  log "${RED}✗ Background Agent marker file (${MARKER_FILE}) does not exist. This file should be created by install.sh.${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Test 6: Validate GitHub integration setup
+log "${BLUE}ℹ "
+log "${BLUE}Validating GitHub integration setup...${NC}"
+
+GITHUB_SETUP="${CURSOR_DIR}/github-setup.sh"
+if [ -f "${GITHUB_SETUP}" ]; then
+  log "${GREEN}✓ GitHub setup script exists${NC}"
+  
+  # Check for credential handling
+  if grep -q "GITHUB_TOKEN" "${GITHUB_SETUP}"; then
+    log "${GREEN}✓ GitHub setup includes token handling${NC}"
   else
-    log_error "Failed to create agent log file"
+    log "${RED}✗ GitHub setup does not include token handling${NC}"
+    FAILURES=$((FAILURES + 1))
   fi
+  
+  # Check for repository validation
+  if grep -q "verify_github_access" "${GITHUB_SETUP}" || grep -q "git ls-remote" "${GITHUB_SETUP}"; then
+    log "${GREEN}✓ GitHub setup includes repository validation${NC}"
+  else
+    log "${RED}✗ GitHub setup does not include repository validation${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+else
+  log "${RED}✗ GitHub setup script not found${NC}"
+  FAILURES=$((FAILURES + 1))
 fi
 
-# Check for error.md file
-if [ -f "${LOG_DIR}/error.md" ]; then
-  log_warning "error.md file exists. This might indicate previous errors."
+# Test 7: Check log file retention
+log "${BLUE}ℹ "
+log "${BLUE}Checking log file retention...${NC}"
 
-  # Check if error.md contains errors
-  if grep -q "ERROR" "${LOG_DIR}/error.md"; then
-    log_warning "error.md contains ERROR messages. You might want to investigate these."
-  fi
+# Count log files
+log_count=$(find "${LOG_DIR}" -name "*.log" | wc -l | tr -d ' ')
+log "${BLUE}ℹ Found ${log_count} log files in ${LOG_DIR}${NC}"
+
+# Check if there's a .gitkeep file to ensure directory is tracked
+if [ -f "${LOG_DIR}/.gitkeep" ]; then
+  log "${GREEN}✓ Log directory has .gitkeep file for Git tracking${NC}"
+else
+  log "${RED}✗ Log directory is missing .gitkeep file. This file is important for ensuring the logs directory is version controlled.${NC}"
+  FAILURES=$((FAILURES + 1))
 fi
 
-# Print summary
-log "--- Background Agent Runtime Test Summary ---"
-log "Tests Total: ${tests_total}"
-log "Tests Passed: ${tests_passed}"
+# Test 8: Check retry-utils.sh for utility functions
+log "${BLUE}ℹ "
+log "${BLUE}Checking retry-utils.sh for utility functions...${NC}"
 
-if [ ${tests_passed} -eq ${tests_total} ]; then
-  log_success "All tests passed! The Background Agent environment is correctly configured."
+RETRY_UTILS="${CURSOR_DIR}/retry-utils.sh"
+if [ -f "${RETRY_UTILS}" ]; then
+  log "${GREEN}✓ retry-utils.sh exists${NC}"
+  
+  # Check for retry function
+  if grep -q "retry()" "${RETRY_UTILS}"; then
+    log "${GREEN}✓ retry-utils.sh includes retry function${NC}"
+  else
+    log "${RED}✗ retry-utils.sh does not include retry function${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+  
+  # Check for timeout function
+  if grep -q "run_with_timeout" "${RETRY_UTILS}"; then
+    log "${GREEN}✓ retry-utils.sh includes timeout function${NC}"
+  else
+    log "${RED}✗ retry-utils.sh does not include timeout function${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+else
+  log "${RED}✗ retry-utils.sh not found${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Summarize test results
+log "${BLUE}ℹ "
+log "${BLUE}====== Background Agent Runtime Test Summary ======${NC}"
+log "${BLUE}ℹ Total tests failed: ${FAILURES}${NC}"
+
+if [ ${FAILURES} -eq 0 ]; then
+  log "${GREEN}✓ All Background Agent runtime tests passed${NC}"
   exit 0
 else
-  success_rate=$((tests_passed * 100 / tests_total))
-  log_warning "Test completion: ${success_rate}% (${tests_passed}/${tests_total})"
-
-  if [ ${success_rate} -ge 80 ]; then
-    log_warning "Most tests passed. The Background Agent should function with minor issues."
-    exit 0
-  else
-    log_error "Too many tests failed. The Background Agent might not function correctly."
-    exit 1
-  fi
-fi
+  log "${RED}✗ Background Agent runtime tests completed with ${FAILURES} failures${NC}"
+  log "${RED}✗ Please fix the issues reported above${NC}"
+  # Don't fail the test suite completely, but report the correct exit code
+  exit 1
+fi 

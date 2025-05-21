@@ -1,177 +1,183 @@
 #!/bin/bash
-# Master test script for Cursor Background Agent
-# This script runs all test scripts in the .cursor/tests directory
+# Master Test Runner for Cursor Background Agent
+# This script runs all tests and reports results
 
+# Enable stricter error handling
 set -e
+set -o pipefail # This ensures pipeline failures are properly captured
 
-# Define colors for output
+# Define color codes for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Define paths
-TEST_DIR="$(dirname "$0")"
-CURSOR_DIR="${TEST_DIR}/.."
-LOG_DIR="${CURSOR_DIR}/logs"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+LOG_DIR="${REPO_ROOT}/.cursor/logs"
 MASTER_LOG="${LOG_DIR}/master-test-run.log"
 
-# Flush logs before running tests
-echo "Flushing logs before running tests..."
-if [ -f "${CURSOR_DIR}/flush-logs.sh" ]; then
-  bash "${CURSOR_DIR}/flush-logs.sh"
-else
-  echo "Warning: flush-logs.sh not found. Creating log directory and clearing logs manually."
-  # Create log directory if it doesn't exist
-  mkdir -p "${LOG_DIR}"
-  # Remove all log files
-  find "${LOG_DIR}" -type f -name "*.log" -delete 2>/dev/null || true
-  # Create empty master log file
-  touch "${MASTER_LOG}"
-fi
+# Ensure log directory exists
+mkdir -p "${LOG_DIR}" || { echo "Failed to create log directory"; exit 1; }
 
 # Function to log messages
 log() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "[$timestamp] $1" | tee -a "${MASTER_LOG}"
+  echo -e "[$timestamp] MASTER-TEST: $1" | tee -a "${MASTER_LOG}"
 }
 
-# Function to run a test script and capture its output
-run_test() {
-  local test_script="$1"
-  local test_name="$(basename "$test_script")"
-  local test_log="${LOG_DIR}/${test_name%.sh}.log"
+# Start with clean logs
+if [ -f "${REPO_ROOT}/.cursor/flush-logs.sh" ]; then
+  bash "${REPO_ROOT}/.cursor/flush-logs.sh"
+  log "${BLUE}${BOLD}====== Starting Cursor Background Agent Tests ======${NC}"
+else
+  # Create a clean master log if flush-logs.sh is not available
+  > "${MASTER_LOG}"
+  log "${BLUE}${BOLD}====== Starting Cursor Background Agent Tests ======${NC}"
+  log "${RED}✗ Error: flush-logs.sh not found. This file is required for proper test execution.${NC}"
+  log "${RED}✗ Please ensure the file ${REPO_ROOT}/.cursor/flush-logs.sh exists and is executable.${NC}"
+  exit 1
+fi
 
-  log "Running test: ${test_name}"
-  log "Log file: ${test_log}"
+log "${BLUE}Test directory: ${SCRIPT_DIR}${NC}"
+log "${BLUE}============================================================${NC}"
 
-  if [ -x "$test_script" ]; then
-    if bash "$test_script" > "${test_log}" 2>&1; then
-      log "${GREEN}✓ Test passed: ${test_name}${NC}"
-      return 0
+# Array of test scripts to run
+TESTS=(
+  "test-env-setup.sh"
+  "test-github-integration.sh"
+  "test-docker-env.sh"
+  "test-background-agent.sh"
+  "test-agent-runtime.sh"
+  "test-linting.sh"
+)
+
+# Initialize counters
+TOTAL_TESTS=${#TESTS[@]}
+PASSED_TESTS=0
+FAILED_TESTS=0
+FAILED_TEST_NAMES=()
+
+# Run each test
+for test_script_name in "${TESTS[@]}"; do
+  test_path="${SCRIPT_DIR}/${test_script_name}"
+  test_log_file="${LOG_DIR}/${test_script_name}.log"
+  
+  # Skip if test doesn't exist but count as failure
+  if [ ! -f "${test_path}" ]; then
+    log "${RED}✗ Test SCRIPT NOT FOUND: ${test_script_name}${NC}"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    FAILED_TEST_NAMES+=("${test_script_name} (SCRIPT NOT FOUND)")
+    continue
+  fi
+  
+  # Ensure test is executable
+  if [ ! -x "${test_path}" ]; then
+    log "${RED}✗ Test script NOT EXECUTABLE: ${test_script_name}${NC}"
+    # Attempt to make it executable
+    if chmod +x "${test_path}"; then
+        log "${YELLOW}⚠ Made ${test_script_name} executable. This should be set by default.${NC}"
     else
-      log "${RED}✗ Test failed: ${test_name} (exit code: $?)${NC}"
-      log "See log file for details: ${test_log}"
-      return 1
+        log "${RED}✗ CRITICAL: Failed to make ${test_script_name} executable. Skipping.${NC}"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        FAILED_TEST_NAMES+=("${test_script_name} (PERMISSION ERROR - NOT EXECUTABLE)")
+        continue
     fi
+  fi
+  
+  log "${BLUE}Running test: ${test_script_name}${NC}"
+  log "${BLUE}Log file: ${test_log_file}${NC}"
+  
+  # Clear any previous log content for this specific test
+  > "${test_log_file}" 
+
+  # Create a temporary file to capture script output
+  temp_output=$(mktemp)
+  
+  # Run the test script in a subshell to avoid exit issues
+  # Properly capture both stdout/stderr and exit code
+  (bash "${test_path}" 2>&1 | tee -a "${test_log_file}" > "${temp_output}"; exit ${PIPESTATUS[0]})
+  SCRIPT_EXIT_CODE=$?
+
+  # Verify output existence
+  if [ ! -s "${temp_output}" ]; then
+    log "${RED}✗ Test produced NO OUTPUT: ${test_script_name}${NC}"
+    echo "ERROR: Test script produced no output" >> "${test_log_file}"
+    
+    # No output is always considered a failure - tests must produce diagnostic output
+    if [ ${SCRIPT_EXIT_CODE} -eq 0 ]; then
+      log "${RED}✗ Test returned success but produced no output. This is invalid and will be treated as a failure.${NC}"
+      SCRIPT_EXIT_CODE=1 # Force failure for silent tests
+    else
+      log "${RED}✗ CRITICAL: Test failed with no output. Cannot diagnose issue.${NC}"
+    fi
+    
+    # Mark as failure due to no output
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    FAILED_TEST_NAMES+=("${test_script_name} (NO OUTPUT)")
   else
-    log "${RED}Error: Test script is not executable: ${test_script}${NC}"
-    chmod +x "$test_script"
-    log "Made script executable, attempting to run..."
-    if bash "$test_script" > "${test_log}" 2>&1; then
-      log "${GREEN}✓ Test passed after chmod: ${test_name}${NC}"
-      return 0
+    # Check the exit code to determine pass/fail
+    if [ ${SCRIPT_EXIT_CODE} -eq 0 ]; then
+      log "${GREEN}✓ Test PASSED: ${test_script_name}${NC}"
+      PASSED_TESTS=$((PASSED_TESTS + 1))
     else
-      log "${RED}✗ Test failed after chmod: ${test_name} (exit code: $?)${NC}"
-      log "See log file for details: ${test_log}"
-      return 1
+      log "${RED}✗ Test FAILED: ${test_script_name} (Exit Code: ${SCRIPT_EXIT_CODE})${NC}"
+      log "${RED}✗ See ${test_log_file} for details${NC}"
+      FAILED_TESTS=$((FAILED_TESTS + 1))
+      FAILED_TEST_NAMES+=("${test_script_name} (Exit Code: ${SCRIPT_EXIT_CODE})")
     fi
   fi
-}
-
-# Start testing
-log "${BLUE}====== Starting Background Agent Tests ======${NC}"
-log "Test directory: ${TEST_DIR}"
-
-# Ensure all test scripts are executable
-chmod +x "${TEST_DIR}"/*.sh
-
-# Initialize test counters
-total_tests=0
-passed_tests=0
-
-# Run environment validation test first
-if [ -f "${TEST_DIR}/validate_cursor_environment.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/validate_cursor_environment.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: Environment validation script not found${NC}"
-fi
-
-# Run env setup test
-if [ -f "${TEST_DIR}/test-env-setup.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/test-env-setup.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: Environment setup test script not found${NC}"
-fi
-
-# Run GitHub integration test
-if [ -f "${TEST_DIR}/test-github-integration.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/test-github-integration.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: GitHub integration test script not found${NC}"
-fi
-
-# Run Docker environment test
-if [ -f "${TEST_DIR}/test-docker-env.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/test-docker-env.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: Docker environment test script not found${NC}"
-fi
-
-# Run background agent test
-if [ -f "${TEST_DIR}/test-background-agent.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/test-background-agent.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: Background agent test script not found${NC}"
-fi
-
-# Run agent runtime test
-if [ -f "${TEST_DIR}/test-agent-runtime.sh" ]; then
-  total_tests=$((total_tests + 1))
-  if run_test "${TEST_DIR}/test-agent-runtime.sh"; then
-    passed_tests=$((passed_tests + 1))
-  fi
-else
-  log "${RED}Warning: Agent runtime test script not found${NC}"
-fi
+  
+  # Clean up the temporary file
+  rm -f "${temp_output}"
+  
+  log "${BLUE}============================================================${NC}"
+done
 
 # Calculate success rate
-if [ $total_tests -gt 0 ]; then
-  success_rate=$(( (passed_tests * 100) / total_tests ))
+if [ ${TOTAL_TESTS} -gt 0 ]; then
+    SUCCESS_RATE=$(( (PASSED_TESTS * 100) / TOTAL_TESTS ))
 else
-  success_rate=0
-  log "${RED}No tests were executed!${NC}"
+    SUCCESS_RATE=0
 fi
 
-# Output summary
-log "\n${BLUE}======================================================${NC}"
-log "${BLUE}===== Test Run Summary =====${NC}"
-log "Test Count: $total_tests"
-log "Tests Passed: $passed_tests"
-log "Success Rate: ${success_rate}%"
+# Print summary
+log "${BLUE}"
+log "${BLUE}======================================================${NC}"
+log "${BLUE}${BOLD}===== Test Run Summary =====${NC}"
+log "${BLUE}Total Tests Configured: ${TOTAL_TESTS}${NC}"
+log "${GREEN}Tests Passed: ${PASSED_TESTS}${NC}"
+log "${RED}Tests Failed: ${FAILED_TESTS}${NC}"
+log "${BLUE}Success Rate: ${SUCCESS_RATE}%${NC}"
 
-if [ $passed_tests -eq $total_tests ]; then
-  log "${GREEN}All tests passed successfully${NC}"
-  log "${GREEN}OVERALL RESULT: PASS${NC}"
-  exit_code=0
-else
-  log "${RED}Some tests failed. Check logs for details.${NC}"
+# Print failed tests if any
+if [ ${FAILED_TESTS} -gt 0 ]; then
+  log "${RED}Failed tests details:${NC}"
+  for failed_test_detail in "${FAILED_TEST_NAMES[@]}"; do
+    log "${RED}  - ${failed_test_detail}${NC}"
+  done
   log "${RED}OVERALL RESULT: FAIL${NC}"
-  exit_code=1
-fi
-
-log "======================================================\n"
-
-# Update error.md with the latest test results
-if [ -f "${CURSOR_DIR}/update-error-md.sh" ]; then
-  bash "${CURSOR_DIR}/update-error-md.sh"
+  
+  # Copy the log to error.md for easier reference
+  if [ -f "${REPO_ROOT}/.cursor/update-error-md.sh" ]; then
+    bash "${REPO_ROOT}/.cursor/update-error-md.sh"
+  else
+    log "${RED}✗ Error: update-error-md.sh not found. Unable to update error documentation.${NC}"
+  fi
+  
+  exit 1
 else
-  log "${RED}Warning: update-error-md.sh not found. error.md not updated.${NC}"
-fi
-
-exit $exit_code
+  log "${GREEN}OVERALL RESULT: PASS - All tests completed successfully${NC}"
+  
+  # Copy the log to error.md for easier reference (even for successful tests)
+  if [ -f "${REPO_ROOT}/.cursor/update-error-md.sh" ]; then
+    bash "${REPO_ROOT}/.cursor/update-error-md.sh"
+  else
+    log "${RED}✗ Error: update-error-md.sh not found. Unable to update error documentation.${NC}"
+  fi
+  
+  exit 0
+fi 

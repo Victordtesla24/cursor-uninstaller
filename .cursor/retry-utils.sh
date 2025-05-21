@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Utility functions for retry operations and logging
 
 # Retry utils for background agent installation
@@ -87,68 +89,177 @@ log_retry() {
     fi
 }
 
-# Retry a command with exponential backoff
-# Usage: retry <max_attempts> <delay> <command>
+# Function to retry a command with exponential backoff
+# Usage: retry <max_attempts> <backoff_factor> <command>
 retry() {
-    local max_attempts=$1
-    local delay=$2
-    local attempt=1
-    shift 2
-
-    until "$@"; do
-        exit_code=$?
-
-        if [ $attempt -ge $max_attempts ]; then
-            log_retry "Command '$*' failed after $max_attempts attempts with exit code $exit_code."
-            return $exit_code
-        fi
-
-        log_retry "Command '$*' failed with exit code $exit_code. Retrying in ${delay}s (attempt $attempt/$max_attempts)..."
-        sleep $delay
-        attempt=$((attempt + 1))
-        delay=$((delay * 2))
-    done
-
-    return 0
+  local max_attempts=$1
+  local backoff_factor=$2
+  local cmd="${@:3}"
+  local attempts=0
+  local exit_code=0
+  local wait_time=1
+  
+  while [[ $attempts -lt $max_attempts ]]; do
+    attempts=$((attempts + 1))
+    
+    echo "Attempt $attempts/$max_attempts: $cmd"
+    
+    # Execute the command
+    eval "$cmd"
+    exit_code=$?
+    
+    # If command succeeds, return success
+    if [[ $exit_code -eq 0 ]]; then
+      echo "Command succeeded on attempt $attempts"
+      return 0
+    fi
+    
+    # If this was the last attempt, return failure
+    if [[ $attempts -eq $max_attempts ]]; then
+      echo "Command failed after $attempts attempts: $cmd (exit code: $exit_code)"
+      return $exit_code
+    fi
+    
+    # Calculate backoff time
+    wait_time=$(bc <<< "scale=1; $backoff_factor * $wait_time" 2>/dev/null || echo "$((backoff_factor * wait_time))")
+    
+    echo "Command failed (exit code: $exit_code). Retrying in $wait_time seconds..."
+    sleep "$wait_time"
+  done
+  
+  # This should not be reached, but return failure if it is
+  return 1
 }
 
-# Run a command with a timeout
+# Function to run a command with a timeout
 # Usage: run_with_timeout <timeout_seconds> <command>
 run_with_timeout() {
-    local timeout=$1
-    shift
+  local timeout=$1
+  local cmd="${@:2}"
+  local pid=""
+  local exit_code=0
+  local timed_out=0
+  
+  echo "Running command with ${timeout}s timeout: $cmd"
+  
+  # Run command in the background
+  eval "$cmd" &
+  pid=$!
+  
+  # Monitor the command with timeout
+  {
+    sleep "$timeout"
+    echo "Command timed out after ${timeout}s: $cmd"
+    kill -TERM $pid >/dev/null 2>&1 || true
+    timed_out=1
+  } &
+  local monitor_pid=$!
+  
+  # Wait for the command to finish
+  wait $pid
+  exit_code=$?
+  
+  # Kill the monitor process if command completed before timeout
+  if [[ $timed_out -eq 0 ]]; then
+    kill -TERM $monitor_pid >/dev/null 2>&1 || true
+    echo "Command completed in under ${timeout}s (exit code: $exit_code)"
+  else
+    # Return specific error code for timeouts
+    exit_code=124
+  fi
+  
+  return $exit_code
+}
 
-    # Use timeout command if available
-    if command -v timeout &> /dev/null; then
-        timeout $timeout "$@"
-        return $?
-    else
-        # Fallback using background process and kill
-        log_retry "timeout command not available, using fallback method"
+# Function to run a command with retries and timeout
+# Usage: retry_with_timeout <max_attempts> <backoff_factor> <timeout_seconds> <command>
+retry_with_timeout() {
+  local max_attempts=$1
+  local backoff_factor=$2
+  local timeout=$3
+  local cmd="${@:4}"
+  
+  retry "$max_attempts" "$backoff_factor" "run_with_timeout $timeout $cmd"
+  return $?
+}
 
-        # Run the command in the background
-        "$@" &
-        local pid=$!
+# Function to safely clone a git repository with retries
+# Usage: safe_git_clone <repo_url> <target_directory> [<max_attempts>] [<backoff_factor>]
+safe_git_clone() {
+  local repo_url=$1
+  local target_dir=$2
+  local max_attempts=${3:-3}
+  local backoff_factor=${4:-2}
+  
+  # Check if directory already exists and is a git repository
+  if [[ -d "$target_dir/.git" ]]; then
+    echo "Git repository already exists at $target_dir. Running git fetch instead."
+    (cd "$target_dir" && retry "$max_attempts" "$backoff_factor" "git fetch --all")
+    return $?
+  fi
+  
+  # Create parent directory if it doesn't exist
+  mkdir -p "$(dirname "$target_dir")" 2>/dev/null || true
+  
+  # Attempt to clone the repository
+  echo "Cloning repository $repo_url to $target_dir"
+  retry "$max_attempts" "$backoff_factor" "git clone $repo_url $target_dir"
+  return $?
+}
 
-        # Start the timer
-        (
-            sleep $timeout
-            kill -0 $pid 2>/dev/null && {
-                log_retry "Command '$*' timed out after ${timeout}s, killing process $pid"
-                kill -TERM $pid 2>/dev/null || kill -KILL $pid 2>/dev/null
-            }
-        ) &
-        local timer_pid=$!
+# Function to safely pull updates from a git repository with retries
+# Usage: safe_git_pull <directory> [<branch>] [<max_attempts>] [<backoff_factor>]
+safe_git_pull() {
+  local target_dir=$1
+  local branch=${2:-""}
+  local max_attempts=${3:-3}
+  local backoff_factor=${4:-2}
+  
+  # Check if directory is a git repository
+  if [[ ! -d "$target_dir/.git" ]]; then
+    echo "Error: $target_dir is not a git repository"
+    return 1
+  fi
+  
+  # Change to the repository directory
+  cd "$target_dir" || return 1
+  
+  # Determine current branch if not specified
+  if [[ -z "$branch" ]]; then
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+  fi
+  
+  echo "Pulling latest changes from $branch in $target_dir"
+  retry "$max_attempts" "$backoff_factor" "git pull origin $branch"
+  return $?
+}
 
-        # Wait for the command to complete
-        wait $pid 2>/dev/null
-        local exit_code=$?
-
-        # Kill the timer
-        kill -TERM $timer_pid 2>/dev/null || kill -KILL $timer_pid 2>/dev/null
-
-        return $exit_code
-    fi
+# Function to safely install npm dependencies with retries and timeout
+# Usage: safe_npm_install <directory> [<max_attempts>] [<backoff_factor>] [<timeout>]
+safe_npm_install() {
+  local target_dir=$1
+  local max_attempts=${2:-3}
+  local backoff_factor=${3:-2}
+  local timeout=${4:-300}
+  
+  # Check if directory exists
+  if [[ ! -d "$target_dir" ]]; then
+    echo "Error: Directory $target_dir does not exist"
+    return 1
+  fi
+  
+  # Change to the target directory
+  cd "$target_dir" || return 1
+  
+  # Check if package.json exists
+  if [[ ! -f "package.json" ]]; then
+    echo "Error: package.json not found in $target_dir"
+    return 1
+  fi
+  
+  echo "Installing npm dependencies in $target_dir (timeout: ${timeout}s)"
+  retry_with_timeout "$max_attempts" "$backoff_factor" "$timeout" "npm install"
+  return $?
 }
 
 # Log a message to a file and stdout with fallback
@@ -209,6 +320,10 @@ check_github_access() {
 # Export functions
 export -f retry
 export -f run_with_timeout
+export -f retry_with_timeout
+export -f safe_git_clone
+export -f safe_git_pull
+export -f safe_npm_install
 export -f ensure_dir
 export -f ensure_file
 export -f init_logging

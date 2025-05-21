@@ -12,6 +12,8 @@ This directory contains configuration files and scripts for the Cursor Backgroun
   - `load-env.sh` - Loads environment variables from `.env` or `env.txt`, sourced by other scripts.
   - `cleanup.sh` - Cleans up temporary files, logs, and resources.
   - `create-snapshot.sh` - Helper script to prepare an environment for snapshot creation. This is for an alternative setup to the Dockerfile approach. If using the Dockerfile defined in the project root, this script is not part of the primary agent startup but can be used for manual snapshot creation if desired.
+  - `flush-logs.sh` - Removes all log files and creates new empty log files. Used before testing to ensure clean logs.
+  - `update-error-md.sh` - Updates the error.md file with the latest test run information.
   - `README.md` - This file, explaining the `.cursor` directory.
   - `TROUBLESHOOTING.md` - Solutions for common issues with the background agent setup.
   - `background-agent-prompt.md` - Example prompts and guidelines for interacting with the background agent.
@@ -49,6 +51,15 @@ The background agent is configured via the `.cursor/environment.json` file, whic
 - User context for script execution.
 - Installation and startup scripts (e.g., `.cursor/install.sh`).
 - Terminal configurations for running processes.
+
+## Log Management
+
+For effective debugging and clean test runs:
+
+1. **Log Flushing**: Before running tests, use `bash .cursor/flush-logs.sh` to clear all previous logs.
+2. **Automated Log Management**: The `run-tests.sh` script automatically flushes logs before running tests.
+3. **Error Tracking**: After tests run, `error.md` is automatically updated with the latest test results.
+4. **Log Directory**: All logs are stored in `.cursor/logs/` with appropriate permissions.
 
 ## GitHub Integration
 

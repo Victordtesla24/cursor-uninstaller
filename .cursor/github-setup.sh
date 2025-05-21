@@ -1,6 +1,8 @@
 #!/bin/bash
 # GitHub Setup Script for Background Agent
 
+set -e
+
 # Source environment variables
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/.cursor/load-env.sh" ]; then
   source "$(dirname "${BASH_SOURCE[0]}")/.cursor/load-env.sh"
@@ -174,6 +176,15 @@ refresh_github_token() {
   else
     log "No GitHub token found in environment. Cursor background agent should provide this."
     log "IMPORTANT: Make sure the Cursor GitHub app is installed and has correct permissions."
+
+    # Check if this is a private repository and provide specific guidance
+    if check_repo_privacy; then
+      log "PRIVATE REPOSITORY DETECTED OR ASSUMED. Authentication is critical."
+      log "For Cursor to access private repositories:"
+      log "1. Ensure the Cursor GitHub App is installed with read/write access to this repository."
+      log "2. If using GitHub Actions: Add 'permissions: contents: read' to your workflow."
+      log "3. In Cursor, ensure your GitHub account is properly connected in settings."
+    fi
   fi
 
   # Check if git repository exists before trying to set remote
@@ -238,6 +249,13 @@ verify_github_access() {
         log "2. Check your internet connection and proxy settings"
         log "3. Verify that ${GITHUB_REPO_URL} is correct and accessible"
 
+        # Check if this is likely a private repository authentication issue
+        if check_repo_privacy; then
+          log "AUTHENTICATION ISSUE WITH PRIVATE REPOSITORY DETECTED"
+          log "For private repositories, the Cursor GitHub app MUST have read/write access."
+          log "This is a common issue with GitHub Actions: Add 'permissions: contents: read' to your workflow."
+        fi
+
         sleep $delay
         delay=$((delay * 2))
         attempt=$((attempt + 1))
@@ -250,6 +268,14 @@ verify_github_access() {
         log "2. Ensure the GitHub app has read/write access to your repositories"
         log "3. Check if your organization has any restrictions on GitHub apps"
         log "4. Verify network/proxy allows connections to github.com"
+
+        # Add private repository specific guidance
+        if check_repo_privacy; then
+          log "5. PRIVATE REPOSITORY: Ensure proper permissions in GitHub App"
+          log "6. PRIVATE REPOSITORY: Check organization access settings"
+          log "7. PRIVATE REPOSITORY: For GitHub Actions, add 'permissions: contents: read' to workflow"
+        fi
+
         log "------------------------------------------------"
         return 1
       fi
@@ -279,7 +305,15 @@ create_test_branch() {
           log "Successfully pushed test branch to GitHub"
         else
           log "Failed to push test branch. GitHub push access may not be configured."
-          log "Check if your GitHub token has write permissions to this repository."
+
+          # Check if this is likely a private repository authentication issue
+          if check_repo_privacy; then
+            log "AUTHENTICATION ISSUE WITH PRIVATE REPOSITORY"
+            log "For private repositories, the Cursor GitHub app MUST have write permissions."
+            log "Please check your GitHub App installation settings for proper access."
+          else
+            log "Check if your GitHub token has write permissions to this repository."
+          fi
         fi
       else
         log "Failed to create test commit"
@@ -290,6 +324,41 @@ create_test_branch() {
     else
       log "Failed to create test branch"
     fi
+  fi
+}
+
+# Check if the repository is private
+check_repo_privacy() {
+  log "Checking if repository is private..."
+
+  # Extract owner and repo name from the URL
+  if [[ "$GITHUB_REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+)(.git)? ]]; then
+    local owner="${BASH_REMATCH[1]}"
+    local repo="${BASH_REMATCH[2]}"
+
+    # Use GitHub API to check if repo is private (don't fail if this check fails)
+    if command -v curl >/dev/null 2>&1; then
+      log "Using curl to check repo privacy via GitHub API..."
+      local api_response
+      api_response=$(curl -s "https://api.github.com/repos/$owner/$repo" 2>/dev/null || echo '{"private": false}')
+
+      if [[ "$api_response" == *'"private":true'* ]]; then
+        log "This is a PRIVATE repository. Special authentication handling required."
+        return 0
+      elif [[ "$api_response" == *'"private":false'* ]]; then
+        log "This is a PUBLIC repository."
+        return 1
+      else
+        log "Could not determine repository privacy status from API. Assuming it might be private for safety."
+        return 0
+      fi
+    else
+      log "curl not available. Unable to verify if repository is private. Assuming it might be private."
+      return 0
+    fi
+  else
+    log "Could not parse owner/repo from URL. Assuming repository might be private."
+    return 0
   fi
 }
 
@@ -313,6 +382,13 @@ main() {
     fi
     # Recreate directories after changing directory
     init_directories # This will use the potentially updated CURSOR_DIR_RELATIVE_TO_SCRIPT or new relative paths
+  fi
+
+  # Check if repository is private (for information purposes)
+  if check_repo_privacy; then
+    log "This repository appears to be private. Ensuring proper authentication setup..."
+  else
+    log "This repository appears to be public."
   fi
 
   # Check git repository first

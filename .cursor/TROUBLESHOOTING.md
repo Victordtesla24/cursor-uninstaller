@@ -19,17 +19,28 @@ This document provides solutions to common issues that may arise with the Cursor
 - Agent cannot push to GitHub
 - "Permission denied" errors when attempting to access GitHub
 - Failed GitHub operations in the log
+- "repository not found" errors when attempting to access a private repository
 
 ### Solutions
 1. **Verify GitHub App Installation**
    - Ensure you've installed the Cursor GitHub App with read-write permissions for your repository
    - Go to GitHub > Settings > Applications > Installed GitHub Apps and verify Cursor has access
 
-2. **Refresh Authentication**
+2. **Check Permissions for Private Repositories**
+   - If you're using a private repository, you need explicit permissions for GitHub access
+   - For GitHub Actions workflows, add the following to your workflow file:
+     ```yaml
+     permissions:
+       contents: read  # Required for accessing private repositories
+     ```
+   - This is necessary because setting any permissions in a workflow overwrites ALL default permissions
+   - See the [GitHub issue #254](https://github.com/actions/checkout/issues/254) for more details
+
+3. **Refresh Authentication**
    - The background agent will automatically attempt to refresh GitHub tokens
    - If issues persist, try disconnecting and reconnecting the GitHub integration in Cursor settings
 
-3. **Manual GitHub Setup**
+4. **Manual GitHub Setup**
    - Run the GitHub setup script manually:
      ```bash
      bash .cursor/github-setup.sh
@@ -42,26 +53,43 @@ This document provides solutions to common issues that may arise with the Cursor
 - Missing log files
 - "No such file or directory" errors when trying to write logs
 - Agent operations not being logged properly
+- Log files contain old data making debugging difficult
+- Error.md file is not updated after test runs
 
 ### Solutions
 1. **Create Log Directories**
    - Ensure the log directories exist:
      ```bash
      mkdir -p .cursor/logs
-     touch .cursor/agent.log
+     touch .cursor/logs/agent.log
      ```
 
 2. **Check Permissions**
    - Verify the agent user has write access to log locations:
      ```bash
-     sudo chown -R node:node .cursor/logs .cursor/agent.log
+     sudo chown -R node:node .cursor/logs .cursor/logs/agent.log
      ```
 
-3. **Monitor Logs**
+3. **Flush Logs Before Testing**
+   - Use the flush-logs.sh script to clear old logs before running tests:
+     ```bash
+     bash .cursor/flush-logs.sh
+     ```
+   - This ensures only the latest logs are kept, making debugging easier
+
+4. **Monitor Logs**
    - Use the log_monitor terminal to watch the agent logs in real-time:
      ```bash
-     tail -f .cursor/agent.log
+     tail -f .cursor/logs/agent.log
      ```
+
+5. **Error.md Management**
+   - The error.md file is automatically updated after each test run
+   - If it's not being updated, run the update-error-md.sh script manually:
+     ```bash
+     bash .cursor/update-error-md.sh
+     ```
+   - This ensures error.md always contains the latest test results
 
 ## Terminal Output Issues
 
