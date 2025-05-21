@@ -82,10 +82,21 @@ log "${BLUE}===============================${NC}"
 # Initialize failure counter
 FAILURES=0
 
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+  log "${RED}✗ Docker is not installed${NC}"
+  log "${RED}✗ Docker is required to build and run the container for the Background Agent${NC}"
+  log "${RED}✗ Cannot continue with Docker-specific tests without Docker installation${NC}"
+  FAILURES=$((FAILURES + 1))
+  # Exit with failure - we don't skip tests, we fail appropriately
+  exit 1
+fi
+
 # Test 1: Check for marker file that indicates successful installation
 log "${BLUE}ℹ "
 log "${BLUE}Testing installation marker file...${NC}"
 
+# This is a critical component - must fail properly if missing
 if [ -f "${MARKER_FILE}" ]; then
   log "${GREEN}✓ Installation marker file exists${NC}"
   
@@ -102,235 +113,318 @@ if [ -f "${MARKER_FILE}" ]; then
 else
   log "${RED}✗ Installation marker file does not exist${NC}"
   log "${RED}ℹ This file should be created by install.sh script at ${MARKER_FILE}${NC}"
+  # Attempt to locate installation script and report its status
+  if [ -f "${INSTALL_SCRIPT}" ]; then
+    log "${RED}✗ Install script exists but marker file was not created${NC}"
+    log "${RED}✗ This indicates a failed installation or execution problem${NC}"
+  else
+    log "${RED}✗ Install script is missing at ${INSTALL_SCRIPT}${NC}"
+    log "${RED}✗ Both install script and marker file are required components${NC}"
+  fi
   FAILURES=$((FAILURES + 1))
+  # No early exit - we'll check all test conditions before exiting
 fi
 
 # Test 2: Check environment.json file
 log "${BLUE}ℹ "
 log "${BLUE}Testing environment.json file...${NC}"
 
-if [ -f "${ENVIRONMENT_JSON}" ]; then
-  log "${BLUE}ℹ Found environment.json at ${ENVIRONMENT_JSON}${NC}"
-  
-  # Check if jq is available
-  if ! command -v jq &> /dev/null; then
-    log "${RED}✗ CRITICAL: jq command not found. jq is required for proper validation of environment.json.${NC}"
-    log "${RED}ℹ Please install jq (e.g., apt-get install jq, brew install jq)${NC}"
-    FAILURES=$((FAILURES + 1))
-    # Log a specific test failure for jq availability
-    run_test "jq availability for environment.json validation" "false" <(echo "jq command not found, cannot validate environment.json fully.")
-  else
-    # Validate JSON syntax
-    temp_file1=$(mktemp)
-    if run_test "environment.json syntax check" "jq '.' \"${ENVIRONMENT_JSON}\" > /dev/null" "$temp_file1"; then
-      log "${GREEN}✓ environment.json has valid JSON syntax${NC}"
-      
-      # Displaying basic info about environment.json
-      user_value=$(jq -r '.user // "not set"' "${ENVIRONMENT_JSON}")
-      install_script=$(jq -r '.install // "not set"' "${ENVIRONMENT_JSON}")
-      log "${BLUE}ℹ environment.json configured with user: ${user_value}, install script: ${install_script}${NC}"
-      
-      # Check for required fields based on Cursor documentation
-      required_fields=("user" "install" "start" "terminals" "build")
-      for field in "${required_fields[@]}"; do
-        if run_test "environment.json has field: $field" "jq -e '.${field}' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
-          log "${GREEN}✓ environment.json has required field: $field${NC}"
-        else
-          log "${RED}✗ environment.json is missing required field: $field (or its value is null/false)${NC}"
-          log "${RED}ℹ According to Cursor documentation, this field is required${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      done
-      
-      # Check terminals configuration
-      if run_test "environment.json has terminals defined and > 0" "jq -e '.terminals | length > 0' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
-        terminal_count=$(jq '.terminals | length' "${ENVIRONMENT_JSON}")
-        log "${GREEN}✓ environment.json has ${terminal_count} terminals defined${NC}"
-        
-        # Validate each terminal
-        for ((i=0; i<terminal_count; i++)); do
-          terminal_name=$(jq -r ".terminals[$i].name" "${ENVIRONMENT_JSON}")
-          terminal_cmd=$(jq -r ".terminals[$i].command" "${ENVIRONMENT_JSON}")
-          terminal_desc=$(jq -r ".terminals[$i].description" "${ENVIRONMENT_JSON}")
-          
-          log "${BLUE}ℹ Checking terminal: $terminal_name${NC}"
-          
-          if [ -n "$terminal_name" ] && [ "$terminal_name" != "null" ]; then
-            log "${GREEN}✓ Terminal has name defined: $terminal_name${NC}"
-          else
-            log "${RED}✗ Terminal is missing name field${NC}"
-            FAILURES=$((FAILURES + 1))
-          fi
-          
-          if [ -n "$terminal_cmd" ] && [ "$terminal_cmd" != "null" ]; then
-            log "${GREEN}✓ Terminal $terminal_name has command defined: $terminal_cmd${NC}"
-          else
-            log "${RED}✗ Terminal $terminal_name is missing command field${NC}"
-            FAILURES=$((FAILURES + 1))
-          fi
-          
-          if [ -n "$terminal_desc" ] && [ "$terminal_desc" != "null" ]; then
-            log "${GREEN}✓ Terminal $terminal_name has description defined${NC}"
-          else
-            log "${RED}✗ Terminal $terminal_name is missing description field${NC}"
-            FAILURES=$((FAILURES + 1))
-          fi
-        done
-      else
-        log "${RED}✗ environment.json has no terminals defined${NC}"
-        log "${RED}ℹ Cursor documentation requires at least one terminal definition${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-      
-      # Check build configuration
-      if run_test "environment.json has build configuration" "jq -e '.build' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
-        log "${GREEN}✓ environment.json has build configuration${NC}"
-        
-        # Validate build structure specifically for Dockerfile
-        if jq -e '.build.dockerfile' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
-          dockerfile_path=$(jq -r '.build.dockerfile' "${ENVIRONMENT_JSON}")
-          log "${GREEN}✓ environment.json .build.dockerfile field exists: ${dockerfile_path}${NC}"
-          
-          # Verify if Dockerfile exists at the specified path (handling absolute container paths)
-          if [[ "${dockerfile_path}" == "/agent_workspace/Dockerfile" ]]; then
-            log "${GREEN}✓ Dockerfile path uses absolute container path: ${dockerfile_path}${NC}"
-            if [ -f "${REPO_ROOT}/Dockerfile" ]; then
-              log "${GREEN}✓ Dockerfile exists at repository root matching the absolute path reference${NC}"
-            else
-              log "${RED}✗ Dockerfile not found at repository root, but environment.json references it with absolute path${NC}"
-              FAILURES=$((FAILURES + 1))
-            fi
-          elif [[ "${dockerfile_path}" == "Dockerfile" ]]; then
-            if [ -f "${REPO_ROOT}/Dockerfile" ]; then
-              log "${GREEN}✓ Dockerfile exists at repository root${NC}"
-            else
-              log "${RED}✗ Dockerfile not found at repository root${NC}"
-              FAILURES=$((FAILURES + 1))
-            fi
-          else
-            # For other relative paths
-            expected_path="${REPO_ROOT}/${dockerfile_path}"
-            if [ -f "${expected_path}" ]; then
-              log "${GREEN}✓ Dockerfile exists at referenced path: ${dockerfile_path}${NC}"
-            else
-              log "${RED}✗ Dockerfile not found at referenced path: ${dockerfile_path}${NC}"
-              FAILURES=$((FAILURES + 1))
-            fi
-          fi
-          
-          # Check if context is set
-          if run_test "environment.json build has context" "jq -e '.build.context' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
-            context_path=$(jq -r '.build.context' "${ENVIRONMENT_JSON}")
-            log "${GREEN}✓ Build context is set to: ${context_path}${NC}"
-          else
-            log "${RED}✗ Build context is not specified in environment.json${NC}"
-            log "${RED}ℹ Cursor documentation recommends setting the build context${NC}"
-            FAILURES=$((FAILURES + 1))
-          fi
-        # Check if snapshot approach is used
-        elif run_test "environment.json build has snapshot" "jq -e '.build.snapshot' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
-          snapshot_id=$(jq -r '.build.snapshot' "${ENVIRONMENT_JSON}")
-          log "${GREEN}✓ Using snapshot approach: ${snapshot_id}${NC}"
-          
-          # Verify snapshot ID isn't a placeholder
-          if [[ "$snapshot_id" == *"REPLACE_WITH_SNAPSHOT_ID"* ]]; then
-            log "${RED}✗ Snapshot ID appears to be a placeholder: ${snapshot_id}${NC}"
-            FAILURES=$((FAILURES + 1))
-          elif [ ${#snapshot_id} -lt 10 ]; then
-            log "${RED}✗ Snapshot ID seems suspiciously short: ${snapshot_id}${NC}"
-            FAILURES=$((FAILURES + 1))
-          fi
-        else
-          log "${RED}✗ Neither Dockerfile nor snapshot configuration found in build section${NC}"
-          log "${RED}ℹ According to Cursor documentation, either dockerfile or snapshot must be specified${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      else
-        log "${RED}✗ environment.json is missing build configuration${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-    else
-      log "${RED}✗ environment.json is not valid JSON${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
-    rm -f "$temp_file1"
-  fi
-else
+if [ ! -f "${ENVIRONMENT_JSON}" ]; then
   log "${RED}✗ environment.json not found${NC}"
   log "${RED}ℹ This file is required for the background agent at ${ENVIRONMENT_JSON}${NC}"
   FAILURES=$((FAILURES + 1))
+  # This is a critical component - must fail test if missing
+  exit 1
+fi
+
+log "${BLUE}ℹ Found environment.json at ${ENVIRONMENT_JSON}${NC}"
+
+# Check if jq is available - required for proper validation
+if ! command -v jq &> /dev/null; then
+  log "${RED}✗ CRITICAL: jq command not found. jq is required for proper validation of environment.json.${NC}"
+  log "${RED}ℹ Please install jq (e.g., apt-get install jq, brew install jq)${NC}"
+  FAILURES=$((FAILURES + 1))
+  # Don't skip validation, use alternative method
+  USING_JQ=false
+else
+  USING_JQ=true
+fi
+
+# Validate JSON syntax regardless of jq availability
+if $USING_JQ; then
+  temp_file1=$(mktemp)
+  if run_test "environment.json syntax check" "jq '.' \"${ENVIRONMENT_JSON}\" > /dev/null" "$temp_file1"; then
+    log "${GREEN}✓ environment.json has valid JSON syntax${NC}"
+    
+    # Continue with detailed jq-based validation
+    # Displaying basic info about environment.json
+    user_value=$(jq -r '.user // "not set"' "${ENVIRONMENT_JSON}")
+    install_script=$(jq -r '.install // "not set"' "${ENVIRONMENT_JSON}")
+    log "${BLUE}ℹ environment.json configured with user: ${user_value}, install script: ${install_script}${NC}"
+    
+    # Check for required fields based on Cursor documentation
+    required_fields=("user" "install" "start" "terminals" "build")
+    for field in "${required_fields[@]}"; do
+      if run_test "environment.json has field: $field" "jq -e '.${field}' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+        log "${GREEN}✓ environment.json has required field: $field${NC}"
+      else
+        log "${RED}✗ environment.json is missing required field: $field (or its value is null/false)${NC}"
+        log "${RED}ℹ According to Cursor documentation, this field is required${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+    done
+    
+    # Check terminals configuration
+    if run_test "environment.json has terminals defined and > 0" "jq -e '.terminals | length > 0' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+      terminal_count=$(jq '.terminals | length' "${ENVIRONMENT_JSON}")
+      log "${GREEN}✓ environment.json has ${terminal_count} terminals defined${NC}"
+      
+      # Validate each terminal
+      for ((i=0; i<terminal_count; i++)); do
+        terminal_name=$(jq -r ".terminals[$i].name" "${ENVIRONMENT_JSON}")
+        terminal_cmd=$(jq -r ".terminals[$i].command" "${ENVIRONMENT_JSON}")
+        terminal_desc=$(jq -r ".terminals[$i].description" "${ENVIRONMENT_JSON}")
+        
+        log "${BLUE}ℹ Checking terminal: $terminal_name${NC}"
+        
+        if [ -n "$terminal_name" ] && [ "$terminal_name" != "null" ]; then
+          log "${GREEN}✓ Terminal has name defined: $terminal_name${NC}"
+        else
+          log "${RED}✗ Terminal is missing name field${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+        
+        if [ -n "$terminal_cmd" ] && [ "$terminal_cmd" != "null" ]; then
+          log "${GREEN}✓ Terminal $terminal_name has command defined: $terminal_cmd${NC}"
+        else
+          log "${RED}✗ Terminal $terminal_name is missing command field${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+        
+        if [ -n "$terminal_desc" ] && [ "$terminal_desc" != "null" ]; then
+          log "${GREEN}✓ Terminal $terminal_name has description defined${NC}"
+        else
+          log "${RED}✗ Terminal $terminal_name is missing description field${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+      done
+    else
+      log "${RED}✗ environment.json has no terminals defined${NC}"
+      log "${RED}ℹ Cursor documentation requires at least one terminal definition${NC}"
+      FAILURES=$((FAILURES + 1))
+    fi
+    
+    # Check build configuration
+    if run_test "environment.json has build configuration" "jq -e '.build' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+      log "${GREEN}✓ environment.json has build configuration${NC}"
+      
+      # Validate build structure specifically for Dockerfile
+      if jq -e '.build.dockerfile' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
+        dockerfile_path=$(jq -r '.build.dockerfile' "${ENVIRONMENT_JSON}")
+        log "${GREEN}✓ environment.json .build.dockerfile field exists: ${dockerfile_path}${NC}"
+        
+        # Verify if Dockerfile exists at the specified path (handling absolute container paths)
+        if [[ "${dockerfile_path}" == "/agent_workspace/Dockerfile" ]]; then
+          log "${GREEN}✓ Dockerfile path uses absolute container path: ${dockerfile_path}${NC}"
+          if [ -f "${REPO_ROOT}/Dockerfile" ]; then
+            log "${GREEN}✓ Dockerfile exists at repository root matching the absolute path reference${NC}"
+          else
+            log "${RED}✗ Dockerfile not found at repository root, but environment.json references it with absolute path${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        elif [[ "${dockerfile_path}" == "Dockerfile" ]]; then
+          if [ -f "${REPO_ROOT}/Dockerfile" ]; then
+            log "${GREEN}✓ Dockerfile exists at repository root${NC}"
+          else
+            log "${RED}✗ Dockerfile not found at repository root${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        else
+          # For other relative paths
+          expected_path="${REPO_ROOT}/${dockerfile_path}"
+          if [ -f "${expected_path}" ]; then
+            log "${GREEN}✓ Dockerfile exists at referenced path: ${dockerfile_path}${NC}"
+          else
+            log "${RED}✗ Dockerfile not found at referenced path: ${dockerfile_path}${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        fi
+        
+        # Check if context is set
+        if run_test "environment.json build has context" "jq -e '.build.context' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+          context_path=$(jq -r '.build.context' "${ENVIRONMENT_JSON}")
+          log "${GREEN}✓ Build context is set to: ${context_path}${NC}"
+        else
+          log "${RED}✗ Build context is not specified in environment.json${NC}"
+          log "${RED}ℹ Cursor documentation recommends setting the build context${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+      # Check if snapshot approach is used
+      elif run_test "environment.json build has snapshot" "jq -e '.build.snapshot' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+        snapshot_id=$(jq -r '.build.snapshot' "${ENVIRONMENT_JSON}")
+        log "${GREEN}✓ Using snapshot approach: ${snapshot_id}${NC}"
+        
+        # Verify snapshot ID isn't a placeholder
+        if [[ "$snapshot_id" == *"REPLACE_WITH_SNAPSHOT_ID"* ]]; then
+          log "${RED}✗ Snapshot ID appears to be a placeholder: ${snapshot_id}${NC}"
+          FAILURES=$((FAILURES + 1))
+        elif [ ${#snapshot_id} -lt 10 ]; then
+          log "${RED}✗ Snapshot ID seems suspiciously short: ${snapshot_id}${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+      else
+        log "${RED}✗ Neither Dockerfile nor snapshot configuration found in build section${NC}"
+        log "${RED}ℹ According to Cursor documentation, either dockerfile or snapshot must be specified${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+    else
+      log "${RED}✗ environment.json is missing build configuration${NC}"
+      FAILURES=$((FAILURES + 1))
+    fi
+  else
+    log "${RED}✗ environment.json is not valid JSON${NC}"
+    FAILURES=$((FAILURES + 1))
+    # Show invalid JSON error details
+    cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+      log "${RED}✗ $line${NC}"
+    done
+  fi
+  rm -f "$temp_file1"
+else
+  # Alternative validation without jq
+  log "${YELLOW}⚠ Performing limited JSON validation without jq${NC}"
+  
+  # Basic syntax check using Python if available
+  if command -v python3 &> /dev/null; then
+    temp_file1=$(mktemp)
+    if run_test "environment.json basic syntax check" "python3 -m json.tool \"${ENVIRONMENT_JSON}\" > /dev/null" "$temp_file1"; then
+      log "${GREEN}✓ environment.json passed basic JSON syntax check${NC}"
+    else
+      log "${RED}✗ environment.json failed basic JSON syntax check${NC}"
+      FAILURES=$((FAILURES + 1))
+      # Show error details
+      cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+        log "${RED}✗ $line${NC}"
+      done
+    fi
+    rm -f "$temp_file1"
+  elif command -v python &> /dev/null; then
+    temp_file1=$(mktemp)
+    if run_test "environment.json basic syntax check" "python -m json.tool \"${ENVIRONMENT_JSON}\" > /dev/null" "$temp_file1"; then
+      log "${GREEN}✓ environment.json passed basic JSON syntax check${NC}"
+    else
+      log "${RED}✗ environment.json failed basic JSON syntax check${NC}"
+      FAILURES=$((FAILURES + 1))
+      # Show error details
+      cat "$temp_file1" | sed 's/^/    /' | while IFS= read -r line; do
+        log "${RED}✗ $line${NC}"
+      done
+    fi
+    rm -f "$temp_file1"
+  else
+    # Very basic check using grep
+    log "${YELLOW}⚠ Python not available. Performing very basic JSON validation${NC}"
+    if grep -q '{' "${ENVIRONMENT_JSON}" && grep -q '}' "${ENVIRONMENT_JSON}"; then
+      log "${YELLOW}⚠ environment.json appears to contain JSON-like content (limited validation)${NC}"
+    else
+      log "${RED}✗ environment.json does not appear to contain valid JSON${NC}"
+      FAILURES=$((FAILURES + 1))
+    fi
+  fi
+  
+  # Manual field checks using grep
+  log "${YELLOW}⚠ Performing required field checks using grep (limited validation)${NC}"
+  required_fields=("user" "install" "start" "terminals" "build")
+  for field in "${required_fields[@]}"; do
+    if grep -q "\"${field}\"" "${ENVIRONMENT_JSON}"; then
+      log "${GREEN}✓ environment.json appears to have required field: ${field}${NC}"
+    else
+      log "${RED}✗ environment.json appears to be missing required field: ${field}${NC}"
+      FAILURES=$((FAILURES + 1))
+    fi
+  done
 fi
 
 # Test 3: Test install.sh script
 log "${BLUE}ℹ "
 log "${BLUE}Testing install.sh script...${NC}"
 
-if [ -f "${INSTALL_SCRIPT}" ]; then
-  log "${BLUE}ℹ Found install.sh at ${INSTALL_SCRIPT}${NC}"
-  
-  if [ -x "${INSTALL_SCRIPT}" ]; then
-    log "${GREEN}✓ install.sh is executable${NC}"
-    
-    # Check for common issues in the script
-    temp_file2=$(mktemp)
-    if run_test "install.sh syntax check" "bash -n '${INSTALL_SCRIPT}'" "$temp_file2"; then
-      log "${GREEN}✓ install.sh has valid syntax${NC}"
-      
-      # Check for necessary sections in install.sh based on Cursor docs
-      required_sections=("GITHUB_REPO_URL" "mkdir -p" "git")
-      for section in "${required_sections[@]}"; do
-        if grep -q "$section" "${INSTALL_SCRIPT}"; then
-          log "${GREEN}✓ install.sh contains required section: ${section}${NC}"
-        else
-          log "${RED}✗ install.sh missing required section: ${section}${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      done
-      
-      # Check for proper error handling in install.sh
-      if grep -q "set -e" "${INSTALL_SCRIPT}"; then
-        log "${GREEN}✓ install.sh contains proper error handling (set -e)${NC}"
-      else
-        log "${RED}✗ install.sh missing error handling (set -e)${NC}"
-        log "${RED}ℹ Error handling is required to ensure scripts fail gracefully${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-    else
-      log "${RED}✗ install.sh has syntax errors${NC}"
-      FAILURES=$((FAILURES + 1))
-      cat "$temp_file2"
-    fi
-    rm -f "$temp_file2"
-    
-    # Test if the script creates the required marker file correctly
-    if grep -q "bg-agent-install-complete.txt" "${INSTALL_SCRIPT}"; then
-      log "${GREEN}✓ install.sh creates the expected marker file${NC}"
-      
-      # Check the marker file creation is done properly at the end of successful installation
-      if grep -q "touch.*bg-agent-install-complete.txt" "${INSTALL_SCRIPT}" || 
-         grep -q "echo.*>.*bg-agent-install-complete.txt" "${INSTALL_SCRIPT}"; then
-        log "${GREEN}✓ install.sh creates marker file with proper command${NC}"
-      else
-        log "${RED}✗ install.sh marker file creation might be incorrect${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-    else
-      log "${RED}✗ install.sh does not create the expected marker file${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
-  else
-    log "${RED}✗ install.sh is not executable${NC}"
-    # Attempt to fix permissions
-    if chmod +x "${INSTALL_SCRIPT}"; then
-      log "${YELLOW}⚠ Made install.sh executable. Please ensure this is set correctly by default.${NC}"
-    else
-      log "${RED}✗ CRITICAL: Failed to make install.sh executable${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
-  fi
-else
+if [ ! -f "${INSTALL_SCRIPT}" ]; then
   log "${RED}✗ install.sh not found${NC}"
   log "${RED}ℹ This file is referenced in environment.json and must exist at ${INSTALL_SCRIPT}${NC}"
+  FAILURES=$((FAILURES + 1))
+  # Critical component missing - fail test
+  exit 1
+fi
+
+log "${BLUE}ℹ Found install.sh at ${INSTALL_SCRIPT}${NC}"
+
+# Check executability
+if [ ! -x "${INSTALL_SCRIPT}" ]; then
+  log "${RED}✗ install.sh is not executable${NC}"
+  # Attempt to fix permissions
+  if chmod +x "${INSTALL_SCRIPT}"; then
+    log "${YELLOW}⚠ Made install.sh executable. Please ensure this is set correctly by default.${NC}"
+  else
+    log "${RED}✗ CRITICAL: Failed to make install.sh executable${NC}"
+    FAILURES=$((FAILURES + 1))
+    # Critical permission issue - fail test
+    exit 1
+  fi
+else
+  log "${GREEN}✓ install.sh is executable${NC}"
+fi
+
+# Check for common issues in the script
+temp_file2=$(mktemp)
+if ! run_test "install.sh syntax check" "bash -n '${INSTALL_SCRIPT}'" "$temp_file2"; then
+  log "${RED}✗ install.sh has syntax errors${NC}"
+  FAILURES=$((FAILURES + 1))
+  cat "$temp_file2" | sed 's/^/    /' | while IFS= read -r line; do
+    log "${RED}✗ $line${NC}"
+  done
+  # Critical script error - fail test
+  rm -f "$temp_file2"
+  exit 1
+fi
+rm -f "$temp_file2"
+
+log "${GREEN}✓ install.sh has valid syntax${NC}"
+
+# Check for necessary sections in install.sh based on Cursor docs
+required_sections=("GITHUB_REPO_URL" "mkdir -p" "git")
+for section in "${required_sections[@]}"; do
+  if grep -q "$section" "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh contains required section: ${section}${NC}"
+  else
+    log "${RED}✗ install.sh missing required section: ${section}${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+done
+
+# Check for proper error handling in install.sh
+if grep -q "set -e" "${INSTALL_SCRIPT}"; then
+  log "${GREEN}✓ install.sh contains proper error handling (set -e)${NC}"
+else
+  log "${RED}✗ install.sh missing error handling (set -e)${NC}"
+  log "${RED}ℹ Error handling is required to ensure scripts fail gracefully${NC}"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Test if the script creates the required marker file correctly
+if grep -q "bg-agent-install-complete.txt" "${INSTALL_SCRIPT}"; then
+  log "${GREEN}✓ install.sh creates the expected marker file${NC}"
+  
+  # Check the marker file creation is done properly at the end of successful installation
+  if grep -q "touch.*bg-agent-install-complete.txt" "${INSTALL_SCRIPT}" || 
+     grep -q "echo.*>.*bg-agent-install-complete.txt" "${INSTALL_SCRIPT}"; then
+    log "${GREEN}✓ install.sh creates marker file with proper command${NC}"
+  else
+    log "${RED}✗ install.sh marker file creation might be incorrect${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+else
+  log "${RED}✗ install.sh does not create the expected marker file${NC}"
   FAILURES=$((FAILURES + 1))
 fi
 
