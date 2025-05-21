@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
+    "dockerfile": "/agent_workspace/Dockerfile",
+    "context": "/agent_workspace"
   },
   "user": "node",
   "install": ".cursor/install.sh",

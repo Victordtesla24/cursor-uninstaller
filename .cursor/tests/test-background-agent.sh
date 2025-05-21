@@ -186,24 +186,34 @@ if [ -f "${ENVIRONMENT_JSON}" ]; then
       if run_test "environment.json has build configuration" "jq -e '.build' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
         log "${GREEN}✓ environment.json has build configuration${NC}"
         
-        # Check if Dockerfile approach is used
-        if run_test "environment.json build has dockerfile" "jq -e '.build.dockerfile' \"${ENVIRONMENT_JSON}\"" "$temp_file1"; then
+        # Validate build structure specifically for Dockerfile
+        if jq -e '.build.dockerfile' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
           dockerfile_path=$(jq -r '.build.dockerfile' "${ENVIRONMENT_JSON}")
-          log "${GREEN}✓ Using Dockerfile approach: ${dockerfile_path}${NC}"
+          log "${GREEN}✓ environment.json .build.dockerfile field exists: ${dockerfile_path}${NC}"
           
-          # Check if the referenced Dockerfile exists
-          if [ "$dockerfile_path" = "Dockerfile" ]; then
+          # Verify if Dockerfile exists at the specified path (handling absolute container paths)
+          if [[ "${dockerfile_path}" == "/agent_workspace/Dockerfile" ]]; then
+            log "${GREEN}✓ Dockerfile path uses absolute container path: ${dockerfile_path}${NC}"
             if [ -f "${REPO_ROOT}/Dockerfile" ]; then
-              log "${GREEN}✓ Referenced Dockerfile exists at repository root${NC}"
+              log "${GREEN}✓ Dockerfile exists at repository root matching the absolute path reference${NC}"
             else
-              log "${RED}✗ Referenced Dockerfile does not exist at repository root${NC}"
+              log "${RED}✗ Dockerfile not found at repository root, but environment.json references it with absolute path${NC}"
+              FAILURES=$((FAILURES + 1))
+            fi
+          elif [[ "${dockerfile_path}" == "Dockerfile" ]]; then
+            if [ -f "${REPO_ROOT}/Dockerfile" ]; then
+              log "${GREEN}✓ Dockerfile exists at repository root${NC}"
+            else
+              log "${RED}✗ Dockerfile not found at repository root${NC}"
               FAILURES=$((FAILURES + 1))
             fi
           else
-            if [ -f "${REPO_ROOT}/${dockerfile_path}" ]; then
-              log "${GREEN}✓ Referenced Dockerfile exists at ${dockerfile_path}${NC}"
+            # For other relative paths
+            expected_path="${REPO_ROOT}/${dockerfile_path}"
+            if [ -f "${expected_path}" ]; then
+              log "${GREEN}✓ Dockerfile exists at referenced path: ${dockerfile_path}${NC}"
             else
-              log "${RED}✗ Referenced Dockerfile does not exist at ${dockerfile_path}${NC}"
+              log "${RED}✗ Dockerfile not found at referenced path: ${dockerfile_path}${NC}"
               FAILURES=$((FAILURES + 1))
             fi
           fi

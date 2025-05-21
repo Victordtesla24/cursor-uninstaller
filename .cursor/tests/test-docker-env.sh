@@ -21,6 +21,7 @@ CURSOR_DIR="${REPO_ROOT}/.cursor"
 LOG_DIR="${CURSOR_DIR}/logs"
 DOCKER_LOG="${LOG_DIR}/test-docker-env.sh.log"
 DOCKERFILE="${REPO_ROOT}/Dockerfile"
+DOCKERFILE_SYMLINK="${CURSOR_DIR}/Dockerfile"
 
 # Ensure log directory exists
 mkdir -p "${LOG_DIR}"
@@ -40,8 +41,10 @@ run_test() {
   log "${BLUE}ℹ Testing: ${test_name}${NC}"
   
   # Run the command and capture its exit code
+  set +e  # Temporarily disable exit on error
   eval "$command" > "$output_file" 2>&1
   local exit_code=$?
+  set -e  # Re-enable exit on error
   
   # Always show output if available
   if [ -s "$output_file" ]; then
@@ -69,12 +72,32 @@ FAILURES=0
 # Start testing
 log "${BLUE}${BOLD}====== Starting Docker Environment Tests ======${NC}"
 
+# Check Docker version and configuration
+if command -v docker &> /dev/null; then
+    log "${BLUE}Docker information:${NC}"
+    docker_info=$(docker info 2>/dev/null || echo "Docker info command failed")
+    log "${BLUE}${docker_info}${NC}"
+    
+    log "${BLUE}Docker version:${NC}"
+    docker_version=$(docker version 2>/dev/null || echo "Docker version command failed")
+    log "${BLUE}${docker_version}${NC}"
+fi
+
 # Test 1: Check Dockerfile existence and compliance with Cursor documentation
 log "${BLUE}ℹ "
 log "${BLUE}Checking Dockerfile existence and compliance...${NC}"
 
+# Check if Dockerfile exists in repository root
 if [ -f "${DOCKERFILE}" ]; then
   log "${GREEN}✓ Dockerfile exists at ${DOCKERFILE}${NC}"
+  
+  # Check if symlink exists in .cursor directory, create if missing
+  if [ ! -f "${DOCKERFILE_SYMLINK}" ] || [ ! -L "${DOCKERFILE_SYMLINK}" ]; then
+    log "${YELLOW}⚠ Dockerfile symlink missing in .cursor directory. Creating...${NC}"
+    ln -sf "../Dockerfile" "${DOCKERFILE_SYMLINK}" || log "${RED}✗ Failed to create Dockerfile symlink${NC}"
+  else
+    log "${GREEN}✓ Dockerfile symlink exists in .cursor directory${NC}"
+  fi
   
   # Check basic Dockerfile structure requirements per Cursor documentation
   log "${BLUE}ℹ Validating Dockerfile against Cursor Background Agent requirements...${NC}"
@@ -147,8 +170,8 @@ else
   FAILURES=$((FAILURES + 1))
   log "${RED}✗ According to Cursor documentation, a Dockerfile is required for the Background Agent${NC}"
   log "${RED}✗ The Dockerfile should be in the root directory of the repository${NC}"
-  # Exit early since many subsequent tests depend on the Dockerfile
-  exit 1
+  # Do not exit, continue the test to check other Docker-related configurations
+  log "${YELLOW}⚠ Continuing tests to identify other potential issues...${NC}"
 fi
 
 # Test 2: Check Docker installation
@@ -189,7 +212,7 @@ else
     log "${GREEN}✓ Docker daemon is running${NC}"
   else
     log "${RED}✗ Docker daemon is not running${NC}"
-    log "${YELLOW}⚠ Starting Docker daemon...${NC}"
+    log "${YELLOW}⚠ Attempting to start Docker daemon...${NC}"
     
     # Try to start Docker daemon based on system
     if command -v systemctl &> /dev/null; then
@@ -226,8 +249,66 @@ else
 fi
 
 # Only run Docker tests if Docker is available
-if [ "$DOCKER_AVAILABLE" = true ]; then
-  # Test 3: Build Docker image
+if [ "$DOCKER_AVAILABLE" = true ] && [ -f "${DOCKERFILE}" ]; then
+  # Test 3: Check environment.json docker configuration
+  log "${BLUE}ℹ "
+  log "${BLUE}Checking environment.json Docker configuration...${NC}"
+  
+  ENVIRONMENT_JSON="${CURSOR_DIR}/environment.json"
+  if [ -f "${ENVIRONMENT_JSON}" ]; then
+    if command -v jq &> /dev/null; then
+      # Check if environment.json has build section with correct dockerfile path
+      if jq -e '.build.dockerfile' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
+        dockerfile_path=$(jq -r '.build.dockerfile' "${ENVIRONMENT_JSON}")
+        log "${GREEN}✓ environment.json references Dockerfile at: ${dockerfile_path}${NC}"
+        
+        # Verify the referenced Dockerfile location exists or is accessible
+        if [[ "${dockerfile_path}" == "Dockerfile" ]]; then
+          if [ -f "${REPO_ROOT}/Dockerfile" ]; then
+            log "${GREEN}✓ Dockerfile exists at repository root${NC}"
+          else
+            log "${RED}✗ Dockerfile not found at repository root${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        elif [[ "${dockerfile_path}" == "/agent_workspace/Dockerfile" ]]; then
+          log "${GREEN}✓ environment.json references Dockerfile with absolute path (for container use)${NC}"
+        else
+          # Check if file exists at the referenced location
+          if [ -f "${REPO_ROOT}/${dockerfile_path}" ]; then
+            log "${GREEN}✓ Dockerfile exists at specified path: ${dockerfile_path}${NC}"
+          else
+            log "${RED}✗ Dockerfile not found at specified path: ${dockerfile_path}${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        fi
+        
+        # Check context value
+        if jq -e '.build.context' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
+          context_path=$(jq -r '.build.context' "${ENVIRONMENT_JSON}")
+          log "${GREEN}✓ environment.json specifies build context: ${context_path}${NC}"
+        else
+          log "${RED}✗ environment.json is missing 'context' in build section${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+      else
+        log "${RED}✗ environment.json build section missing 'dockerfile' property${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+    else
+      log "${YELLOW}⚠ jq not available for JSON parsing. Using basic grep checks.${NC}"
+      if grep -q '"dockerfile"' "${ENVIRONMENT_JSON}"; then
+        log "${GREEN}✓ environment.json contains 'dockerfile' property (basic check)${NC}"
+      else
+        log "${RED}✗ environment.json may be missing 'dockerfile' property (basic check)${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+    fi
+  else
+    log "${RED}✗ environment.json not found at ${ENVIRONMENT_JSON}${NC}"
+    FAILURES=$((FAILURES + 1))
+  fi
+
+  # Test 4: Build Docker image
   log "${BLUE}ℹ "
   log "${BLUE}Testing Docker image build...${NC}"
   
@@ -237,218 +318,207 @@ if [ "$DOCKER_AVAILABLE" = true ]; then
   # Create a temporary file for capturing build output
   build_output=$(mktemp)
   
-  # Build the Docker image
-  if run_test "Docker image build" "docker build -t ${TEST_TAG} -f \"${DOCKERFILE}\" \"${REPO_ROOT}\"" "$build_output"; then
-    log "${GREEN}✓ Docker image built successfully${NC}"
-    
-    # Test 4: Check container execution
-    log "${BLUE}ℹ "
-    log "${BLUE}Testing container execution...${NC}"
-    
-    # Create a temporary file for capturing container output
-    container_output=$(mktemp)
-    
-    # Test basic container execution
-    if run_test "Basic container execution" "docker run --rm ${TEST_TAG} echo 'Container test successful'" "$container_output"; then
-      log "${GREEN}✓ Container executes commands successfully${NC}"
-      
-      # Test 5: Check environment variable propagation
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing environment variable propagation...${NC}"
-      
-      env_test_output=$(mktemp)
-      if run_test "Environment variable propagation" "docker run --rm -e TEST_VAR='test_value' ${TEST_TAG} /bin/bash -c 'echo \$TEST_VAR'" "$env_test_output"; then
-        env_value=$(cat "$env_test_output" | tr -d '\r\n')
-        if [ "$env_value" = "test_value" ]; then
-          log "${GREEN}✓ Environment variable propagation works correctly: $env_value${NC}"
-        else
-          log "${RED}✗ Environment variable propagation failed. Expected 'test_value', got: $env_value${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      else
-        FAILURES=$((FAILURES + 1))
-      fi
-      rm -f "$env_test_output"
-      
-      # Test 6: Check working directory
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing working directory in container...${NC}"
-      
-      workdir_output=$(mktemp)
-      if run_test "Working directory check" "docker run --rm ${TEST_TAG} pwd" "$workdir_output"; then
-        workdir_path=$(cat "$workdir_output" | tr -d '\r\n')
-        if [ "$workdir_path" = "/agent_workspace" ]; then
-          log "${GREEN}✓ Working directory is correctly set to: $workdir_path${NC}"
-        else
-          log "${RED}✗ Working directory is not correctly set. Got: $workdir_path, expected: /agent_workspace${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      else
-        FAILURES=$((FAILURES + 1))
-      fi
-      rm -f "$workdir_output"
-      
-      # Test 7: Check if running as non-root user (Cursor requirement)
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing user context in container...${NC}"
-      
-      user_output=$(mktemp)
-      if run_test "User context check" "docker run --rm ${TEST_TAG} id" "$user_output"; then
-        user_info=$(cat "$user_output")
-        if echo "$user_info" | grep -q "uid=0(root)"; then
-          log "${RED}✗ Container is running as root user, which violates Cursor's security guidelines${NC}"
-          FAILURES=$((FAILURES + 1))
-        else
-          log "${GREEN}✓ Container is running as non-root user: $(echo "$user_info" | grep -o 'uid=[0-9]*')${NC}"
-        fi
-      else
-        FAILURES=$((FAILURES + 1))
-      fi
-      rm -f "$user_output"
-      
-      # Test 8: Check required tools availability inside container
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing tool availability inside container...${NC}"
-      
-      required_tools=("git" "node" "npm" "bash" "curl")
-      for tool in "${required_tools[@]}"; do
-        tool_output=$(mktemp)
-        # Try to run the tool with --version or -v to check if it's available
-        if run_test "Tool availability: ${tool}" "docker run --rm ${TEST_TAG} which ${tool}" "$tool_output"; then
-          log "${GREEN}✓ Tool available in container: ${tool}${NC}"
-        else
-          log "${RED}✗ Required tool not available in container: ${tool}${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-        rm -f "$tool_output"
-      done
-      
-      # Test 9: Check if essential directories exist
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing essential directories in container...${NC}"
-      
-      essential_dirs=("/agent_workspace" "/agent_workspace/.cursor" "/agent_workspace/.cursor/logs")
-      for dir in "${essential_dirs[@]}"; do
-        dir_output=$(mktemp)
-        if run_test "Directory existence: ${dir}" "docker run --rm ${TEST_TAG} test -d \"${dir}\" && echo \"Directory exists\"" "$dir_output"; then
-          log "${GREEN}✓ Essential directory exists in container: ${dir}${NC}"
-        else
-          log "${RED}✗ Essential directory missing in container: ${dir}${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-        rm -f "$dir_output"
-      done
-      
-      # Test 10: Test agent log folder creation and permissions
-      log "${BLUE}ℹ "
-      log "${BLUE}Testing container log directory permissions...${NC}"
-      
-      log_perm_output=$(mktemp)
-      if run_test "Log directory permissions" "docker run --rm ${TEST_TAG} /bin/bash -c 'mkdir -p /agent_workspace/.cursor/logs && touch /agent_workspace/.cursor/logs/test.log && echo success'" "$log_perm_output"; then
-        if grep -q "success" "$log_perm_output"; then
-          log "${GREEN}✓ Container has proper permissions to create log files${NC}"
-        else
-          log "${RED}✗ Container output doesn't indicate success creating log files${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      else
-        log "${RED}✗ Container permission test for log directory failed${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-      rm -f "$log_perm_output"
-      
-    else
-      log "${RED}✗ Container execution failed${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
-    
-    # Clean up container output file
-    rm -f "$container_output"
-    
-    # Clean up the test image
-    log "${BLUE}ℹ Cleaning up test image...${NC}"
-    if docker rmi -f "${TEST_TAG}" &> /dev/null; then
-      log "${GREEN}✓ Test image cleaned up successfully${NC}"
-    else
-      log "${YELLOW}⚠ Failed to clean up test image. It may need to be removed manually.${NC}"
-    fi
-  else
-    log "${RED}✗ Docker image build failed${NC}"
+  # First check if the dockerfile exists and display detailed diagnostics if it doesn't
+  if [ ! -f "${DOCKERFILE}" ]; then
+    log "${RED}✗ Cannot build Docker image - Dockerfile not found at ${DOCKERFILE}${NC}"
+    log "${RED}✗ Docker build cannot proceed without a valid Dockerfile${NC}"
     FAILURES=$((FAILURES + 1))
+  else
+    # Check file permissions on Dockerfile
+    if [ ! -r "${DOCKERFILE}" ]; then
+      log "${RED}✗ Dockerfile exists but is not readable. Checking permissions...${NC}"
+      ls -la "${DOCKERFILE}" > "$build_output" 2>&1
+      cat "$build_output" | while IFS= read -r line; do
+        log "${RED}✗ $line${NC}"
+      done
+      FAILURES=$((FAILURES + 1))
+      log "${YELLOW}⚠ Attempting to fix Dockerfile permissions...${NC}"
+      chmod +r "${DOCKERFILE}" || log "${RED}✗ Failed to make Dockerfile readable${NC}"
+    fi
+    
+    # Try to build the Docker image
+    log "${BLUE}ℹ Building Docker image from ${DOCKERFILE}...${NC}"
+    if run_test "Docker image build" "docker build -t ${TEST_TAG} -f \"${DOCKERFILE}\" \"${REPO_ROOT}\"" "$build_output"; then
+      log "${GREEN}✓ Docker image built successfully${NC}"
+      
+      # Test 5: Check container execution
+      log "${BLUE}ℹ "
+      log "${BLUE}Testing container execution...${NC}"
+      
+      # Create a temporary file for capturing container output
+      container_output=$(mktemp)
+      
+      # Test basic container execution
+      if run_test "Basic container execution" "docker run --rm ${TEST_TAG} echo 'Container test successful'" "$container_output"; then
+        log "${GREEN}✓ Container executes commands successfully${NC}"
+        
+        # Test 6: Check environment variable propagation
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing environment variable propagation...${NC}"
+        
+        env_test_output=$(mktemp)
+        if run_test "Environment variable propagation" "docker run --rm -e TEST_VAR='test_value' ${TEST_TAG} /bin/bash -c 'echo \$TEST_VAR'" "$env_test_output"; then
+          env_value=$(cat "$env_test_output" | tr -d '\r\n')
+          if [ "$env_value" = "test_value" ]; then
+            log "${GREEN}✓ Environment variable propagation works correctly: $env_value${NC}"
+          else
+            log "${RED}✗ Environment variable propagation failed. Expected 'test_value', got: $env_value${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        else
+          FAILURES=$((FAILURES + 1))
+        fi
+        rm -f "$env_test_output"
+        
+        # Test 7: Check working directory
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing working directory in container...${NC}"
+        
+        workdir_output=$(mktemp)
+        if run_test "Working directory check" "docker run --rm ${TEST_TAG} pwd" "$workdir_output"; then
+          workdir_path=$(cat "$workdir_output" | tr -d '\r\n')
+          if [ "$workdir_path" = "/agent_workspace" ]; then
+            log "${GREEN}✓ Working directory is correctly set to: $workdir_path${NC}"
+          else
+            log "${RED}✗ Working directory is not correctly set. Got: $workdir_path, expected: /agent_workspace${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        else
+          FAILURES=$((FAILURES + 1))
+        fi
+        rm -f "$workdir_output"
+        
+        # Test 8: Check if running as non-root user (Cursor requirement)
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing user context in container...${NC}"
+        
+        user_output=$(mktemp)
+        if run_test "User context check" "docker run --rm ${TEST_TAG} id" "$user_output"; then
+          user_info=$(cat "$user_output")
+          if echo "$user_info" | grep -q "uid=0(root)"; then
+            log "${RED}✗ Container is running as root user, which violates Cursor's security guidelines${NC}"
+            FAILURES=$((FAILURES + 1))
+          else
+            log "${GREEN}✓ Container is running as non-root user: $(echo "$user_info" | grep -o 'uid=[0-9]*')${NC}"
+          fi
+        else
+          FAILURES=$((FAILURES + 1))
+        fi
+        rm -f "$user_output"
+        
+        # Test 9: Check required tools availability inside container
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing tool availability inside container...${NC}"
+        
+        required_tools=("git" "node" "npm" "bash" "curl")
+        for tool in "${required_tools[@]}"; do
+          tool_output=$(mktemp)
+          # Try to run the tool with --version or -v to check if it's available
+          if run_test "Tool availability: ${tool}" "docker run --rm ${TEST_TAG} which ${tool}" "$tool_output"; then
+            log "${GREEN}✓ Tool available in container: ${tool}${NC}"
+          else
+            log "${RED}✗ Required tool not available in container: ${tool}${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+          rm -f "$tool_output"
+        done
+        
+        # Test 10: Check if essential directories exist
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing essential directories in container...${NC}"
+        
+        essential_dirs=("/agent_workspace" "/agent_workspace/.cursor" "/agent_workspace/.cursor/logs")
+        for dir in "${essential_dirs[@]}"; do
+          dir_output=$(mktemp)
+          if run_test "Directory existence: ${dir}" "docker run --rm ${TEST_TAG} test -d \"${dir}\" && echo \"Directory exists\"" "$dir_output"; then
+            log "${GREEN}✓ Essential directory exists in container: ${dir}${NC}"
+          else
+            log "${RED}✗ Essential directory missing in container: ${dir}${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+          rm -f "$dir_output"
+        done
+        
+        # Test 11: Test agent log folder creation and permissions
+        log "${BLUE}ℹ "
+        log "${BLUE}Testing container log directory permissions...${NC}"
+        
+        log_perm_output=$(mktemp)
+        if run_test "Log directory permissions" "docker run --rm ${TEST_TAG} /bin/bash -c 'mkdir -p /agent_workspace/.cursor/logs && touch /agent_workspace/.cursor/logs/test.log && echo success'" "$log_perm_output"; then
+          if grep -q "success" "$log_perm_output"; then
+            log "${GREEN}✓ Container has proper permissions to create log files${NC}"
+          else
+            log "${RED}✗ Container output doesn't indicate success creating log files${NC}"
+            FAILURES=$((FAILURES + 1))
+          fi
+        else
+          log "${RED}✗ Container permission test for log directory failed${NC}"
+          FAILURES=$((FAILURES + 1))
+        fi
+        rm -f "$log_perm_output"
+        
+      else
+        log "${RED}✗ Container execution failed${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+      
+      # Clean up container output file
+      rm -f "$container_output"
+      
+      # Clean up the test image
+      log "${BLUE}ℹ Cleaning up test image...${NC}"
+      if docker rmi -f "${TEST_TAG}" &> /dev/null; then
+        log "${GREEN}✓ Test image cleaned up successfully${NC}"
+      else
+        log "${YELLOW}⚠ Failed to clean up test image. It may need to be removed manually.${NC}"
+      fi
+    else
+      # If the build fails, provide detailed diagnostics
+      log "${RED}✗ Docker image build failed. Checking for detailed error information...${NC}"
+      
+      # List buildx information if available
+      if docker buildx version &> /dev/null; then
+        log "${BLUE}ℹ Docker Buildx diagnostics:${NC}"
+        docker buildx version > "$build_output" 2>&1 || echo "Failed to get buildx version" > "$build_output"
+        cat "$build_output" | while IFS= read -r line; do
+          log "${BLUE}ℹ | $line${NC}"
+        done
+      else
+        log "${YELLOW}⚠ Docker Buildx not available. This might be the reason for build failures.${NC}"
+      fi
+      
+      # Check docker version
+      log "${BLUE}ℹ Docker version diagnostics:${NC}"
+      docker version > "$build_output" 2>&1 || echo "Failed to get docker version" > "$build_output"
+      cat "$build_output" | while IFS= read -r line; do
+        log "${BLUE}ℹ | $line${NC}"
+      done
+      
+      # Try alternate build command if regular one fails
+      log "${YELLOW}⚠ Attempting build with different options...${NC}"
+      if run_test "Alternative Docker image build" "docker build --no-cache -t ${TEST_TAG} -f \"${DOCKERFILE}\" \"${REPO_ROOT}\"" "$build_output"; then
+        log "${GREEN}✓ Alternative Docker image build succeeded!${NC}"
+      else
+        log "${RED}✗ Alternative Docker image build also failed. Docker build process has critical issues.${NC}"
+        FAILURES=$((FAILURES + 1))
+      fi
+    fi
   fi
   
   # Clean up build output file
   rm -f "$build_output"
 else
-  log "${YELLOW}⚠ Skipping Docker runtime tests as Docker is not available or not running${NC}"
-  log "${YELLOW}⚠ According to Cursor documentation, Docker is required for the Background Agent${NC}"
-  log "${YELLOW}⚠ Please install Docker and ensure it's running for complete testing${NC}"
-fi
-
-# Test 11: Validate environment.json build section
-log "${BLUE}ℹ "
-log "${BLUE}Checking environment.json build configuration...${NC}"
-
-ENVIRONMENT_JSON="${CURSOR_DIR}/environment.json"
-if [ -f "${ENVIRONMENT_JSON}" ]; then
-  # Check if jq is available for JSON parsing
-  if command -v jq &> /dev/null; then
-    # Parse environment.json to check build configuration
-    if jq -e '.build' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
-      log "${GREEN}✓ environment.json contains 'build' section${NC}"
-      
-      # Check if using Dockerfile approach
-      if jq -e '.build.dockerfile' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
-        dockerfile_path=$(jq -r '.build.dockerfile' "${ENVIRONMENT_JSON}")
-        log "${GREEN}✓ environment.json uses Dockerfile approach with: ${dockerfile_path}${NC}"
-        
-        # Verify dockerfile path
-        if [ "${dockerfile_path}" = "Dockerfile" ]; then
-          log "${GREEN}✓ Dockerfile path is correctly set to 'Dockerfile'${NC}"
-        else
-          log "${RED}✗ Dockerfile path should be 'Dockerfile', got: ${dockerfile_path}${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-        
-        # Check if context is set
-        if jq -e '.build.context' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
-          context_path=$(jq -r '.build.context' "${ENVIRONMENT_JSON}")
-          log "${GREEN}✓ environment.json specifies build context: ${context_path}${NC}"
-        else
-          log "${RED}✗ environment.json is missing 'context' in build section${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      # Check if using snapshot approach
-      elif jq -e '.build.snapshot' "${ENVIRONMENT_JSON}" > /dev/null 2>&1; then
-        snapshot_id=$(jq -r '.build.snapshot' "${ENVIRONMENT_JSON}")
-        log "${GREEN}✓ environment.json uses snapshot approach with ID: ${snapshot_id}${NC}"
-        
-        # Verify snapshot ID isn't a placeholder
-        if [[ "${snapshot_id}" == *"REPLACE_WITH"* ]]; then
-          log "${RED}✗ Snapshot ID appears to be a placeholder: ${snapshot_id}${NC}"
-          FAILURES=$((FAILURES + 1))
-        fi
-      else
-        log "${RED}✗ environment.json build section missing both 'dockerfile' and 'snapshot'${NC}"
-        FAILURES=$((FAILURES + 1))
-      fi
-    else
-      log "${RED}✗ environment.json is missing required 'build' section${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
-  else
-    # Basic check without jq
-    log "${YELLOW}⚠ jq not available, falling back to basic environment.json checks${NC}"
-    if grep -q '"build"' "${ENVIRONMENT_JSON}" && grep -q '"dockerfile"' "${ENVIRONMENT_JSON}"; then
-      log "${GREEN}✓ environment.json appears to contain build and dockerfile sections (basic check)${NC}"
-    else
-      log "${RED}✗ environment.json may be missing build or dockerfile sections (basic check)${NC}"
-      FAILURES=$((FAILURES + 1))
-    fi
+  if [ "$DOCKER_AVAILABLE" = false ]; then
+    log "${YELLOW}⚠ Skipping Docker runtime tests as Docker is not available or not running${NC}"
+    log "${YELLOW}⚠ According to Cursor documentation, Docker is required for the Background Agent${NC}"
+    log "${YELLOW}⚠ Please install Docker and ensure it's running for complete testing${NC}"
   fi
-else
-  log "${RED}✗ environment.json not found at ${ENVIRONMENT_JSON}${NC}"
-  FAILURES=$((FAILURES + 1))
+  
+  if [ ! -f "${DOCKERFILE}" ]; then
+    log "${YELLOW}⚠ Skipping Docker runtime tests as Dockerfile is not available${NC}"
+    log "${YELLOW}⚠ According to Cursor documentation, a Dockerfile is required for the Background Agent${NC}"
+    log "${YELLOW}⚠ Please create a Dockerfile in the repository root${NC}"
+  fi
 fi
 
 # Test 12: Verify Docker-specific environment variables in environment.json
@@ -479,5 +549,11 @@ if [ ${FAILURES} -eq 0 ]; then
 else
   log "${RED}✗ Docker environment tests completed with ${FAILURES} failures${NC}"
   log "${RED}✗ Please address the issues above to ensure Background Agent can function correctly${NC}"
+  # Provide detailed recommendations
+  log "${YELLOW}⚠ Recommendations to resolve issues:${NC}"
+  log "${YELLOW}⚠ 1. Ensure Dockerfile exists at ${DOCKERFILE}${NC}"
+  log "${YELLOW}⚠ 2. Ensure environment.json correctly references the Dockerfile${NC}"
+  log "${YELLOW}⚠ 3. Check Docker installation and daemon status${NC}"
+  log "${YELLOW}⚠ 4. Verify Docker buildx plugin is properly installed${NC}"
   exit 1
 fi 

@@ -45,6 +45,19 @@ fi
 log "${BLUE}Test directory: ${SCRIPT_DIR}${NC}"
 log "${BLUE}============================================================${NC}"
 
+# Display system information for diagnostics
+log "${BLUE}${BOLD}System Information:${NC}"
+log "${BLUE}OS: $(uname -s) $(uname -r) $(uname -m)${NC}"
+if command -v docker &> /dev/null; then
+  log "${BLUE}Docker version: $(docker --version 2>/dev/null || echo 'Error getting Docker version')${NC}"
+else
+  log "${YELLOW}Docker not installed or not in PATH${NC}"
+fi
+log "${BLUE}Bash version: $BASH_VERSION${NC}"
+log "${BLUE}Working directory: $(pwd)${NC}"
+log "${BLUE}User: $(whoami)${NC}"
+log "${BLUE}============================================================${NC}"
+
 # Array of test scripts to run
 TESTS=(
   "test-env-setup.sh"
@@ -59,12 +72,15 @@ TESTS=(
 TOTAL_TESTS=${#TESTS[@]}
 PASSED_TESTS=0
 FAILED_TESTS=0
+SKIPPED_TESTS=0 # Add counter for skipped tests
 FAILED_TEST_NAMES=()
 
 # Run each test
 for test_script_name in "${TESTS[@]}"; do
   test_path="${SCRIPT_DIR}/${test_script_name}"
   test_log_file="${LOG_DIR}/${test_script_name}.log"
+  
+  log "${BLUE}${BOLD}======= Testing: ${test_script_name} =======${NC}"
   
   # Skip if test doesn't exist but count as failure
   if [ ! -f "${test_path}" ]; then
@@ -88,19 +104,39 @@ for test_script_name in "${TESTS[@]}"; do
     fi
   fi
   
-  log "${BLUE}Running test: ${test_script_name}${NC}"
+  log "${BLUE}Beginning test execution: ${test_script_name}${NC}"
   log "${BLUE}Log file: ${test_log_file}${NC}"
   
   # Clear any previous log content for this specific test
   > "${test_log_file}" 
+
+  # Display start time for this test
+  TEST_START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+  log "${BLUE}Test started at: ${TEST_START_TIME}${NC}"
 
   # Create a temporary file to capture script output
   temp_output=$(mktemp)
   
   # Run the test script in a subshell to avoid exit issues
   # Properly capture both stdout/stderr and exit code
+  set +e # Temporarily disable exit on error
   (bash "${test_path}" 2>&1 | tee -a "${test_log_file}" > "${temp_output}"; exit ${PIPESTATUS[0]})
   SCRIPT_EXIT_CODE=$?
+  set -e # Re-enable exit on error
+
+  # Display end time and duration for this test
+  TEST_END_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+  log "${BLUE}Test completed at: ${TEST_END_TIME}${NC}"
+  
+  # Calculate and display duration if possible
+  if command -v date &> /dev/null && date --help 2>&1 | grep -q "seconds since"; then
+    START_SECONDS=$(date -d "${TEST_START_TIME}" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "${TEST_START_TIME}" +%s 2>/dev/null || echo "0")
+    END_SECONDS=$(date -d "${TEST_END_TIME}" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "${TEST_END_TIME}" +%s 2>/dev/null || echo "0")
+    if [ "${START_SECONDS}" != "0" ] && [ "${END_SECONDS}" != "0" ]; then
+      DURATION=$((END_SECONDS - START_SECONDS))
+      log "${BLUE}Test duration: ${DURATION} seconds${NC}"
+    fi
+  fi
 
   # Verify output existence
   if [ ! -s "${temp_output}" ]; then
@@ -123,12 +159,53 @@ for test_script_name in "${TESTS[@]}"; do
     if [ ${SCRIPT_EXIT_CODE} -eq 0 ]; then
       log "${GREEN}✓ Test PASSED: ${test_script_name}${NC}"
       PASSED_TESTS=$((PASSED_TESTS + 1))
+      
+      # Check if the test was actually skipped but returned success
+      if grep -qi "skipp\|skip test\|test.*skip" "${temp_output}"; then
+        log "${YELLOW}⚠ WARNING: Test may have been skipped but returned success. Reviewing log...${NC}"
+        
+        # Count lines that indicate skipping
+        SKIP_COUNT=$(grep -ci "skipp\|skip test\|test.*skip" "${temp_output}")
+        PASS_COUNT=$(grep -ci "pass\|success\|✓ test" "${temp_output}")
+        
+        # If there are more skip indicators than pass indicators, consider the test skipped
+        if [ ${SKIP_COUNT} -gt ${PASS_COUNT} ]; then
+          log "${YELLOW}⚠ Test appears to have been SKIPPED rather than fully executed.${NC}"
+          log "${YELLOW}⚠ Treating as a test failure to ensure tests are complete.${NC}"
+          PASSED_TESTS=$((PASSED_TESTS - 1))
+          SKIPPED_TESTS=$((SKIPPED_TESTS + 1))
+          FAILED_TESTS=$((FAILED_TESTS + 1))
+          FAILED_TEST_NAMES+=("${test_script_name} (SKIPPED BUT REPORTED SUCCESS)")
+        fi
+      fi
     else
       log "${RED}✗ Test FAILED: ${test_script_name} (Exit Code: ${SCRIPT_EXIT_CODE})${NC}"
+      
+      # Check if Docker issues might be causing the failure in specific test cases
+      if [ "${test_script_name}" = "test-docker-env.sh" ] && ! command -v docker &> /dev/null; then
+        log "${YELLOW}⚠ NOTE: Docker is not installed, which is expected to cause this test to fail.${NC}"
+        log "${YELLOW}⚠ This test failure is expected in environments without Docker.${NC}"
+      fi
+      
+      # Check if GitHub credential issues might be causing failure in specific cases
+      if [ "${test_script_name}" = "test-github-integration.sh" ] && grep -qi "permission denied\|could not read from remote repository\|authentication" "${temp_output}"; then
+        log "${YELLOW}⚠ NOTE: GitHub authentication issues detected, which may be expected in test environments.${NC}"
+        log "${YELLOW}⚠ GitHub integration failures may be acceptable if running in a CI/CD environment.${NC}"
+      fi
+      
       log "${RED}✗ See ${test_log_file} for details${NC}"
       FAILED_TESTS=$((FAILED_TESTS + 1))
       FAILED_TEST_NAMES+=("${test_script_name} (Exit Code: ${SCRIPT_EXIT_CODE})")
     fi
+  fi
+  
+  # Extract and log first 10 lines of the most severe errors if test failed
+  if [ ${SCRIPT_EXIT_CODE} -ne 0 ]; then
+    log "${RED}First 10 lines from significant errors:${NC}"
+    # Look for error patterns in the output
+    grep -i "error\|exception\|fatal\|failed\|✗" "${temp_output}" | head -10 | while IFS= read -r line; do
+      log "${RED}| $line${NC}"
+    done
   fi
   
   # Clean up the temporary file
@@ -151,6 +228,10 @@ log "${BLUE}${BOLD}===== Test Run Summary =====${NC}"
 log "${BLUE}Total Tests Configured: ${TOTAL_TESTS}${NC}"
 log "${GREEN}Tests Passed: ${PASSED_TESTS}${NC}"
 log "${RED}Tests Failed: ${FAILED_TESTS}${NC}"
+if [ ${SKIPPED_TESTS} -gt 0 ]; then
+    log "${YELLOW}Tests Skipped but Reported Success: ${SKIPPED_TESTS}${NC}"
+    log "${YELLOW}Note: Skipped tests are counted as failures to enforce complete testing${NC}"
+fi
 log "${BLUE}Success Rate: ${SUCCESS_RATE}%${NC}"
 
 # Print failed tests if any

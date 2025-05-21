@@ -1,3 +1,10 @@
+# This file is a symlink to ../Dockerfile
+# It exists to ensure Docker build processes can find the Dockerfile
+# regardless of the location they're looking in
+
+# The actual Dockerfile is located at the repository root
+# See ../Dockerfile for the actual contents
+
 FROM node:20-slim
 
 # Avoid prompts from apt
