@@ -205,14 +205,14 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
 
     const collapsible = getByTestId('mock-collapsible');
-    expect(collapsible).toHaveAttribute('data-open', 'true');
+    expect(collapsible.getAttribute('data-open')).toBe('true');
   });
 
   test('does not render collapsible content when collapsed', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={true} />);
 
     const collapsible = getByTestId('mock-collapsible');
-    expect(collapsible).toHaveAttribute('data-open', 'false');
+    expect(collapsible.getAttribute('data-open')).toBe('false');
   });
 
   // Settings toggle tests
@@ -236,7 +236,7 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
 
     // Check that all accordion items are rendered
     const accordionItems = getAllByTestId('mock-accordion-item');
-    expect(accordionItems.length).toBeGreaterThanOrEqual(3); // At least 3 categories
+    expect(accordionItems.length >= 3).toBe(true); // At least 3 categories
 
     // Check that all settings are rendered
     Object.keys(settings).forEach(settingId => {
@@ -245,7 +245,7 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
         label => label.textContent.includes(settingId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))
       );
 
-      expect(labels.length).toBeGreaterThanOrEqual(1);
+      expect(labels.length >= 1).toBe(true);
     });
   });
 
@@ -299,8 +299,9 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
     const saveButton = container.querySelector('button[data-testid^="budget-save-"]');
     fireEvent.click(saveButton);
 
-    // Check for error message
-    expect(container.textContent).toContain('Please enter a valid number');
+    // Check for error message - use includes instead of toContain
+    const hasErrorText = container.textContent.includes('Please enter a valid number');
+    expect(hasErrorText).toBe(true);
 
     // Should not call the callback for invalid input
     expect(defaultProps.onBudgetChange).not.toHaveBeenCalled();
@@ -344,13 +345,13 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
 
     // Each toggle should have appropriate ARIA attributes
     toggles.forEach(toggle => {
-      expect(toggle).toHaveAttribute('aria-checked');
-      expect(toggle).toHaveAttribute('id');
+      expect(toggle.hasAttribute('aria-checked')).toBe(true);
+      expect(toggle.hasAttribute('id')).toBe(true);
 
       // Should have an associated label
       const labelFor = toggle.getAttribute('id');
       const label = container.querySelector(`label[for="${labelFor}"]`);
-      expect(label).toBeInTheDocument();
+      expect(label).not.toBeNull();
     });
   });
 

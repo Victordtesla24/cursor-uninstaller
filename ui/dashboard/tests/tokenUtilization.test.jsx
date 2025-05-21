@@ -119,13 +119,25 @@ describe('TokenUtilization Component', () => {
   });
 
   test('renders trend indicators correctly', () => {
-    render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
+    const { container } = render(
+      <TokenUtilization
+        tokenData={mockTokenData}
+        costData={mockCostData}
+      />
+    );
 
-    // Check for trend indicators - using textContent since they could be formatted in different ways
-    const containerText = screen.getByText('Token Utilization').closest('div').textContent;
-
-    expect(containerText).toContain('-5.2%');
-    expect(containerText).toContain('3.7%');
+    // Use a more reliable approach to check for trend indicators
+    const badgeElements = container.querySelectorAll('.mock-badge');
+    
+    // Convert NodeList to Array and extract text content
+    const badgeTexts = Array.from(badgeElements).map(badge => badge.textContent);
+    
+    // Check if any badge contains our trend values
+    const hasTrend52 = badgeTexts.some(text => text.includes('-5.2'));
+    const hasTrend37 = badgeTexts.some(text => text.includes('3.7'));
+    
+    expect(hasTrend52).toBe(true);
+    expect(hasTrend37).toBe(true);
   });
 
   test('applies custom class name when provided', () => {
