@@ -98,8 +98,7 @@ if [ -f "${ENVIRONMENT_JSON}" ]; then
             
             # Validate command syntax (basic check)
             if ! run_test "Terminal command syntax check: $terminal_name" "bash -n -c \"$terminal_cmd\""; then
-              log "${YELLOW}⚠ Terminal command for $terminal_name may have syntax issues${NC}"
-              # Not counting as failure since it's just a warning
+              log "${RED}✗ Terminal command for $terminal_name has syntax issues${NC}"
               FAILURES=$((FAILURES + 1)) # Count syntax issues as failures
             fi
           else

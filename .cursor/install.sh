@@ -181,6 +181,47 @@ else
     log "npm is already installed: $(npm --version)"
 fi
 
+# Check if Docker is needed and available
+if ! command -v docker &> /dev/null; then
+  log "Docker not found, checking environment..."
+  
+  if in_docker; then
+    log "Running inside Docker container. No need to install Docker inside the container. Skipping Docker installation."
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    log "On macOS, Docker Desktop should be installed separately. Skipping automatic installation."
+    log "Please install Docker Desktop from https://www.docker.com/products/docker-desktop/"
+  else
+    log "On Linux (non-Docker), attempting to install Docker using official repository..."
+    # Use the official Docker installation script instead of direct apt commands
+    if command -v curl &> /dev/null; then
+      log "Using curl to download Docker installation script..."
+      curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+      if [ -f /tmp/get-docker.sh ]; then
+        # Check if we can run with sudo or not
+        if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+          # Can use sudo without password
+          log "Installing Docker using the official installation script..."
+          sh /tmp/get-docker.sh || log "ERROR: Docker installation script failed."
+        else
+          # Cannot use sudo or requires password - provide instructions
+          log "Docker installation requires sudo privileges."
+          log "Please run the following commands manually to install Docker:"
+          log "1. curl -fsSL https://get.docker.com -o get-docker.sh"
+          log "2. sudo sh get-docker.sh"
+        fi
+        rm -f /tmp/get-docker.sh
+      else
+        log "ERROR: Failed to download Docker installation script."
+      fi
+    else
+      log "ERROR: curl not found. Cannot download Docker installation script."
+      log "Please install Docker manually following the official documentation."
+    fi
+  fi
+else
+  log "Docker is already installed: $(docker --version)"
+fi
+
 # Install required npm packages
 log "Installing npm packages..."
 if [ -f "${REPO_ROOT}/package.json" ]; then

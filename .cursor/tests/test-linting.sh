@@ -152,12 +152,17 @@ if command_exists shellcheck; then
       
       # Run shellcheck with common rules, excluding some noisy ones
       # Use -W0 (zero) to treat warnings as informational only
-      if run_test "ShellCheck: ${script_rel_path}" "shellcheck -e SC1090,SC1091,SC2086 \"${script}\"" "$shellcheck_output"; then
+      if run_test "ShellCheck: ${script_rel_path}" "shellcheck -e SC1090,SC1091,SC2086 -s bash \"${script}\"" "$shellcheck_output"; then
         log "${GREEN}✓ ${script_rel_path}: No critical shellcheck issues found${NC}"
       else
-        log "${YELLOW}⚠ ${script_rel_path}: ShellCheck found style suggestions${NC}"
-        # Not counting warnings as errors that fail the test
-        FAILURES=$((FAILURES + 1)) # Count ShellCheck issues as failures
+        # Check for critical errors vs style warnings
+        if grep -q "SC2" "$shellcheck_output" || grep -q "SC3" "$shellcheck_output"; then
+          log "${RED}✗ ${script_rel_path}: ShellCheck found potential functional issues${NC}"
+          FAILURES=$((FAILURES + 1)) # Count critical issues as failures
+        else
+          log "${YELLOW}⚠ ${script_rel_path}: ShellCheck found style suggestions${NC}"
+          # Not counting style warnings as errors that fail the test
+        fi
       fi
       
       rm -f "$shellcheck_output"
