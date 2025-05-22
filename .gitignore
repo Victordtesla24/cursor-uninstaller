@@ -66,3 +66,4 @@ env.txt
 .cursor/.env
 .cursor/environment-snapshot-info.txt
 .cursor/logs/*.log
+/bg-agent-install-started.txt
