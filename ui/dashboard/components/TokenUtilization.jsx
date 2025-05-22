@@ -24,7 +24,8 @@ import {
   Zap,
   Sparkles,
   BarChart3,
-  CreditCard
+  CreditCard,
+  BadgeCheck
 } from "lucide-react";
 
 /**
@@ -290,6 +291,7 @@ const TokenUtilization = ({
                             variant="outline"
                             className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 flex items-center"
                             aria-label={`Trending up ${tokenData.trends[category].toFixed(1)} percent`}
+                            data-testid={`trend-up-${category}`}
                           >
                             <TrendingUp className="mr-1 h-3 w-3" aria-hidden="true" />
                             {tokenData.trends[category].toFixed(1)}%
@@ -298,10 +300,11 @@ const TokenUtilization = ({
                           <Badge
                             variant="outline"
                             className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center"
-                            aria-label={`Trending down ${tokenData.trends[category].toFixed(1)} percent`}
+                            aria-label={`Trending down ${Math.abs(tokenData.trends[category]).toFixed(1)} percent`}
+                            data-testid={`trend-down-${category}`}
                           >
                             <TrendingDown className="mr-1 h-3 w-3" aria-hidden="true" />
-                            <span>{tokenData.trends[category].toFixed(1)}</span>%
+                            -{Math.abs(tokenData.trends[category]).toFixed(1)}%
                           </Badge>
                         )}
                       </div>

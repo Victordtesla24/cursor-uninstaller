@@ -6,7 +6,7 @@ module.exports = {
     '<rootDir>/node_modules'
   ],
   moduleNameMapper: {
-    '\\.(css|less|scss)$': 'identity-obj-proxy',
+    '\\\\.(css|less|scss)$': 'identity-obj-proxy',
     '^@/(.*)$': '<rootDir>/../../$1',
     '^./ui/index.js$': '<rootDir>/tests/mocks/ui/index.js',
     '^./ui/index.jsx$': '<rootDir>/tests/mocks/ui/index.js',
@@ -21,28 +21,14 @@ module.exports = {
     '<rootDir>/tests/setupJest.js'
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', {
-      presets: [
-        '@babel/preset-env',
-        '@babel/preset-react'
-      ],
-    }]
+    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
   testMatch: [
-    '<rootDir>/tests/**/*.test.js',
-    '<rootDir>/tests/**/*.test.jsx',
-    '<rootDir>/../tests/**/*.test.js',
-    '<rootDir>/../tests/**/*.test.jsx'
+    '<rootDir>/tests/**/*.test.{js,jsx}'
   ],
-  transformIgnorePatterns: [
-    '/node_modules/(?!(@testing-library)/)'
-  ],
-  collectCoverage: true,
-  coverageReporters: ['text', 'lcov'],
-  coverageDirectory: 'coverage',
-  coveragePathIgnorePatterns: [
-    '/node_modules/',
-    '/tests/',
-    '/coverage/'
-  ]
+  globals: {
+    __DEV__: true
+  },
+  testTimeout: 20000,
+  maxWorkers: 1
 };

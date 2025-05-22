@@ -119,13 +119,16 @@ describe('TokenUtilization Component', () => {
   });
 
   test('renders trend indicators correctly', () => {
-    render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
+    const { container } = render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
 
-    // Check for trend indicators - using textContent since they could be formatted in different ways
-    const containerText = screen.getByText('Token Utilization').closest('div').textContent;
+    // Check for trend indicators using data-testid attributes
+    const decreaseTrend = container.querySelector('[data-testid="trend-down-completion"]');
+    expect(decreaseTrend).toBeInTheDocument();
+    expect(decreaseTrend.textContent).toContain('-5.2%');
 
-    expect(containerText).toContain('-5.2%');
-    expect(containerText).toContain('3.7%');
+    const increaseTrend = container.querySelector('[data-testid="trend-up-chat"]');
+    expect(increaseTrend).toBeInTheDocument();
+    expect(increaseTrend.textContent).toContain('3.7%');
   });
 
   test('applies custom class name when provided', () => {
