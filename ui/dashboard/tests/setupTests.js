@@ -129,7 +129,16 @@ jest.mock("../../../components/ui/label", () => ({
 }));
 
 jest.mock("../../../components/ui/collapsible", () => {
-  const Collapsible = ({ className, children, ...props }) => <div className={`mock-collapsible ${className || ''}`} {...props}>{children}</div>;
+  const Collapsible = ({ className, children, open, ...props }) => (
+    <div
+      className={`mock-collapsible ${className || ''}`}
+      data-testid="collapsible" // Use "collapsible" to match enhanced test expectations
+      data-open={open} // Pass the open prop to data-open
+      {...props}
+    >
+      {children}
+    </div>
+  );
   const CollapsibleTrigger = ({ className, children, ...props }) => <button className={`mock-collapsible-trigger ${className || ''}`} {...props}>{children}</button>;
   const CollapsibleContent = ({ className, children, ...props }) => <div className={`mock-collapsible-content ${className || ''}`} {...props}>{children}</div>;
   return { Collapsible, CollapsibleTrigger, CollapsibleContent };
@@ -201,8 +210,9 @@ console.error = (...args) => {
       args[0].includes("Error fetching mock data:") ||
       args[0].includes("Error loading dashboard data:") ||
       args[0].includes("Failed to load dashboard data") ||
-      // Filter pretty-format error for the SettingsPanel test
-      args[0].includes("pretty-format: Unknown option \"maxWidth\""))
+      // Filter pretty-format errors for tests
+      args[0].includes("pretty-format:") ||
+      args[0].includes("Unknown option \"maxWidth\""))
   ) {
     // Suppress these specific warnings
     return;

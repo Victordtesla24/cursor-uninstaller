@@ -44,5 +44,6 @@ module.exports = {
     '/node_modules/',
     '/tests/',
     '/coverage/'
-  ]
+  ],
+  prettierPath: null
 };

@@ -30,8 +30,15 @@ export const CardTitle = ({ className = '', children, ...props }) => (
 );
 
 // Collapsible components
-export const Collapsible = ({ className = '', children, ...props }) => (
-  <div className={`mock-collapsible ${className}`} data-testid="mock-collapsible" {...props}>{children}</div>
+export const Collapsible = ({ className = '', children, open, ...props }) => (
+  <div
+    className={`mock-collapsible ${className}`}
+    data-testid="collapsible" // Align with test expectations
+    data-open={open} // Use the open prop
+    {...props}
+  >
+    {children}
+  </div>
 );
 
 export const CollapsibleContent = ({ className = '', children, ...props }) => (
@@ -96,7 +103,8 @@ export const Switch = ({ className = '', checked, onCheckedChange, ...props }) =
       role="switch" // Explicitly add the role
       className={`mock-switch ${className}`}
       data-testid="mock-switch"
-      defaultChecked={checked}
+      checked={checked} // Use checked attribute directly
+      aria-checked={checked} // Add aria-checked attribute
       onChange={handleChange}
       {...props}
     />

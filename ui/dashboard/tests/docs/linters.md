@@ -1,224 +1,51 @@
-[{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > MCP Tool Functions > use_mcp_tool calls the MCP client with correct parameters\n-----\nError: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\n- Expected\n+ Received\n\n  \"server.tool\",\n  {\"param1\": \"value1\"},\n  {\"customOption\": \"test\"},\n+ {},\n\nNumber of calls: 1",
-	"source": "Jest",
-	"startLineNumber": 290,
-	"startColumn": 1,
-	"endLineNumber": 290,
-	"endColumn": 114,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > MCP Tool Functions > use_mcp_tool retries on failure\n-----\nError: thrown: \"Exceeded timeout of 10000 ms for a test.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"",
-	"source": "Jest",
-	"startLineNumber": 304,
-	"startColumn": 1,
-	"endLineNumber": 304,
-	"endColumn": 30,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > MCP Tool Functions > use_mcp_tool throws after max retries\n-----\nError: thrown: \"Exceeded timeout of 10000 ms for a test.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"",
-	"source": "Jest",
-	"startLineNumber": 330,
-	"startColumn": 1,
-	"endLineNumber": 330,
-	"endColumn": 39,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > MCP Tool Functions > batchMcpResources handles errors in individual requests\n-----\nError: thrown: \"Exceeded timeout of 10000 ms for a test.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"",
-	"source": "Jest",
-	"startLineNumber": 424,
-	"startColumn": 1,
-	"endLineNumber": 424,
-	"endColumn": 59,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Core API Functions > refreshData uses MCP client when connected\n-----\nError: expect(jest.fn()).not.toHaveBeenCalled()\n\nExpected number of calls: 0\nReceived number of calls: 1\n\n1: called with 0 arguments",
-	"source": "Jest",
-	"startLineNumber": 446,
-	"startColumn": 1,
-	"endLineNumber": 446,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Core API Functions > refreshData uses mock data when requested\n-----\nError: expect(jest.fn()).toHaveBeenCalled()\n\nExpected number of calls: >= 1\nReceived number of calls:    0",
-	"source": "Jest",
-	"startLineNumber": 457,
-	"startColumn": 1,
-	"endLineNumber": 457,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Core API Functions > refreshData uses cache when available and fresh\n-----\nError: expect(jest.fn()).toHaveBeenCalledTimes(expected)\n\nExpected number of calls: 1\nReceived number of calls: 0",
-	"source": "Jest",
-	"startLineNumber": 477,
-	"startColumn": 1,
-	"endLineNumber": 477,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Core API Functions > cleanup disposes MCP client and clears refresh interval\n-----\nError: expect(jest.fn()).toHaveBeenCalledTimes(expected)\n\nExpected number of calls: 1\nReceived number of calls: 0",
-	"source": "Jest",
-	"startLineNumber": 558,
-	"startColumn": 1,
-	"endLineNumber": 558,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Core API Functions > initialize sets up refresh interval\n-----\nError: expect(jest.fn()).toHaveBeenCalledTimes(expected)\n\nExpected number of calls: 1\nReceived number of calls: 2",
-	"source": "Jest",
-	"startLineNumber": 576,
-	"startColumn": 1,
-	"endLineNumber": 576,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Error Handling > refreshData falls back to mock data when MCP fails\n-----\nError: expect(jest.fn()).toHaveBeenCalledTimes(expected)\n\nExpected number of calls: 1\nReceived number of calls: 0",
-	"source": "Jest",
-	"startLineNumber": 609,
-	"startColumn": 1,
-	"endLineNumber": 609,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Error Handling > refreshData returns cached data when all sources fail\n-----\nError: expect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 19\n\n  Object {\n-   \"data\": \"good_cached_data_for_all_fail_test\",\n+   \"models\": Object {\n+     \"available\": Array [\n+       Object {\n+         \"id\": \"test-model\",\n+         \"name\": \"Test Model\",\n+       },\n+     ],\n+     \"selected\": \"new-model-id\",\n+   },\n+   \"settings\": Object {\n+     \"darkMode\": true,\n+   },\n+   \"tokens\": Object {\n+     \"total\": Object {\n+       \"budgeted\": 200000,\n+       \"saved\": 50000,\n+       \"used\": 100000,\n+     },\n+   },\n  }",
-	"source": "Jest",
-	"startLineNumber": 627,
-	"startColumn": 1,
-	"endLineNumber": 627,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Error Handling > refreshData throws when all sources fail and no cache\n-----\nError: thrown: \"Exceeded timeout of 10000 ms for a test.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"",
-	"source": "Jest",
-	"startLineNumber": 643,
-	"startColumn": 1,
-	"endLineNumber": 643,
-	"endColumn": 8,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/enhancedDashboardApi.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "Dashboard API Tests > Error Handling > updateSelectedModel falls back to mock when MCP fails\n-----\nError: thrown: \"Exceeded timeout of 10000 ms for a test.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"",
-	"source": "Jest",
-	"startLineNumber": 660,
-	"startColumn": 1,
-	"endLineNumber": 660,
-	"endColumn": 1,
-	"modelVersionId": 210
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/SettingsPanel-enhanced.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component (Enhanced Tests) > renders collapsible content when not collapsed\n-----\nError: expect(element).toHaveAttribute(\"data-open\", \"true\") // element.getAttribute(\"data-open\") === \"true\"\n\nExpected the element to have attribute:\n  data-open=\"true\"\nReceived:\n  null",
-	"source": "Jest",
-	"startLineNumber": 208,
-	"startColumn": 1,
-	"endLineNumber": 208,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/SettingsPanel-enhanced.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component (Enhanced Tests) > does not render collapsible content when collapsed\n-----\nError: expect(element).toHaveAttribute(\"data-open\", \"false\") // element.getAttribute(\"data-open\") === \"false\"\n\nExpected the element to have attribute:\n  data-open=\"false\"\nReceived:\n  null",
-	"source": "Jest",
-	"startLineNumber": 215,
-	"startColumn": 1,
-	"endLineNumber": 215,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/SettingsPanel-enhanced.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component (Enhanced Tests) > renders all settings in appropriate categories\n-----\nError: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 1\nReceived:    0",
-	"source": "Jest",
-	"startLineNumber": 248,
-	"startColumn": 1,
-	"endLineNumber": 248,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/SettingsPanel-enhanced.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component (Enhanced Tests) > validates budget input correctly\n-----\nError: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"Please enter a valid number\"\nReceived string:    \"Settings IconSettingsChevronUp IconConfigure dashboard settings and token budgetsApplication SettingsInfo IconConfigure how the dashboard worksMonitor IconGeneralRefreshCw IconAuto RefreshAutomatically refresh data at regular intervalsMoon IconDark ModeUse dark color theme for the dashboardLayoutGrid IconCompact ModeDisplay information in a more condensed layoutBell IconNotificationsBudget AlertsReceive alerts when token usage approaches budget limitsPerformance AlertsReceive alerts for performance degradationWrench IconAdvanced SettingsDetailed LoggingEnable detailed request and response loggingDebug ModeEnable additional debug information and controlsExperimental FeaturesEnable experimental and beta featuresCreditCard IconToken BudgetsInfo IconSet maximum token limits for each categoryarchitecture150,000Edit IconcodeCompletion300,000Edit IconerrorResolution200,000Edit Iconthinking100,000Edit IconTotal750,000Edit Icon\"",
-	"source": "Jest",
-	"startLineNumber": 303,
-	"startColumn": 1,
-	"endLineNumber": 303,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/SettingsPanel-enhanced.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component (Enhanced Tests) > has proper ARIA attributes for settings toggles\n-----\nError: expect(element).toHaveAttribute(\"aria-checked\") // element.hasAttribute(\"aria-checked\")\n\nExpected the element to have attribute:\n  aria-checked\nReceived:\n  null",
-	"source": "Jest",
-	"startLineNumber": 347,
-	"startColumn": 1,
-	"endLineNumber": 347,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/settingsPanel.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "SettingsPanel Component > renders settings correctly\n-----\nError: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"Auto Model Selection\"\nReceived string:    \"SettingsConfigure dashboard settings and token budgetsApplication SettingsConfigure how the dashboard worksGeneralAuto RefreshAutomatically refresh data at regular intervalsDark ModeUse dark color theme for the dashboardCompact ModeDisplay information in a more condensed layoutNotificationsBudget AlertsReceive alerts when token usage approaches budget limitsPerformance AlertsReceive alerts for performance degradationAdvanced SettingsDetailed LoggingEnable detailed request and response loggingDebug ModeEnable additional debug information and controlsExperimental FeaturesEnable experimental and beta featuresToken BudgetsSet maximum token limits for each categoryarchitecture150,000codeCompletion300,000errorResolution200,000thinking100,000Total750,000\"",
-	"source": "Jest",
-	"startLineNumber": 48,
-	"startColumn": 1,
-	"endLineNumber": 48,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/TokenUtilization-coverage.test.js",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "TokenUtilization Coverage Tests > renders trend indicators correctly\n-----\nTestingLibraryElementError: Unable to find an element with the text: /5\\.2%/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n\nIgnored nodes: comments, script, style\n<body>\n  <div>\n    <div\n      aria-labelledby=\"token-utilization-title\"\n      class=\"mock-card  shadow-sm hover:shadow-md transition-shadow duration-200 animate-in fade-in duration-300 \"\n      data-testid=\"mock-card\"\n    >\n      <div\n        class=\"mock-card-header pb-3\"\n        data-testid=\"mock-card-header\"\n      >\n        <h3\n          class=\"mock-card-title flex items-center\"\n          data-testid=\"mock-card-title\"\n          id=\"token-utilization-title\"\n        >\n          <svg\n            aria-hidden=\"true\"\n            class=\"lucide lucide-database mr-2 h-5 w-5 text-primary\"\n            fill=\"none\"\n            height=\"24\"\n            stroke=\"currentColor\"\n            stroke-linecap=\"round\"\n            stroke-linejoin=\"round\"\n            stroke-width=\"2\"\n            viewBox=\"0 0 24 24\"\n            width=\"24\"\n            xmlns=\"http://www.w3.org/2000/svg\"\n          >\n            <ellipse\n              cx=\"12\"\n              cy=\"5\"\n              rx=\"9\"\n              ry=\"3\"\n            />\n            <path\n              d=\"M3 5V19A9 3 0 0 0 21 19V5\"\n            />\n            <path\n              d=\"M3 12A9 3 0 0 0 21 12\"\n            />\n          </svg>\n          Token Utilization\n        </h3>\n        <p\n          class=\"mock-card-description \"\n          data-testid=\"mock-card-description\"\n        >\n          Token usage across different categories and overall budget\n        </p>\n      </div>\n      <div\n        class=\"mock-card-content space-y-6\"\n        data-testid=\"mock-card-content\"\n      >\n        <div\n          class=\"space-y-3\"\n        >\n          <div\n            class=\"flex items-center justify-between\"\n          >\n            <div\n              class=\"flex items-center gap-2\"\n            >\n              <h3\n                class=\"font-semibold\"\n              >\n                Overall Budget\n              </h3>\n              <div\n                class=\"mock-tooltip-trigger \"\n                data-aschild=\"true\"\n                data-testid=\"mock-tooltip-trigger\"\n              >\n                <svg\n                  aria-hidden=\"true\"\n                  class=\"lucide lucide-info h-4 w-4 text-muted-foreground cursor-help\"\n                  fill=\"none\"\n                  height=\"24\"\n                  stroke=\"currentColor\"\n                  stroke-linecap=\"round\"\n                  stroke-linejoin=\"round\"\n                  stroke-width=\"2\"\n                  viewBox=\"0 0 24 24\"\n                  width=\"24\"\n                  xmlns=\"http://www.w3.org/2000/svg\"\n                >\n                  <circle\n                    cx=\"12\"\n                    cy=\"12\"\n                    r=\"10\"\n                  />\n                  <path\n                    d=\"M12 16v-4\"\n                  />\n                  <path\n                    d=\"M12 8h.01\"\n                  />\n                </svg>\n              </div>\n              <div\n                class=\"mock-tooltip-content \"\n                data-testid=\"mock-tooltip-content\"\n                side=\"top\"\n              >\n                <p>\n                  Total token usage across all categories\n                </p>\n              </div>\n            </div>\n            <div\n              aria-label=\"550,000 tokens used out of 900,000 tokens budgeted\"\n              class=\"text-sm font-medium\"\n            >\n              550,000\n               / \n              900,000\n            </div>\n          </div>\n          <div\n            class=\"relative\"\n          >\n            <div\n              aria-label=\"Overall budget usage is at 61 percent\"\n              aria-valuemax=\"100\"\n              aria-valuemin=\"0\"\n              aria-valuenow=\"61\"\n              class=\"mock-progress h-3\"\n              role=\"progressbar\"\n            >\n              Progress: \n              61\n              %\n            </div>\n            <div\n              class=\"absolute top-0 left-[75%] h-full w-[1px] bg-amber-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-amber-500\"\n            />\n            <div\n              class=\"absolute top-0 left-[90%] h-full w-[1px] bg-red-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-red-500\"\n            />\n          </div>\n          <div\n            class=\"flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0\"\n          >\n            <div\n              class=\"mock-badge bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 w-fit flex items-center gap-0.5 px-2 py-0.5\"\n              data-testid=\"mock-badge\"\n              variant=\"outline\"\n            >\n              61\n              % used\n            </div>\n            <div\n              aria-label=\"Estimated c...",
-	"source": "Jest",
-	"startLineNumber": 53,
-	"startColumn": 1,
-	"endLineNumber": 53,
-	"endColumn": 9007199254740992
-},{
-	"resource": "/Users/Shared/cursor/cursor-uninstaller/ui/dashboard/tests/tokenUtilization.test.jsx",
-	"owner": "Jest (cursor-uninstaller)",
-	"severity": 8,
-	"message": "TokenUtilization Component > renders trend indicators correctly\n-----\nError: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"-5.2%\"\nReceived string:    \"Token UtilizationToken usage across different categories and overall budget\"",
-	"source": "Jest",
-	"startLineNumber": 127,
-	"startColumn": 1,
-	"endLineNumber": 127,
-	"endColumn": 9007199254740992
-}]
+---------------------------------|---------|----------|---------|---------|-----------------------------------------------------------------------------------
+File                             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                 
+---------------------------------|---------|----------|---------|---------|-----------------------------------------------------------------------------------
+All files                        |   71.36 |    66.62 |   68.18 |   71.71 |                                                                                   
+ dashboard                       |   85.98 |    75.39 |   84.44 |      86 |                                                                                   
+  enhancedDashboard.jsx          |   81.19 |    73.27 |      75 |   81.25 | 98,151,180,231-232,256-257,272-273,287-288,306,311-322,456                        
+  mockApi.js                     |     100 |      100 |     100 |     100 |                                                                                   
+ dashboard/components            |   81.32 |    75.17 |    77.9 |   82.01 |                                                                                   
+  Header.jsx                     |    4.34 |        0 |       0 |    4.54 | 17-112                                                                            
+  ModelSelector.jsx              |   83.63 |    73.61 |   83.33 |    84.9 | 58,66,74,87,92,149,285-287                                                        
+  SettingsPanel.jsx              |   79.68 |     83.6 |   63.63 |   82.25 | 108-113,118-124,153-154                                                           
+  TokenUtilization.jsx           |   93.87 |    79.74 |     100 |     100 | 60-74,81,119,148,227,241-269,321-377                                              
+  UsageStats.jsx                 |   98.48 |      100 |   95.45 |   98.18 | 281                                                                               
+  index.js                       |       0 |        0 |       0 |       0 |                                                                                   
+ dashboard/components/features   |   59.32 |    72.53 |   46.42 |   61.72 |                                                                                   
+  EnhancedAnalyticsDashboard.jsx |   59.32 |    72.53 |   46.42 |   61.72 | ...,413-417,428-432,443-447,483-496,577,616-634,757-766,782,799,816-840,1023-1063 
+ dashboard/components/ui         |   38.73 |    12.24 |   35.48 |   39.09 |                                                                                   
+  accordion-content.jsx          |      20 |        0 |       0 |      20 | 10-16                                                                             
+  accordion-item.jsx             |      30 |        0 |       0 |      30 | 13-20,37-41                                                                       
+  accordion-trigger.jsx          |   16.66 |        0 |       0 |   16.66 | 11-18                                                                             
+  accordion.jsx                  |   11.11 |        0 |       0 |   11.53 | 22-59,75-79                                                                       
+  badge.jsx                      |   33.33 |        0 |       0 |   33.33 | 9-16                                                                              
+  button.jsx                     |     100 |      100 |     100 |     100 |                                                                                   
+  card-content.jsx               |     100 |      100 |     100 |     100 |                                                                                   
+  card-description.jsx           |     100 |      100 |     100 |     100 |                                                                                   
+  card-footer.jsx                |     100 |        0 |     100 |     100 | 8                                                                                 
+  card-header.jsx                |     100 |      100 |     100 |     100 |                                                                                   
+  card-title.jsx                 |     100 |      100 |     100 |     100 |                                                                                   
+  card.jsx                       |     100 |      100 |     100 |     100 |                                                                                   
+  collapsible-content.jsx        |      20 |        0 |       0 |      20 | 10-16                                                                             
+  collapsible-trigger.jsx        |   33.33 |        0 |       0 |   33.33 | 10-12                                                                             
+  collapsible.jsx                |   18.75 |        0 |       0 |   18.75 | 20-33,50-54                                                                       
+  index.js                       |       0 |        0 |       0 |       0 |                                                                                   
+  input.jsx                      |   66.66 |        0 |       0 |   66.66 | 9                                                                                 
+  label.jsx                      |      50 |        0 |       0 |      50 | 9                                                                                 
+  separator.jsx                  |      50 |        0 |       0 |      50 | 9                                                                                 
+  switch.jsx                     |      20 |        0 |       0 |      20 | 16-22                                                                             
+  tooltip-content.jsx            |     100 |      100 |     100 |     100 |                                                                                   
+  tooltip-provider.jsx           |     100 |      100 |     100 |     100 |                                                                                   
+  tooltip-trigger.jsx            |     100 |      100 |     100 |     100 |                                                                                   
+  tooltip.jsx                    |     100 |      100 |     100 |     100 |                                                                                   
+ dashboard/lib                   |   75.58 |    75.47 |   95.83 |   75.11 |                                                                                   
+  enhancedDashboardApi.js        |   75.47 |    75.47 |   95.65 |      75 | ...64,474-481,502-508,513-516,522-529,543,560,605-611,631-632,642-644,657-659,670 
+  utils.js                       |     100 |      100 |     100 |     100 |                                                                                   
+---------------------------------|---------|----------|---------|---------|-----------------------------------------------------------------------------------
+Test Suites: 1 failed, 13 passed, 14 total
+Tests:       10 failed, 126 passed, 136 total
+Snapshots:   0 total
+Time:        31.738 s
+Ran all test suites.
+(.venv) vicd@Vics-MacBook-Air dashboard % 

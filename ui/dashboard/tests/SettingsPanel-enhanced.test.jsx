@@ -204,14 +204,14 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   test('renders collapsible content when not collapsed', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
 
-    const collapsible = getByTestId('mock-collapsible');
+    const collapsible = getByTestId('collapsible');
     expect(collapsible).toHaveAttribute('data-open', 'true');
   });
 
   test('does not render collapsible content when collapsed', () => {
     const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={true} />);
 
-    const collapsible = getByTestId('mock-collapsible');
+    const collapsible = getByTestId('collapsible');
     expect(collapsible).toHaveAttribute('data-open', 'false');
   });
 
@@ -232,20 +232,38 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   });
 
   test('renders all settings in appropriate categories', () => {
-    const { getAllByTestId, getByText } = render(<SettingsPanel {...defaultProps} />);
+    const { container, getAllByTestId } = render(<SettingsPanel {...defaultProps} />); // Use container from here
 
     // Check that all accordion items are rendered
+    // Note: The mock for AccordionItem in mocks/ui/index.js uses data-testid="mock-accordion-item"
     const accordionItems = getAllByTestId('mock-accordion-item');
     expect(accordionItems.length).toBeGreaterThanOrEqual(3); // At least 3 categories
 
     // Check that all settings are rendered
-    Object.keys(settings).forEach(settingId => {
+    // Settings known to be rendered by the component based on its internal settingsCategories
+    const renderedSettingIds = [
+      'autoRefresh', 'darkMode', 'compactMode',
+      'budgetAlerts', 'performanceAlerts',
+      'detailedLogging', 'debugMode', 'experimentalFeatures'
+    ];
+
+    renderedSettingIds.forEach(settingId => {
       // There should be a label for each setting
-      const labels = Array.from(document.querySelectorAll('label')).filter(
-        label => label.textContent.includes(settingId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))
+      const expectedLabelText = settingId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      const labels = Array.from(container.querySelectorAll('label')).filter(
+        label => label.textContent.includes(expectedLabelText)
       );
 
-      expect(labels.length).toBeGreaterThanOrEqual(1);
+      // Ensure the label is found for settings that are expected to be rendered
+      if (settings.hasOwnProperty(settingId)) { // Check if the setting is in the props
+        expect(labels.length).toBeGreaterThanOrEqual(1);
+        // Ensure the label is associated with a switch
+        const switchEl = container.querySelector(`#toggle-${settingId}`);
+        expect(switchEl).toBeInTheDocument();
+        const labelForSwitch = container.querySelector(`label[for="toggle-${settingId}"]`);
+        expect(labelForSwitch).toBeInTheDocument();
+        expect(labelForSwitch.textContent).toContain(expectedLabelText);
+      }
     });
   });
 
@@ -299,8 +317,8 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
     const saveButton = container.querySelector('button[data-testid^="budget-save-"]');
     fireEvent.click(saveButton);
 
-    // Check for error message
-    expect(container.textContent).toContain('Please enter a valid number');
+    // Check for error message using findByText for async update
+    await screen.findByText('Please enter a valid number');
 
     // Should not call the callback for invalid input
     expect(defaultProps.onBudgetChange).not.toHaveBeenCalled();

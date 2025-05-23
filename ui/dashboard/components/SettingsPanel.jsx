@@ -168,12 +168,16 @@ const SettingsPanel = ({
 
   // Handle budget input change
   const handleBudgetChange = (e) => {
-    const value = e.target.value.replace(/,/g, '');
+    const rawValue = e.target.value;
+    const numericValue = rawValue.replace(/,/g, '');
 
-    // Allow empty string or numbers
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setBudgetValue(value);
-      setBudgetError('');
+    setBudgetValue(rawValue); // Store the raw value to allow non-numeric for validation on save
+
+    if (rawValue !== '' && !/^\d*\.?\d*$/.test(numericValue) && !/^\d*$/.test(numericValue)) {
+      // If not empty and not a valid number format (allowing just digits too for intermediate input)
+      setBudgetError('Invalid format'); // Optional: show error during typing
+    } else {
+      setBudgetError(''); // Clear error if format becomes valid or empty
     }
   };
 

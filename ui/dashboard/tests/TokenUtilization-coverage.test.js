@@ -49,12 +49,14 @@ describe('TokenUtilization Coverage Tests', () => {
   test('renders trend indicators correctly', () => {
     render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
 
-    // Check for trend indicators
-    const decreaseTrend = screen.getByText(/5\.2%/);
-    expect(decreaseTrend).toBeInTheDocument();
+    // Check for trend indicators using aria-label for robustness
+    const decreaseTrendBadge = screen.getByLabelText('Trending down -5.2 percent');
+    expect(decreaseTrendBadge).toBeInTheDocument();
+    expect(decreaseTrendBadge.textContent).toMatch(/-5\.2%/);
 
-    const increaseTrend = screen.getByText(/3\.7%/);
-    expect(increaseTrend).toBeInTheDocument();
+    const increaseTrendBadge = screen.getByLabelText('Trending up 3.7 percent');
+    expect(increaseTrendBadge).toBeInTheDocument();
+    expect(increaseTrendBadge.textContent).toMatch(/3\.7%/);
   });
 
   test('handles no data gracefully', () => {

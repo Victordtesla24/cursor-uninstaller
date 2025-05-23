@@ -94,12 +94,11 @@ export const use_mcp_tool = async (
       console.log(
         `Attempt ${attempt} to use MCP tool ${serverName}.${toolName}`,
       );
-      const result = await window.__MCP_CLIENT.useTool(
-        serverName,
-        toolName,
-        args,
-      );
-      return result;
+      return await window.__MCP_CLIENT.useTool(
+              serverName,
+              toolName,
+              args,
+            );
     } catch (error) {
       console.error(
         `Error using MCP tool (attempt ${attempt}/${maxRetries}):`,
@@ -145,8 +144,7 @@ export const access_mcp_resource = async (serverName, uri, options = {}) => {
       console.log(
         `Attempt ${attempt} to access MCP resource ${serverName}:${uri}`,
       );
-      const result = await window.__MCP_CLIENT.accessResource(serverName, uri);
-      return result;
+      return await window.__MCP_CLIENT.accessResource(serverName, uri);
     } catch (error) {
       console.error(
         `Error accessing MCP resource (attempt ${attempt}/${maxRetries}):`,
@@ -213,10 +211,11 @@ export const batchMcpResources = async (serverName, uris, options = {}) => {
   await Promise.all(
     uris.map(async (uri) => {
       try {
-        results[uri] = await access_mcp_resource(serverName, uri, options);
+        const rawResult = await access_mcp_resource(serverName, uri, options);
+        results[uri] = rawResult && rawResult.result ? rawResult.result : rawResult;
       } catch (error) {
         console.error(`Error accessing ${uri}:`, error);
-        results[uri] = null;
+        results[uri] = error; // Store the error object
       }
     }),
   );
@@ -299,10 +298,10 @@ let refreshIntervalId = null;
 export async function refreshData(forceMockData = false) {
   console.log("Refreshing dashboard data...");
 
-  // Check if we should use cached data
   const now = Date.now();
-  if (cachedDashboardData && (now - lastRefreshTime < CACHE_TTL)) {
-    console.log("Using cached dashboard data");
+  // If not forcing mock data, check if we should use cached data
+  if (!forceMockData && cachedDashboardData && (now - lastRefreshTime < CACHE_TTL)) {
+    console.log("Using cached dashboard data (and not forcing mock)");
     return cachedDashboardData;
   }
 
@@ -580,6 +579,11 @@ export function cleanup() {
 
   // Clear cache
   cachedDashboardData = null;
+
+  // Dispose MCP client if available and dispose method exists
+  if (safeCheckMcp() && typeof window.__MCP_CLIENT.dispose === 'function') {
+    window.__MCP_CLIENT.dispose();
+  }
 }
 
 /**

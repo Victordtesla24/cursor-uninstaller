@@ -121,11 +121,16 @@ describe('TokenUtilization Component', () => {
   test('renders trend indicators correctly', () => {
     render(<TokenUtilization tokenData={mockTokenData} costData={mockCostData} />);
 
-    // Check for trend indicators - using textContent since they could be formatted in different ways
-    const containerText = screen.getByText('Token Utilization').closest('div').textContent;
+    // Check for trend indicators using aria-label for robustness
+    expect(screen.getByLabelText('Trending down -5.2 percent')).toBeInTheDocument();
+    expect(screen.getByLabelText('Trending up 3.7 percent')).toBeInTheDocument();
 
-    expect(containerText).toContain('-5.2%');
-    expect(containerText).toContain('3.7%');
+    // Also verify the text content if needed, ensuring it's specific
+    const trendDownBadge = screen.getByLabelText('Trending down -5.2 percent');
+    expect(trendDownBadge.textContent).toMatch(/-5\.2%/); // Matches -5.2%
+
+    const trendUpBadge = screen.getByLabelText('Trending up 3.7 percent');
+    expect(trendUpBadge.textContent).toMatch(/3\.7%/); // Matches 3.7%
   });
 
   test('applies custom class name when provided', () => {
