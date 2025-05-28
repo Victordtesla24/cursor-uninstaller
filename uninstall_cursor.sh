@@ -2323,7 +2323,8 @@ setup_project_environment() {
     initialize_git_repository "$PROJECT_DIR"
 
     # Log successful project creation
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] Project '$project_name' created successfully at $PROJECT_DIR with environment type $env_tool_choice" >> "$CURSOR_SHARED_LOGS/project_setup.log"
 
     success_message "Project environment setup complete!"
@@ -2565,7 +2566,8 @@ EOF
 # Setup Conda environments
 setup_conda_environments() {
     local project_dir="$1"
-    local project_name=$(basename "$project_dir")
+    local project_name
+    project_name=$(basename "$project_dir")
 
     info_message "Setting up Conda environments..."
 
