@@ -119,7 +119,7 @@ start_sudo_refresh() {
     ) &
     SUDO_REFRESH_PID=$!
     # Ensure it's killed when the script exits
-    trap "kill $SUDO_REFRESH_PID 2>/dev/null || true" EXIT
+    trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null || true' EXIT
 }
 
 stop_sudo_refresh() {
@@ -143,7 +143,7 @@ enhanced_safe_remove() {
 enhanced_run_task() {
     CURRENT_TASK="$1"
     shift
-    local cmd="$@"
+    local cmd="$*"
 
     # Execute in background but with error handling
     (eval "$cmd" || true) > /dev/null 2>&1 &
@@ -533,14 +533,14 @@ detect_cursor_paths() {
 install_protocol_configs() {
     local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local log_file="$CURSOR_SHARED_LOGS/protocol_install.log"
-    
+
     info_message "Installing Cline and Cursor protocol configurations..."
     echo "[$timestamp] Starting protocol configuration installation" >> "$log_file" 2>/dev/null
-    
+
     # Define protocol directories
     local cline_rules_dir="$CURSOR_CWD/.cline/.clinerules"
     local cursor_rules_dir="$CURSOR_CWD/.cursor/rules"
-    
+
     # Create protocol files for Cline
     cat > "$cline_rules_dir/cline-token-optimisation-protocols.md" << 'EOF'
 ---
@@ -566,7 +566,7 @@ alwaysApply: true
     * **Code-Only Mode:** For implementation tasks, default to generating code without explanations.
     * **Structural Compression:** Use structured formats (lists, tables) instead of narrative text.
 EOF
-    
+
     cat > "$cline_rules_dir/cline-coding-protocols.md" << 'EOF'
 ---
 description: coding-protocols that are necessary to increase precision and reduce costs
@@ -587,7 +587,7 @@ alwaysApply: true
     * **MANDATORY:** Before creating anything new, you **MUST** thoroughly search the existing codebase for files or modules with similar functionality.
     * **Consolidation First:** Always prefer consolidating and refactoring existing code over creating new implementations.
 EOF
-    
+
     cat > "$cline_rules_dir/cline-implementation-workflows.md" << 'EOF'
 ---
 description: implementation-worflows to implement token-optimisation-protocols.md & coding-protocols.md effectively
@@ -613,7 +613,7 @@ alwaysApply: true
     * **Step 4:** Verify resolution
     * **Step 5:** Cache resolution pattern if meeting criteria
 EOF
-    
+
     cat > "$cline_rules_dir/cline-error-fixing-protocol.md" << 'EOF'
 ## Error Fixing Protocol
 
@@ -635,7 +635,7 @@ EOF
 >   - **No Placeholders:** Strictly prohibited placeholder text or TODO markers.
 >   - **Attempt Limit:** Maximum of 2 direct internal fix attempts per error.
 EOF
-    
+
     # Create Cursor rules
     cat > "$cursor_rules_dir/my-error-fixing-protocols.mdc" << 'EOF'
 ---
@@ -659,7 +659,7 @@ alwaysApply: true
 7. **Clean-Up of Redundant Assets**
 8. **Preserve Functionality (Zero Regression)**
 EOF
-    
+
     cat > "$cursor_rules_dir/my-directory-management-protocols.mdc" << 'EOF'
 ---
 description:
@@ -685,11 +685,11 @@ alwaysApply: true
 >   - **No Placeholders:** Never insert placeholder text instead of actual code.
 >   - **Attempt Limit:** Maximum of 2 direct internal fix attempts per error.
 EOF
-    
+
     # Set proper permissions
     chmod 644 "$cline_rules_dir"/*.md 2>/dev/null || sudo chmod 644 "$cline_rules_dir"/*.md 2>/dev/null
     chmod 644 "$cursor_rules_dir"/*.mdc 2>/dev/null || sudo chmod 644 "$cursor_rules_dir"/*.mdc 2>/dev/null
-    
+
     echo "[$timestamp] Protocol configuration files installed successfully" >> "$log_file" 2>/dev/null
     success_message "Protocol configuration files installed successfully"
     return 0
@@ -766,7 +766,7 @@ update_status() {
 run_task() {
     CURRENT_TASK="$1"
     shift
-    eval "$@" >/dev/null 2>&1 &
+    "$@" >/dev/null 2>&1 &
     local pid=$!
 
     while kill -0 "$pid" 2>/dev/null; do
