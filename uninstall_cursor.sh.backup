@@ -21,7 +21,7 @@ get_script_path() {
             return 0
         elif [[ -n "${TEST_DIR:-}" ]]; then
             # For other tests, return the parent directory of TEST_DIR
-            echo "$(dirname "$TEST_DIR")"
+            dirname "$TEST_DIR"
             return 0
         fi
     fi
@@ -770,7 +770,7 @@ update_status() {
 run_task() {
     CURRENT_TASK="$1"
     shift
-    eval "$@" >/dev/null 2>&1 &
+    "$@" >/dev/null 2>&1 &
     local pid=$!
 
     while kill -0 "$pid" 2>/dev/null; do
@@ -841,14 +841,6 @@ verify_complete_removal() {
     # Initialize verification status
     local found_files=()
     local verification_passed=true
-
-    # Common Cursor-related patterns
-    local cursor_patterns=(
-        "*[Cc]ursor*"
-        "com.cursor.*"
-        ".cursor*"
-        "*cursor*"
-    )
 
     # Verification tasks with progress bar
     run_task "Verifying Applications directory" "find /Applications -type d,f -iname '*cursor*' 2>/dev/null"
@@ -1018,8 +1010,6 @@ clean_up_lingering_files() {
 
 # Check and install required performance dependencies
 check_performance_deps() {
-    local missing_deps=()
-
     # Check if Homebrew is installed
     if ! command -v brew >/dev/null 2>&1; then
         echo "Installing Homebrew..."
@@ -1918,7 +1908,8 @@ install_cursor_from_dmg() {
     fi
 
     # Get app version
-    local app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+    local app_version
+    app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
     if [ "$app_version" = "Unknown" ]; then
         warning_message "Could not determine app version. The app may be corrupted."
         echo "[$timestamp] Warning: Could not determine app version" >> "$installation_log"
@@ -2052,7 +2043,8 @@ setup_default_project() {
     create_project_shortcuts "$default_project_dir" "$default_project_name" "2"
 
     # Log successful project creation
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] Default project created successfully with conda environments" >> "$CURSOR_SHARED_LOGS/project_setup.log"
 
     # Restore original read function
@@ -2080,7 +2072,8 @@ verify_cursor_installation() {
     fi
 
     # Check app version
-    local app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+    local app_version
+    app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
     echo "Cursor AI Editor version: $app_version"
 
     # Check if shared configuration exists
@@ -2221,7 +2214,8 @@ setup_project_environment() {
                 info_message "Continuing with existing project directory..."
                 ;;
             2)
-                local backup_time=$(date +"%Y%m%d%H%M%S")
+                local backup_time
+                backup_time=$(date +"%Y%m%d%H%M%S")
                 local backup_dir="${PROJECT_DIR}_backup_${backup_time}"
                 info_message "Creating backup at $backup_dir"
                 if cp -R "$PROJECT_DIR" "$backup_dir"; then
@@ -2329,7 +2323,8 @@ setup_project_environment() {
     initialize_git_repository "$PROJECT_DIR"
 
     # Log successful project creation
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] Project '$project_name' created successfully at $PROJECT_DIR with environment type $env_tool_choice" >> "$CURSOR_SHARED_LOGS/project_setup.log"
 
     success_message "Project environment setup complete!"
@@ -2571,7 +2566,8 @@ EOF
 # Setup Conda environments
 setup_conda_environments() {
     local project_dir="$1"
-    local project_name=$(basename "$project_dir")
+    local project_name
+    project_name=$(basename "$project_dir")
 
     info_message "Setting up Conda environments..."
 
@@ -3522,7 +3518,7 @@ handle_error() {
 
     # Don't exit if in test mode
     if [ "${CURSOR_TEST_MODE:-}" != true ] && [ "${BATS_TEST_SOURCED:-}" != 1 ]; then
-        exit $exit_code
+        exit "$exit_code"
     fi
 }
 
