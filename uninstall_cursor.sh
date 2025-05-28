@@ -3433,13 +3433,13 @@ create_desktop_shortcut() {
         return 1
     fi
 
-    ln -sf "/Applications/Cursor.app" "$HOME/Desktop/" && {
+    if ln -sf "/Applications/Cursor.app" "$HOME/Desktop/"; then
         success_message "Desktop shortcut created successfully."
         return 0
-    } || {
+    else
         error_message "Failed to create desktop shortcut."
         return 1
-    }
+    fi
 }
 
 # Main execution function with improved error handling
