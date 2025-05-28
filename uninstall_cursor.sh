@@ -842,14 +842,6 @@ verify_complete_removal() {
     local found_files=()
     local verification_passed=true
 
-    # Common Cursor-related patterns
-    local cursor_patterns=(
-        "*[Cc]ursor*"
-        "com.cursor.*"
-        ".cursor*"
-        "*cursor*"
-    )
-
     # Verification tasks with progress bar
     run_task "Verifying Applications directory" "find /Applications -type d,f -iname '*cursor*' 2>/dev/null"
     local app_files
@@ -1018,8 +1010,6 @@ clean_up_lingering_files() {
 
 # Check and install required performance dependencies
 check_performance_deps() {
-    local missing_deps=()
-
     # Check if Homebrew is installed
     if ! command -v brew >/dev/null 2>&1; then
         echo "Installing Homebrew..."
