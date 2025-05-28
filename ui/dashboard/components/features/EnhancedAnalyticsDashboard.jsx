@@ -222,7 +222,7 @@ const EnhancedAnalyticsDashboard = ({
     });
 
     const today = new Date();
-    let simulatedData = {
+    const simulatedData = {
       totalTokens: 1250000,
       averageDailyUsage: 45000,
       peakUsage: 120000,

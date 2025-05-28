@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Header,
   CostTracker,
@@ -25,8 +25,10 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-  TooltipProvider
-} from './components/ui';
+  TooltipProvider,
+  Badge,
+  Switch
+} from './components/ui/index.js';
 import * as enhancedDashboardApi from './lib/enhancedDashboardApi';
 import { dashboardConfig } from "./lib/config.js";
 import { cn } from "./lib/utils.js";
@@ -45,71 +47,202 @@ import {
   Sun,
   BarChart2,
   Lightbulb,
-  LineChart
-} from "lucide-react";
+  LineChart,
+  Activity,
+  TrendingUp,
+  Menu,
+  Bell,
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Sparkles,
+  Clock,
+  DollarSign,
+  Database,
+  Cpu,
+  Shield,
+  Gauge
+} from 'lucide-react';
 
 // Animated Tabs component for view selection
 function AnimatedTabs({ tabs, activeTab, onChange }) {
   return (
-    <div className="relative flex items-center rounded-lg bg-muted/50 p-1">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
-          className={cn(
-            "relative z-10 flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200",
-            activeTab === tab.id
-              ? "text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {tab.icon}
-          <span>{tab.label}</span>
-
-          {activeTab === tab.id && (
-            <span className="absolute inset-0 z-[-1] rounded-md bg-primary shadow-sm animate-in fade-in duration-200" />
-          )}
-        </button>
-      ))}
+    <div className="relative bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-xl p-1.5 shadow-inner border border-slate-200 dark:border-slate-700">
+      <div className="flex space-x-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`
+              relative px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ease-out
+              flex items-center space-x-2 min-w-[120px] justify-center
+              ${activeTab === tab.id
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-600 scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }
+            `}
+          >
+            <span className={`text-lg ${activeTab === tab.id ? 'animate-pulse' : ''}`}>
+              {tab.icon}
+            </span>
+            <span className="font-semibold">{tab.label}</span>
+            {activeTab === tab.id && (
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse" />
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
-// End AnimatedTabs component
 
 // Status Badge component for connection status
-function StatusBadge({ connected, label }) {
+function StatusBadge({ connected, label, type = 'default' }) {
+  const getStatusStyles = () => {
+    if (connected) {
+      return {
+        badge: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25',
+        dot: 'bg-white animate-pulse',
+        glow: 'shadow-emerald-500/50'
+      };
+    } else {
+      return {
+        badge: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25',
+        dot: 'bg-white animate-ping',
+        glow: 'shadow-amber-500/50'
+      };
+    }
+  };
+
+  const styles = getStatusStyles();
+
   return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-        connected
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-      )}
-    >
-      {connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-      {label}
+    <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${styles.badge} ${styles.glow} transition-all duration-300`}>
+      <div className={`w-2 h-2 rounded-full mr-2 ${styles.dot}`} />
+      <span>{label}</span>
     </div>
   );
 }
 
 // Section Header component
-function SectionHeader({ title, isCollapsed, onToggleCollapse, icon }) {
+function SectionHeader({ title, isCollapsed, onToggleCollapse, icon, actions, subtitle }) {
   return (
-    <div
-      className="flex cursor-pointer items-center justify-between border-b border-border p-4"
-      onClick={onToggleCollapse}
-    >
-      <div className="flex items-center gap-2">
-        {icon}
-        <h3 className="text-lg font-medium">{title}</h3>
+    <div className="flex items-center justify-between mb-6 group">
+      <div className="flex items-center space-x-3">
+        <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{subtitle}</p>
+          )}
+        </div>
       </div>
-      <ChevronDown
-        className={cn(
-          "h-5 w-5 text-muted-foreground transition-transform",
-          !isCollapsed && "rotate-180"
+      <div className="flex items-center space-x-3">
+        {actions}
+        {onToggleCollapse && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCollapse}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-300 ${
+                isCollapsed ? 'rotate-180' : ''
+              }`}
+            />
+          </Button>
         )}
-      />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Enhanced Header Component with modern design
+ */
+function DashboardHeader({ darkMode, onToggleDarkMode, onRefresh, refreshing, lastUpdated, connectionStatus }) {
+  return (
+    <div className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700 mb-8">
+      <div className="px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white shadow-xl shadow-blue-500/25">
+                <Sparkles className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                  Cline AI Dashboard
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  Advanced AI monitoring and optimization platform
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <StatusBadge 
+                connected={connectionStatus?.clineServerConnected} 
+                label={connectionStatus?.usingMockData ? "Mock Data" : "Live API"}
+              />
+            </div>
+            
+            <Separator orientation="vertical" className="h-8" />
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRefresh}
+                disabled={refreshing}
+                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+              >
+                <Bell className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleDarkMode}
+                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
+              >
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {lastUpdated && (
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-3 w-3" />
+              <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span>Real-time monitoring active</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -153,6 +286,13 @@ const EnhancedDashboard = () => {
     // Check system preference as fallback
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState({
+    clineServerConnected: false,
+    magicApiConnected: false,
+    usingMockData: true
+  });
 
   // Refs for managing API calls
   const refreshTimeoutRef = useRef(null);
@@ -172,7 +312,11 @@ const EnhancedDashboard = () => {
 
   // Function to toggle dark mode
   const toggleDarkMode = useCallback(() => {
-    setDarkMode(prev => !prev);
+    setDarkMode(prev => {
+      const newMode = !prev;
+      document.documentElement.classList.toggle('dark', newMode);
+      return newMode;
+    });
   }, []);
 
   // Function to toggle between mock and real data (from Dashboard.jsx)
@@ -198,6 +342,7 @@ const EnhancedDashboard = () => {
         setSelectedModel(data.models?.selected);
         setTokenBudget(data.tokens?.budgets?.total?.budget);
         setError(null);
+        setLastUpdated(new Date());
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -326,10 +471,24 @@ const EnhancedDashboard = () => {
   // Show loading state if initial load is in progress
   if (loading && isInitialLoad.current) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <h2 className="text-xl font-semibold">Loading Dashboard...</h2>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full border-4 border-slate-200 dark:border-slate-700"></div>
+            <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
+            <div className="absolute inset-2 w-20 h-20 rounded-full border-4 border-transparent border-t-purple-600 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Initializing Dashboard
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Setting up your AI monitoring environment...
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -338,424 +497,235 @@ const EnhancedDashboard = () => {
   // Show error state if no data is available
   if (error && !dashboardData) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-        <h2 className="text-xl font-semibold">Error Loading Dashboard</h2>
-        <p className="text-center text-muted-foreground">{error}</p>
-        <Button
-          onClick={() => setUseMockData(!useMockData)}
-          className="mt-2"
-        >
-          {useMockData ? 'Try MCP Data' : 'Use Mock Data'}
-        </Button>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 flex items-center justify-center p-8">
+        <Card className="max-w-md w-full shadow-2xl border-red-200 dark:border-red-800">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <CardTitle className="text-red-900 dark:text-red-100">Dashboard Error</CardTitle>
+            <CardDescription className="text-red-700 dark:text-red-300">
+              {error}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <Button onClick={handleRefresh} className="w-full bg-red-600 hover:bg-red-700">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry Connection
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-screen-xl p-4">
-        {/* Header */}
-        <header className="mb-6 flex flex-col gap-4 border-b pb-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Cline AI Dashboard</h1>
-            <StatusBadge
-              connected={!useMockData}
-              label={useMockData ? "Mock Data" : "Live API"}
-            />
-          </div>
+    <div className={`min-h-screen transition-all duration-500 ${darkMode ? 'dark' : ''} bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900`}>
+      <DashboardHeader 
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        lastUpdated={lastUpdated}
+        connectionStatus={connectionStatus}
+      />
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <AnimatedTabs
-              tabs={[
-                { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
-                { id: 'detailed', label: 'Detailed', icon: <BarChart3 className="h-4 w-4" /> },
-                { id: 'analytics', label: 'Analytics', icon: <LineChart className="h-4 w-4" /> },
-                { id: 'comparison', label: 'Models', icon: <BarChart2 className="h-4 w-4" /> },
-                { id: 'recommendations', label: 'Recommendations', icon: <Lightbulb className="h-4 w-4" /> },
-                { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
-              ]}
-              activeTab={viewMode}
-              onChange={setViewMode}
-            />
+      <div className="max-w-[1600px] mx-auto px-8 pb-12 space-y-8">
+        {/* Enhanced Navigation */}
+        <div className="flex justify-center">
+          <AnimatedTabs 
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: <Eye className="h-4 w-4" /> },
+              { id: 'detailed', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+              { id: 'usage', label: 'Usage Insights', icon: <Activity className="h-4 w-4" /> },
+              { id: 'recommendations', label: 'AI Recommendations', icon: <Sparkles className="h-4 w-4" /> },
+              { id: 'comparison', label: 'Model Comparison', icon: <Cpu className="h-4 w-4" /> },
+              { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
+            ]} 
+            activeTab={viewMode} 
+            onChange={setViewMode} 
+          />
+        </div>
 
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={toggleDarkMode}
-                      className="h-9 w-9"
-                    >
-                      {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{darkMode ? 'Switch to light mode' : 'Switch to dark mode'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleRefresh}
-                      disabled={isPendingRefresh.current}
-                      className="h-9 w-9"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${isPendingRefresh.current ? 'animate-spin' : ''}`} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Refresh dashboard data</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {useMockData && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={toggleDataSource}
-                        className="gap-1 text-xs"
-                      >
-                        <Wifi className="h-3 w-3" />
-                        Try Live API
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Attempt to connect to MCP server</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Show error banner for non-fatal errors */}
-        {error && dashboardData && (
-          <div className="mb-6 flex items-center justify-between rounded-lg bg-red-100 px-4 py-3 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              <span>{error}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              className="h-8 hover:bg-red-200 dark:hover:bg-red-900/50"
-            >
-              Dismiss
-            </Button>
-          </div>
-        )}
-
-        {/* Main dashboard content based on view mode */}
-        <main className="pb-8">
+        {/* Dynamic Content Based on View Mode */}
+        <div className="space-y-8 animate-in fade-in duration-500">
           {viewMode === 'overview' && (
-            <div className="space-y-6">
-              {/* Top metrics */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                {/* Metrics Panel */}
-                <Card className="col-span-1 md:col-span-3">
-                  <CardHeader>
-                    <CardTitle>Performance Metrics</CardTitle>
-                    <CardDescription>Key system performance indicators</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <MetricsPanel
-                        metrics={dashboardData.metrics}
-                        darkMode={darkMode}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Token Utilization */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Token Utilization
-                    </CardTitle>
-                    <CardDescription>Current token usage efficiency</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <TokenUtilization
-                        tokenData={dashboardData.tokens}
-                        selectedModel={selectedModel}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Cost Tracker */}
-                <Card className="col-span-1 md:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Cost Tracking
-                    </CardTitle>
-                    <CardDescription>Budget and current spending</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <CostTracker
-                        costData={dashboardData.costs}
-                        tokenBudget={tokenBudget}
-                        onBudgetChange={handleTokenBudgetChange}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Usage Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    Usage Trends
-                  </CardTitle>
-                  <CardDescription>Token usage over time</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  {dashboardData && (
-                    <UsageChart
-                      usageData={dashboardData.usage}
+            <div className="space-y-8">
+              <SectionHeader 
+                title="System Overview"
+                subtitle="Key performance indicators and system health"
+                icon={<Gauge className="h-5 w-5" />}
+              />
+              
+              {/* Enhanced Metrics Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-700">
+                    <MetricsPanel 
+                      metrics={dashboardData?.metrics} 
                       darkMode={darkMode}
                     />
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
+                  
+                  <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-700">
+                    <UsageChart 
+                      usageData={dashboardData?.usage} 
+                      darkMode={darkMode}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-700">
+                    <TokenUtilization 
+                      tokenData={dashboardData?.tokens} 
+                      costData={dashboardData?.costs}
+                      darkMode={darkMode}
+                    />
+                  </div>
+                  
+                  <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-700">
+                    <CostTracker 
+                      costData={dashboardData?.costs} 
+                      darkMode={darkMode}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {viewMode === 'detailed' && (
-            <div className="space-y-6">
-              {/* Detailed Metrics & Stats */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Performance Metrics
-                    </CardTitle>
-                    <CardDescription>System performance data</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <MetricsPanel
-                        metrics={dashboardData.metrics}
-                        darkMode={darkMode}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Usage Statistics
-                    </CardTitle>
-                    <CardDescription>Key usage metrics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <UsageStats
-                        usageData={dashboardData.usage}
-                        lastUpdate={refreshTimestamp}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    Usage Trends
-                  </CardTitle>
-                  <CardDescription>Token usage over time</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  {dashboardData && (
-                    <UsageChart
-                      usageData={dashboardData.usage}
-                      darkMode={darkMode}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Model Selection
-                    </CardTitle>
-                    <CardDescription>Choose a language model</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <ModelSelector
-                        models={dashboardData.models}
-                        selectedModel={selectedModel}
-                        onModelSelect={handleModelChange}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      Token Utilization
-                    </CardTitle>
-                    <CardDescription>Current token usage efficiency</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dashboardData && (
-                      <TokenUtilization
-                        tokenData={dashboardData.tokens}
-                        selectedModel={selectedModel}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+            <div className="space-y-8">
+              <SectionHeader 
+                title="Advanced Analytics"
+                subtitle="Deep insights into your AI usage patterns"
+                icon={<BarChart3 className="h-5 w-5" />}
+              />
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <EnhancedAnalyticsDashboard 
+                  usageData={dashboardData?.usage}
+                  modelsData={dashboardData?.models}
+                  metrics={dashboardData?.metrics}
+                  darkMode={darkMode}
+                />
               </div>
             </div>
           )}
 
-          {viewMode === 'analytics' && (
-            <div className="space-y-6">
-              {dashboardData && (
-                <EnhancedAnalyticsDashboard
-                  usageData={dashboardData.usage}
-                  modelsData={dashboardData.models}
+          {viewMode === 'usage' && (
+            <div className="space-y-8">
+              <SectionHeader 
+                title="Usage Insights"
+                subtitle="Detailed breakdown of your AI consumption"
+                icon={<Activity className="h-5 w-5" />}
+              />
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <UsageStats 
+                  usageData={dashboardData?.usage}
                   darkMode={darkMode}
                 />
-              )}
-            </div>
-          )}
-
-          {viewMode === 'comparison' && (
-            <div className="space-y-6">
-              {dashboardData && (
-                <ModelPerformanceComparison
-                  modelsData={dashboardData.models}
-                  usageData={dashboardData.usage}
-                  onModelSelect={handleModelChange}
-                  darkMode={darkMode}
-                />
-              )}
+              </div>
             </div>
           )}
 
           {viewMode === 'recommendations' && (
-            <div className="space-y-6">
-              {dashboardData && (
-                <TokenBudgetRecommendations
-                  tokenData={dashboardData.tokens}
-                  onApplyRecommendation={handleApplyRecommendation}
+            <div className="space-y-8">
+              <SectionHeader 
+                title="AI-Powered Recommendations"
+                subtitle="Smart suggestions to optimize your token usage"
+                icon={<Sparkles className="h-5 w-5" />}
+              />
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <TokenBudgetRecommendations 
+                  tokenData={dashboardData?.tokens}
+                  onApplyRecommendation={handleSettingChange}
                   darkMode={darkMode}
                 />
-              )}
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'comparison' && (
+            <div className="space-y-8">
+              <SectionHeader 
+                title="Model Performance Comparison"
+                subtitle="Compare and optimize your AI model selection"
+                icon={<Cpu className="h-5 w-5" />}
+              />
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <ModelPerformanceComparison 
+                  modelsData={dashboardData?.models}
+                  usageData={dashboardData?.usage}
+                  onModelSelect={handleModelChange}
+                  darkMode={darkMode}
+                />
+              </div>
             </div>
           )}
 
           {viewMode === 'settings' && (
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <SettingsIcon className="h-5 w-5" />
-                      Dashboard Settings
-                    </CardTitle>
-                    <CardDescription>Configure dashboard behavior</CardDescription>
-                  </div>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={toggleAdvancedSettings}
-                        >
-                          {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Toggle visibility of advanced settings</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+            <div className="space-y-8">
+              <SectionHeader 
+                title="Dashboard Settings"
+                subtitle="Configure your dashboard preferences and token budgets"
+                icon={<SettingsIcon className="h-5 w-5" />}
+              />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                  <ModelSelector 
+                    modelData={dashboardData?.models}
+                    onModelSelect={handleModelChange}
+                    darkMode={darkMode}
+                  />
                 </div>
-              </CardHeader>
-
-              <CardContent>
-                {dashboardData && (
-                  <SettingsPanel
-                    settings={settings}
-                    tokenBudgets={dashboardData.tokens?.budgets}
+                
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                  <SettingsPanel 
+                    settings={dashboardData?.settings}
+                    tokenBudgets={dashboardData?.tokens?.budgets}
                     onSettingChange={handleSettingChange}
                     onBudgetChange={handleTokenBudgetChange}
-                    showAdvanced={showAdvancedSettings}
+                    darkMode={darkMode}
                   />
-                )}
-              </CardContent>
-
-              <CardFooter className="flex flex-col-reverse items-start justify-between gap-4 sm:flex-row sm:items-center">
-                <span className="text-sm text-muted-foreground">
-                  Last updated: {new Date(refreshTimestamp).toLocaleTimeString()}
-                </span>
-
-                <Button
-                  onClick={handleRefresh}
-                  disabled={isPendingRefresh.current}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isPendingRefresh.current ? 'animate-spin' : ''}`} />
-                  {isPendingRefresh.current ? 'Refreshing...' : 'Refresh Dashboard'}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </main>
-
-        {/* Dashboard footer */}
-        <footer className="mt-auto border-t pt-6">
-          <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
-            <div>
-              Cline AI Dashboard v{dashboardConfig.version || '1.0.0'}
-            </div>
-
-            {loading && !isInitialLoad.current && (
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                <span>Updating...</span>
+                </div>
               </div>
-            )}
+            </div>
+          )}
+        </div>
 
-            <div className="flex items-center gap-2">
-              <StatusBadge
-                connected={!useMockData}
-                label={useMockData ? "Using mock data" : "Connected to live API"}
-              />
+        {/* Enhanced Footer */}
+        <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  Cline AI Dashboard
+                </span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                v2.0.0
+              </Badge>
+            </div>
+            
+            <div className="flex items-center space-x-6 text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center space-x-1">
+                <Database className="h-3 w-3" />
+                <span>
+                  {dashboardData?.tokens?.usage?.total?.toLocaleString() || '0'} tokens processed
+                </span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <DollarSign className="h-3 w-3" />
+                <span>
+                  ${dashboardData?.costs?.total?.toFixed(2) || '0.00'} total cost
+                </span>
+              </div>
             </div>
           </div>
-        </footer>
+        </div>
       </div>
     </div>
   );

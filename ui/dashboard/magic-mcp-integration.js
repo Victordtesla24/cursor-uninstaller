@@ -580,12 +580,12 @@ const updateTokenBudget = async (budgetType, value) => {
 };
 
 /**
- * Helper function to use Puppeteer MCP server
+ * Helper function to call Puppeteer MCP server
  * @param {string} toolName - The Puppeteer tool to use
  * @param {object} args - Arguments to pass to the tool
  * @returns {Promise<any>} Result of the tool call
  */
-const usePuppeteerMcp = async (toolName, args) => {
+const callPuppeteerMcp = async (toolName, args) => {
   try {
     if (!window.__MCP_CLIENT) {
       throw new Error("MCP client not available");
@@ -607,7 +607,7 @@ const usePuppeteerMcp = async (toolName, args) => {
  */
 const takeScreenshot = async (options = {}) => {
   try {
-    return await usePuppeteerMcp('puppeteer_screenshot', options);
+    return await callPuppeteerMcp('puppeteer_screenshot', options);
   } catch (error) {
     console.error('Error taking screenshot:', error);
     throw error;
@@ -621,7 +621,7 @@ const takeScreenshot = async (options = {}) => {
  */
 const navigateToUrl = async (url) => {
   try {
-    await usePuppeteerMcp('puppeteer_navigate', { url });
+    await callPuppeteerMcp('puppeteer_navigate', { url });
     return true;
   } catch (error) {
     console.error(`Error navigating to ${url}:`, error);
@@ -642,7 +642,7 @@ module.exports = {
   refreshDashboardData,
   updateSetting,
   updateTokenBudget,
-  usePuppeteerMcp,
+  callPuppeteerMcp,
   takeScreenshot,
   navigateToUrl
 };

@@ -1,0 +1,15 @@
+
+> cline-ai-dashboard@1.0.0 build
+> vite build
+
+vite v6.3.5 building for production...
+transforming...
+✓ 180 modules transformed.
+✗ Build failed in 354ms
+error during build:
+Could not resolve "../../../components/ui" from "components/UsageChart.jsx"
+file: /Users/Shared/cursor/cursor-uninstaller/ui/dashboard/components/UsageChart.jsx
+    at getRollupError (file:///Users/Shared/cursor/cursor-uninstaller/ui/dashboard/node_modules/rollup/dist/es/shared/parseAst.js:397:41)
+    at error (file:///Users/Shared/cursor/cursor-uninstaller/ui/dashboard/node_modules/rollup/dist/es/shared/parseAst.js:393:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///Users/Shared/cursor/cursor-uninstaller/ui/dashboard/node_modules/rollup/dist/es/shared/node-entry.js:21350:24)
+    at file:///Users/Shared/cursor/cursor-uninstaller/ui/dashboard/node_modules/rollup/dist/es/shared/node-entry.js:21310:26

@@ -14,7 +14,8 @@ const EnhancedHeader = ({
   onRefresh,
   lastUpdated,
   usingMockData = false,
-  className = ''
+  className = '',
+  onMenuClick
 }) => {
   // Get system health indicator class based on status
   const getHealthClass = () => {
@@ -31,7 +32,9 @@ const EnhancedHeader = ({
 
   // Format last updated timestamp
   const getLastUpdatedText = () => {
-    if (!lastUpdated) return 'Never updated';
+    if (!lastUpdated) {
+      return 'Never updated';
+    }
 
     try {
       const timeString = lastUpdated.toLocaleTimeString([], {
@@ -39,7 +42,7 @@ const EnhancedHeader = ({
         minute: '2-digit'
       });
       return `Updated at ${timeString}`;
-    } catch (e) {
+    } catch (_e) {
       return 'Unknown update time';
     }
   };

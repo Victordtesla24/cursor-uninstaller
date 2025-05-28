@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MetricsPanel from './components/MetricsPanel';
 import TokenUtilization from './components/TokenUtilization';
 import CostTracker from './components/CostTracker';
 import UsageChart from './components/UsageChart';
 import ModelSelector from './components/ModelSelector';
 import SettingsPanel from './components/SettingsPanel';
-import StyledJsx from './components/StyledJsx';
-import Header from './components/Header';
+
+
 import mockApi from './mockApi';
 import * as mcpApi from './mcpApi';
 import './styles.css';
@@ -32,7 +32,7 @@ export const Dashboard = () => {
   const api = useMockData ? mockApi : mcpApi;
 
   // Fetch dashboard data
-  const fetchData = async (isRefresh = false) => {
+  const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     } else {
@@ -63,7 +63,7 @@ export const Dashboard = () => {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [api, useMockData]);
 
   useEffect(() => {
     fetchData();
@@ -72,7 +72,7 @@ export const Dashboard = () => {
     const refreshInterval = setInterval(() => fetchData(true), 5 * 60 * 1000);
 
     return () => clearInterval(refreshInterval);
-  }, [useMockData]);
+  }, [fetchData]);
 
   // Handle manual refresh
   const handleRefresh = () => {

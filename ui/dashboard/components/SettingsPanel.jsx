@@ -184,7 +184,9 @@ const SettingsPanel = ({
   // Get color for budget badges based on value
   const getBudgetBadgeColor = (category) => {
     const value = tokenBudgets[category];
-    if (!value) return "bg-muted/50 text-muted-foreground";
+    if (!value) {
+      return "bg-muted/50 text-muted-foreground";
+    }
 
     // For "total" category, use a different color
     if (category === "total") {

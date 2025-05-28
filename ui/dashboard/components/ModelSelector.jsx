@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -21,8 +21,7 @@ import {
   Calculator,
   CheckCircle,
   CheckCircle2,
-  Sparkles,
-  ChevronsUpDown
+  Sparkles
 } from 'lucide-react';
 
 /**
@@ -38,7 +37,7 @@ import {
  * @param {Function} props.onModelChange Callback for model selection
  * @param {Function} props.onModelSelect Legacy callback for model selection
  * @param {Object} props.modelData Structured model data
- * @param {Boolean} props.darkMode Whether dark mode is enabled
+ * @param {Boolean} props._darkMode Whether dark mode is enabled (unused)
  */
 const ModelSelector = ({
   models,
@@ -47,7 +46,7 @@ const ModelSelector = ({
   onModelSelect,
   modelData,
   className = '',
-  darkMode = false
+  _darkMode = false
 }) => {
   // Allow both ways of passing props for backward compatibility with tests
   // Add compatibility with both onModelChange and onModelSelect prop names
@@ -87,11 +86,6 @@ const ModelSelector = ({
     return `$${cost.toFixed(5)}/token`;
   };
 
-  // Helper to determine if a model is recommended for a specific task
-  const isRecommendedFor = (modelId, task) => {
-    return recommendedFor && recommendedFor[task] === modelId;
-  };
-
   // Helper to get color variants for each capability
   const getCapabilityColorClass = (capability) => {
     const classes = {
@@ -129,12 +123,9 @@ const ModelSelector = ({
           {available && (Array.isArray(available) ? available : Object.values(available)).map((model, index) => {
             const isSelected = model.id === selected;
 
-            // For test compatibility
-            const modelId = model.id;
-
             // Calculate tasks this model is recommended for
             const recommendedTasks = recommendedFor ? Object.entries(recommendedFor)
-              .filter(([_, recModelId]) => recModelId === model.id)
+              .filter(([, recModelId]) => recModelId === model.id)
               .map(([task]) => task) : [];
 
             return (
@@ -246,7 +237,9 @@ const ModelSelector = ({
                 {Object.entries(recommendedFor).map(([task, modelId]) => {
                   const modelArray = Array.isArray(available) ? available : Object.values(available);
                   const recommendedModel = available && modelArray.find(model => model.id === modelId);
-                  if (!recommendedModel) return null;
+                  if (!recommendedModel) {
+                    return null;
+                  }
 
                   return (
                     <div key={task} className="flex items-center justify-between p-2 rounded-md border border-border">

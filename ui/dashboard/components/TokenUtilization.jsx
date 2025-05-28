@@ -10,9 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Badge,
-  Separator
+  Separator,
+  Progress
 } from "./ui/index.js";
-import { Progress } from "../../../components/ui/progress";
 import {
   Database,
   Info,
@@ -51,7 +51,9 @@ const TokenUtilization = ({
 
   // Helper function to calculate usage percentage
   const calculatePercentage = (used, total) => {
-    if (!total) return 0;
+    if (!total) {
+      return 0;
+    }
     return Math.min(100, Math.round((used / total) * 100));
   };
 
@@ -70,15 +72,23 @@ const TokenUtilization = ({
 
   // Helper to determine color based on usage percentage
   const getStatusColor = useMemo(() => (percentage) => {
-    if (percentage > 90) return statusColorMapping.high;
-    if (percentage > 75) return statusColorMapping.medium;
+    if (percentage > 90) {
+      return statusColorMapping.high;
+    }
+    if (percentage > 75) {
+      return statusColorMapping.medium;
+    }
     return statusColorMapping.normal;
   }, [statusColorMapping]);
 
   // Helper to get badge color variant for percentage
   const getBadgeColor = useMemo(() => (percentage) => {
-    if (percentage > 90) return badgeColorMapping.high;
-    if (percentage > 75) return badgeColorMapping.medium;
+    if (percentage > 90) {
+      return badgeColorMapping.high;
+    }
+    if (percentage > 75) {
+      return badgeColorMapping.medium;
+    }
     return badgeColorMapping.normal;
   }, [badgeColorMapping]);
 
@@ -115,7 +125,9 @@ const TokenUtilization = ({
 
   // Memoized savings calculation
   const tokensSaved = useMemo(() => {
-    if (cacheEfficiency === undefined) return 0;
+    if (cacheEfficiency === undefined) {
+      return 0;
+    }
     return Math.round((usage.total || 0) * cacheEfficiency);
   }, [usage.total, cacheEfficiency]);
 
@@ -145,7 +157,7 @@ const TokenUtilization = ({
 
   return (
     <Card
-      className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200 animate-in fade-in duration-300 ${darkMode ? 'bg-card/95' : ''}`}
+      className={`${className} shadow-sm hover:shadow-md transition-shadow duration-300 animate-in fade-in ${darkMode ? 'bg-card/95' : ''}`}
       aria-labelledby="token-utilization-title"
     >
       <CardHeader className="pb-3">

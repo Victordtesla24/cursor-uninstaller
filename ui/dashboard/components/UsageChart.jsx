@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -7,23 +7,21 @@ import {
   CardTitle,
   Separator,
   Badge,
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '../../../components/ui';
+  Button
+} from './ui/index.js';
 import {
   BarChart3,
   LineChart,
-  PieChart,
-  LayoutGrid,
   Calendar,
   Layers,
   FileType,
   Code,
   ActivityIcon,
-  Info
+  Info,
+  TrendingUp,
+  Cpu,
+  FileText,
+  Star
 } from 'lucide-react';
 import Chart from 'chart.js/auto';
 
@@ -45,19 +43,16 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
-  // Provide defaults for usageData to prevent undefined errors
+  // Safely extract data with defaults
   const safeUsageData = {
     totalTokens: 0,
     inputTokens: 0,
     outputTokens: 0,
     activeUsers: 0,
-    averageUserTokens: 0,
-    recentActivity: [],
-    daily: [],
-    ...(usageData || {})
+    ...usageData
   };
 
-  // Helper to format numbers with K/M suffix
+  // Format large numbers with appropriate suffixes
   const formatNumber = (num) => {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
@@ -65,88 +60,60 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
     if (num >= 1000) {
       return `${(num / 1000).toFixed(1)}K`;
     }
-    return num.toString();
+    return num?.toString() || '0';
   };
 
-  // Get chart data based on selected view
+  // Get chart data based on current view
   const getChartData = () => {
+    if (!usageData) {
+      return [];
+    }
+    
     switch (chartView) {
       case 'daily':
-        return safeUsageData.daily || [];
+        return usageData.daily || [];
       case 'byModel':
-        return safeUsageData.byModel || {};
+        return usageData.byModel || {};
       case 'byFunction':
-        return safeUsageData.byFunction || {};
+        return usageData.byFunction || {};
       case 'byFile':
-        return safeUsageData.byFile || {};
+        return usageData.byFileType || {};
       case 'popularity':
-        return safeUsageData.popularity || {};
+        return usageData.popularity || {};
       default:
-        return safeUsageData.daily || [];
+        return [];
     }
   };
 
-  // Get chart colors that work in both light/dark modes
-  const getChartColors = (count = 8) => {
-    const baseColors = [
-      { light: 'rgba(59, 130, 246, 0.7)', dark: 'rgba(96, 165, 250, 0.7)' }, // blue
-      { light: 'rgba(16, 185, 129, 0.7)', dark: 'rgba(52, 211, 153, 0.7)' }, // emerald
-      { light: 'rgba(249, 115, 22, 0.7)', dark: 'rgba(251, 146, 60, 0.7)' }, // orange
-      { light: 'rgba(139, 92, 246, 0.7)', dark: 'rgba(167, 139, 250, 0.7)' }, // purple
-      { light: 'rgba(236, 72, 153, 0.7)', dark: 'rgba(244, 114, 182, 0.7)' }, // pink
-      { light: 'rgba(6, 182, 212, 0.7)', dark: 'rgba(34, 211, 238, 0.7)' },  // cyan
-      { light: 'rgba(245, 158, 11, 0.7)', dark: 'rgba(251, 191, 36, 0.7)' }, // amber
-      { light: 'rgba(239, 68, 68, 0.7)', dark: 'rgba(248, 113, 113, 0.7)' }  // red
-    ];
+  // Generate consistent colors for charts
+  const getChartColors = (count = 8) => [
+    'rgba(99, 102, 241, 0.7)',   // indigo
+    'rgba(59, 130, 246, 0.7)',   // blue
+    'rgba(16, 185, 129, 0.7)',   // emerald
+    'rgba(245, 158, 11, 0.7)',   // amber
+    'rgba(239, 68, 68, 0.7)',    // red
+    'rgba(168, 85, 247, 0.7)',   // purple
+    'rgba(236, 72, 153, 0.7)',   // pink
+    'rgba(14, 165, 233, 0.7)'    // sky
+  ];
 
-    // Return the appropriate color array based on dark mode
-    return Array(count).fill().map((_, i) =>
-      darkMode ? baseColors[i % baseColors.length].dark : baseColors[i % baseColors.length].light
-    );
-  };
-
-  // Get relevant icon based on the chart view
+  // Get appropriate icon for current view
   const getViewIcon = () => {
     switch (chartView) {
-      case 'daily':
-        return <Calendar className="h-4 w-4" />;
-      case 'byModel':
-        return <Layers className="h-4 w-4" />;
-      case 'byFunction':
-        return <Code className="h-4 w-4" />;
-      case 'byFile':
-        return <FileType className="h-4 w-4" />;
-      case 'popularity':
-        return <ActivityIcon className="h-4 w-4" />;
-      default:
-        return <BarChart3 className="h-4 w-4" />;
+      case 'daily': return <TrendingUp className="h-4 w-4" />;
+      case 'byModel': return <Cpu className="h-4 w-4" />;
+      case 'byFunction': return <Code className="h-4 w-4" />;
+      case 'byFile': return <FileText className="h-4 w-4" />;
+      case 'popularity': return <Star className="h-4 w-4" />;
+      default: return <BarChart3 className="h-4 w-4" />;
     }
   };
-
-  // Early return for completely empty data
-  if (!usageData) {
-    return (
-      <Card className={`${className} shadow-sm`}>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <BarChart3 className="mr-2 h-5 w-5 text-primary" />
-            Usage Statistics
-          </CardTitle>
-          <CardDescription>
-            Token usage trends and patterns
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-3 h-48 text-muted-foreground">
-          <Info className="h-10 w-10 text-amber-500 opacity-80" />
-          <p className="text-center">No usage data available</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Render the appropriate chart when component mounts or data changes
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current || !usageData) {
+      return;
+    }
 
     // If a chart already exists, destroy it
     if (chartInstance.current) {
@@ -263,7 +230,28 @@ const UsageChart = ({ usageData = {}, className = '', darkMode = false }) => {
         chartInstance.current.destroy();
       }
     };
-  }, [chartView, chartType, usageData, darkMode]);
+  }, [chartView, chartType, usageData]);
+
+  // Early return for completely empty data - MOVED AFTER useEffect
+  if (!usageData) {
+    return (
+      <Card className={`${className} shadow-sm`}>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BarChart3 className="mr-2 h-5 w-5 text-primary" />
+            Usage Statistics
+          </CardTitle>
+          <CardDescription>
+            Token usage trends and patterns
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-3 h-48 text-muted-foreground">
+          <Info className="h-10 w-10 text-amber-500 opacity-80" />
+          <p className="text-center">No usage data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}>

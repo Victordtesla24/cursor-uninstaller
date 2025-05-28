@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -18,15 +18,9 @@ import {
   DollarSign,
   CreditCard,
   Clock,
-  BarChart3,
   AlertCircle,
   PieChart,
-  BanknoteIcon,
-  Wallet,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  Calculator
+  BanknoteIcon
 } from "lucide-react";
 
 /**
@@ -49,7 +43,7 @@ import {
  * @param {Object} props - Component props
  * @param {CostData} [props.costData={}] - Cost and savings data
  * @param {string} [props.className=''] - Additional CSS class names
- * @param {boolean} [props.darkMode=false] - Whether dark mode is enabled
+ * @param {boolean} [props._darkMode=false] - Whether dark mode is enabled (unused)
  *
  * @returns {JSX.Element} Rendered component displaying cost tracking information
  *
@@ -65,7 +59,7 @@ import {
  *   className="my-custom-class"
  * />
  */
-const CostTracker = ({ costData = {}, className = '', darkMode = false }) => {
+const CostTracker = ({ costData = {}, className = '', _darkMode = false }) => {
   // Format currency with 2 decimal places
   const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return '—';

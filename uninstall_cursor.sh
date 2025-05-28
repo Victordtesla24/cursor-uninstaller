@@ -351,8 +351,8 @@ detect_cursor_paths() {
         fi
     fi
 
-    # Create necessary subdirectories
-    for dir in "$CURSOR_SHARED_CONFIG" "$CURSOR_SHARED_LOGS" "$CURSOR_SHARED_PROJECTS" "$CURSOR_CWD/cache" "$CURSOR_CWD/backups"; do
+    # Create necessary subdirectories including protocol paths
+    for dir in "$CURSOR_SHARED_CONFIG" "$CURSOR_SHARED_LOGS" "$CURSOR_SHARED_PROJECTS" "$CURSOR_CWD/cache" "$CURSOR_CWD/backups" "$CURSOR_CWD/.cline/.clinerules" "$CURSOR_CWD/.cursor/rules"; do
         if [ ! -d "$dir" ]; then
             echo "Creating directory: $dir"
             if ! mkdir -p "$dir" 2>/dev/null; then
@@ -526,6 +526,172 @@ detect_cursor_paths() {
         return 1
     fi
 
+    return 0
+}
+
+# Install Cline and Cursor protocol configuration files
+install_protocol_configs() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local log_file="$CURSOR_SHARED_LOGS/protocol_install.log"
+    
+    info_message "Installing Cline and Cursor protocol configurations..."
+    echo "[$timestamp] Starting protocol configuration installation" >> "$log_file" 2>/dev/null
+    
+    # Define protocol directories
+    local cline_rules_dir="$CURSOR_CWD/.cline/.clinerules"
+    local cursor_rules_dir="$CURSOR_CWD/.cursor/rules"
+    
+    # Create protocol files for Cline
+    cat > "$cline_rules_dir/cline-token-optimisation-protocols.md" << 'EOF'
+---
+description: `token-optimisation-protocols` to `significantly` reduce costs
+globs: true
+alwaysApply: true
+---
+
+## Cline - Token Optimization Protocols
+
+**Role: Always act like a 10x Engineer/Senior Developer when starting a new or existing `Task` or a `User Request.`**
+   - Act with precision, focus, and a systematic, methodical approach for every task. Prioritize production-ready, robust solutions.
+
+1. **Token Budget Management:**
+    * **Default Output Budget:** Restrict standard responses to maximum 500 tokens unless explicitly required.
+    * **Model Selection:** Models must be selectect ***STRICTLY*** based on:
+        - **Rule 1:** If token_budget < 500: gemini-2.5-flash
+        - **Rule 2:** If task_type == "debug": claude-3.7-sonnet
+        - **Rule 3:** If complexity_score > 7: claude-3.7-sonnet:thinking
+
+2. **Output Minimization Strategy:**
+    * **Concise Response Format:** Default to terse, direct responses unless detailed explanation requested.
+    * **Code-Only Mode:** For implementation tasks, default to generating code without explanations.
+    * **Structural Compression:** Use structured formats (lists, tables) instead of narrative text.
+EOF
+    
+    cat > "$cline_rules_dir/cline-coding-protocols.md" << 'EOF'
+---
+description: coding-protocols that are necessary to increase precision and reduce costs
+globs: true
+alwaysApply: true
+---
+
+## Cline - Coding Protocols
+
+**Role: Always act like a 10x Engineer/Senior Developer when starting a new or existing `Task` or a `User Request.`**
+
+**Production-Only Code:**
+    * **ABSOLUTELY PROHIBITED:** Implementing, replacing, or generating code using mockups, simulated fallback mechanisms, error masking, or warning suppression.
+    * All code generated or modified **MUST** be fully functional, robust, and meet production-grade standards.
+
+**No Duplication:**
+    * **STRICTLY FORBIDDEN:** Creating new, unnecessary, or duplicate files, code blocks, or scripts.
+    * **MANDATORY:** Before creating anything new, you **MUST** thoroughly search the existing codebase for files or modules with similar functionality.
+    * **Consolidation First:** Always prefer consolidating and refactoring existing code over creating new implementations.
+EOF
+    
+    cat > "$cline_rules_dir/cline-implementation-workflows.md" << 'EOF'
+---
+description: implementation-worflows to implement token-optimisation-protocols.md & coding-protocols.md effectively
+globs: true
+alwaysApply: true
+---
+
+## Cline - Implementation Workflows
+
+**Role: Always act like a 10x Engineer/Senior Developer when starting a new or existing `Task` or a `User Request.`**
+
+1. **Code Implementation Workflow:**
+    * **Step 1:** Analyze requirements and existing code patterns
+    * **Step 2:** Check cache for similar implementations
+    * **Step 3:** Implement solution (adhering to token budget)
+    * **Step 4:** Verify against requirements
+    * **Step 5:** Cache implementation pattern if meeting criteria
+
+2. **Error Resolution Workflow:**
+    * **Step 1:** Check cache for known resolution
+    * **Step 2:** If not found, perform root cause analysis
+    * **Step 3:** Implement targeted fix
+    * **Step 4:** Verify resolution
+    * **Step 5:** Cache resolution pattern if meeting criteria
+EOF
+    
+    cat > "$cline_rules_dir/cline-error-fixing-protocol.md" << 'EOF'
+## Error Fixing Protocol
+
+**Objective:** To systematically identify, analyze, and resolve errors efficiently and robustly.
+
+**Core Principle:** Adhere strictly to these protocols for **every** error. Employ a "Fail Fast" mindset with small, **incremental**, and **atomic** fixes.
+
+### Key Components
+
+1. **Reproducibility & Context Capture:** Ensure the error is reproducible. Capture complete context.
+2. **Comprehensive Root Cause Analysis (RCA):** Investigate logs, code changes, configurations, dependency versions.
+3. **Targeted Resolution Attempts (Max 2 Internal):**
+   * **Attempt 1:** Implement the most likely minimal, targeted fix based on RCA.
+   * **Attempt 2:** If Attempt 1 fails, revert the change, refine analysis, apply revised minimal fix.
+4. **Rigorous Verification:** After each attempt, run relevant tests and verify file integrity.
+
+> **Critical Constraints**
+>   - **Atomicity:** Each fix attempt must be the smallest possible change.
+>   - **No Placeholders:** Strictly prohibited placeholder text or TODO markers.
+>   - **Attempt Limit:** Maximum of 2 direct internal fix attempts per error.
+EOF
+    
+    # Create Cursor rules
+    cat > "$cursor_rules_dir/my-error-fixing-protocols.mdc" << 'EOF'
+---
+description:
+globs:
+alwaysApply: true
+---
+### Directory Management Protocol
+
+**Objective:** To organize, consolidate, and maintain the project's directory structure according to established conventions.
+
+**Protocol Steps:**
+
+1. **Determine & Adhere to Project Structure Conventions**
+2. **Comprehensive File Scan & Inventory**
+3. **Duplicate/Overlap Detection & Consolidation:**
+   * **Strict Prohibition:** ***Never*** create a new file, script, or module if an existing one serves the same or overlapping purpose.
+4. **Strict "No Unrequested Files" Policy**
+5. **Correct Placement, Renaming & Reference Updates**
+6. **Import & Path Integrity Verification**
+7. **Clean-Up of Redundant Assets**
+8. **Preserve Functionality (Zero Regression)**
+EOF
+    
+    cat > "$cursor_rules_dir/my-directory-management-protocols.mdc" << 'EOF'
+---
+description:
+globs:
+alwaysApply: true
+---
+## Error Fixing Protocol
+
+**Objective:** To systematically identify, analyze, and resolve errors within the codebase efficiently and robustly.
+
+### Recursive Error Resolution Algorithm
+
+1. **Error Isolation & Context:** Detect, reproduce, and isolate the error.
+2. **Root Cause Analysis (RCA):** Perform exhaustive analysis to list potential causes.
+3. **First Fix Attempt:** Apply minimal, atomic fix based on RCA.
+4. **Verification & Integrity:** Run tests, lint, verify file integrity.
+5. **Recursive Retry/Refinement:** If verification fails, revert fix and refine.
+6. **Alternative Sourcing & Eval:** Research external solutions if internal attempts fail.
+7. **Final Application & Verification:** Implement chosen external/hybrid fix.
+
+> **Critical Constraints**
+>   - **Atomicity:** Each fix must be the smallest possible change.
+>   - **No Placeholders:** Never insert placeholder text instead of actual code.
+>   - **Attempt Limit:** Maximum of 2 direct internal fix attempts per error.
+EOF
+    
+    # Set proper permissions
+    chmod 644 "$cline_rules_dir"/*.md 2>/dev/null || sudo chmod 644 "$cline_rules_dir"/*.md 2>/dev/null
+    chmod 644 "$cursor_rules_dir"/*.mdc 2>/dev/null || sudo chmod 644 "$cursor_rules_dir"/*.mdc 2>/dev/null
+    
+    echo "[$timestamp] Protocol configuration files installed successfully" >> "$log_file" 2>/dev/null
+    success_message "Protocol configuration files installed successfully"
     return 0
 }
 
@@ -1359,6 +1525,14 @@ EOF
         }
 
         success_message "Standard optimizations applied successfully."
+    fi
+
+    # Install protocol configuration files
+    info_message "Installing Cline and Cursor protocol configurations..."
+    if install_protocol_configs; then
+        success_message "Protocol configurations installed successfully."
+    else
+        warning_message "Some protocol configurations may not have been installed properly."
     fi
 
     # Log successful optimization
