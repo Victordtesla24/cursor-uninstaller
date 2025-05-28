@@ -883,19 +883,21 @@ verify_complete_removal() {
     run_task "Checking launch agents" "find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null"
     local launch_files
     launch_files=$(find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null)
-    local launch_files=$(find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null)
     [ -n "$launch_files" ] && { found_files+=("$launch_files"); verification_passed=false; }
 
     run_task "Scanning shared directories" "find /Users/Shared -type d,f -iname '*cursor*' 2>/dev/null"
-    local shared_files=$(find /Users/Shared -type d,f -iname '*cursor*' 2>/dev/null)
+    local shared_files
+    shared_files=$(find /Users/Shared -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$shared_files" ] && { found_files+=("$shared_files"); verification_passed=false; }
 
     run_task "Verifying symbolic links" "find /usr/local/bin -type l -name '*cursor*' 2>/dev/null"
-    local symlink_files=$(find /usr/local/bin -type l -name '*cursor*' 2>/dev/null)
+    local symlink_files
+    symlink_files=$(find /usr/local/bin -type l -name '*cursor*' 2>/dev/null)
     [ -n "$symlink_files" ] && { found_files+=("$symlink_files"); verification_passed=false; }
 
     run_task "Performing deep system scan" "sudo find / -type d,f -iname '*cursor*' -not -path '/System/*' -not -path '/private/var/db/*' 2>/dev/null"
-    local deep_scan=$(sudo find / -type d,f -iname '*cursor*' -not -path '/System/*' -not -path '/private/var/db/*' 2>/dev/null)
+    local deep_scan
+    deep_scan=$(sudo find / -type d,f -iname '*cursor*' -not -path '/System/*' -not -path '/private/var/db/*' 2>/dev/null)
     [ -n "$deep_scan" ] && { found_files+=("$deep_scan"); verification_passed=false; }
 
     # Display verification results with a nice format
@@ -1034,7 +1036,8 @@ check_performance_deps() {
 
     # Fix Homebrew permissions
     if [ -d "/opt/homebrew" ]; then
-        local current_user=$(whoami)
+        local current_user
+        current_user=$(whoami)
         echo "Fixing Homebrew permissions for $current_user..."
 
         # Fix core Homebrew directory permissions
