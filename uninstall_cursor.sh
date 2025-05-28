@@ -2784,7 +2784,8 @@ EOF
 # Setup Node.js environment for frontend-only projects
 setup_nodejs_environment() {
     local project_dir="$1"
-    local project_name=$(basename "$project_dir")
+    local project_name
+    project_name=$(basename "$project_dir")
 
     info_message "Setting up Node.js environment..."
 
@@ -3217,7 +3218,8 @@ EOF
 # Enhanced Menu
 ###############################################################################
 enhanced_show_menu() {
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo -e "\n${BOLD}=========================================================${NC}"
     echo -e "${BOLD}               CURSOR AI EDITOR UTILITY                 ${NC}"
     echo -e "${BOLD}             Version: 1.2.0 (2025-04-25)                ${NC}"
@@ -3225,7 +3227,8 @@ enhanced_show_menu() {
     echo -e "\nRunning as user: $(whoami) | Date: $timestamp\n"
 
     if [ -d "/Applications/Cursor.app" ]; then
-        local version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+        local version
+        version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
         echo -e "${GREEN}✓ Cursor AI Editor detected${NC} (Version: $version)"
 
         # Check for running instances
@@ -3322,8 +3325,10 @@ repair_shared_configuration() {
         error_message "Could not create logs directory. Repair may be incomplete."
     }
 
-    local log_file="$CURSOR_SHARED_LOGS/repair_$(date +%Y%m%d%H%M%S).log"
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local log_file
+    log_file="$CURSOR_SHARED_LOGS/repair_$(date +%Y%m%d%H%M%S).log"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
     # Start logging
     echo "[$timestamp] Starting shared configuration repair process" > "$log_file" 2>/dev/null
@@ -3504,7 +3509,8 @@ handle_error() {
     local exit_code=$1
     local line_no=$2
     local command="$3"
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
     # Create log directory if needed
     mkdir -p "$CURSOR_SHARED_LOGS" 2>/dev/null || sudo mkdir -p "$CURSOR_SHARED_LOGS" 2>/dev/null || true
