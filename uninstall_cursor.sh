@@ -1151,7 +1151,8 @@ optimize_cursor_performance() {
     local chip_generation=0
 
     # First try to get exact chip model using multiple methods
-    local cpu_info=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
+    local cpu_info
+    cpu_info=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
 
     # First detection method: using sysctl brand string
     if [[ "$cpu_info" == *"Apple M"* ]]; then
@@ -1540,8 +1541,10 @@ EOF
     fi
 
     # Log successful optimization
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    local specs="CPU: $(sysctl -n machdep.cpu.brand_string), RAM: $(sysctl -n hw.memsize | awk '{print $0/1073741824 " GB"}')"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local specs
+    specs="CPU: $(sysctl -n machdep.cpu.brand_string), RAM: $(sysctl -n hw.memsize | awk '{print $0/1073741824 " GB"}')"
     echo "[$timestamp] Performance optimization completed for $specs" >> "$CURSOR_SHARED_LOGS/optimization.log"
 
     success_message "Performance optimization completed successfully."
@@ -1700,8 +1703,10 @@ install_cursor_from_dmg() {
     local app_name="Cursor.app"
     local mount_point="/Volumes/Cursor"
     local error_occurred=false
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    local installation_log="$CURSOR_SHARED_LOGS/installation_$(date +%Y%m%d%H%M%S).log"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local installation_log
+    installation_log="$CURSOR_SHARED_LOGS/installation_$(date +%Y%m%d%H%M%S).log"
 
     # Ensure logs directory exists
     detect_cursor_paths || {
@@ -1732,7 +1737,8 @@ install_cursor_from_dmg() {
     fi
 
     # Get DMG file size to verify it's not empty
-    local dmg_size=$(stat -f%z "$dmg_path" 2>/dev/null)
+    local dmg_size
+    dmg_size=$(stat -f%z "$dmg_path" 2>/dev/null)
     if [ -z "$dmg_size" ] || [ "$dmg_size" -lt 1000000 ]; then # Less than ~1MB
         error_message "DMG file appears to be invalid or incomplete (size: ${dmg_size:-unknown} bytes)."
         echo "Please download a fresh copy of the DMG file."
@@ -1902,7 +1908,8 @@ install_cursor_from_dmg() {
     fi
 
     # Get app version
-    local app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+    local app_version
+    app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
     if [ "$app_version" = "Unknown" ]; then
         warning_message "Could not determine app version. The app may be corrupted."
         echo "[$timestamp] Warning: Could not determine app version" >> "$installation_log"
@@ -2036,7 +2043,8 @@ setup_default_project() {
     create_project_shortcuts "$default_project_dir" "$default_project_name" "2"
 
     # Log successful project creation
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] Default project created successfully with conda environments" >> "$CURSOR_SHARED_LOGS/project_setup.log"
 
     # Restore original read function
@@ -2064,7 +2072,8 @@ verify_cursor_installation() {
     fi
 
     # Check app version
-    local app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+    local app_version
+    app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
     echo "Cursor AI Editor version: $app_version"
 
     # Check if shared configuration exists
@@ -2205,7 +2214,8 @@ setup_project_environment() {
                 info_message "Continuing with existing project directory..."
                 ;;
             2)
-                local backup_time=$(date +"%Y%m%d%H%M%S")
+                local backup_time
+                backup_time=$(date +"%Y%m%d%H%M%S")
                 local backup_dir="${PROJECT_DIR}_backup_${backup_time}"
                 info_message "Creating backup at $backup_dir"
                 if cp -R "$PROJECT_DIR" "$backup_dir"; then
