@@ -2008,6 +2008,7 @@ setup_default_project() {
     original_read=$(declare -f read)
 
     # Override read function to automatically provide input
+    # shellcheck disable=SC2317
     read() {
         # Depending on the context, provide different automatic answers
         if [[ "$CURRENT_READ_CONTEXT" == "project_name" ]]; then
