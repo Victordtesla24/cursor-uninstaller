@@ -21,7 +21,7 @@ get_script_path() {
             return 0
         elif [[ -n "${TEST_DIR:-}" ]]; then
             # For other tests, return the parent directory of TEST_DIR
-            echo "$(dirname "$TEST_DIR")"
+            dirname "$TEST_DIR"
             return 0
         fi
     fi
@@ -124,7 +124,7 @@ start_sudo_refresh() {
 
 stop_sudo_refresh() {
     if [ -n "$SUDO_REFRESH_PID" ]; then
-        kill $SUDO_REFRESH_PID 2>/dev/null || true
+        kill "$SUDO_REFRESH_PID" 2>/dev/null || true
         unset SUDO_REFRESH_PID
     fi
 }
@@ -164,7 +164,8 @@ enhanced_run_task() {
 # Enhanced verification wrapper
 enhanced_verify_complete_removal() {
     # Save original trap
-    local original_trap=$(trap -p ERR)
+    local original_trap
+    original_trap=$(trap -p ERR)
 
     # Temporarily disable error trap
     trap - ERR
@@ -205,9 +206,11 @@ CURSOR_SHARED_PROJECTS="$CURSOR_CWD/projects"
 
 # Enhanced path detection function
 detect_cursor_paths() {
-    local current_user=$(whoami)
+    local current_user
+    current_user=$(whoami)
     local error_occurred=false
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
     # Define log file location
     local log_file="$CURSOR_SHARED_LOGS/path_detection.log"
@@ -531,7 +534,8 @@ detect_cursor_paths() {
 
 # Install Cline and Cursor protocol configuration files
 install_protocol_configs() {
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local log_file="$CURSOR_SHARED_LOGS/protocol_install.log"
 
     info_message "Installing Cline and Cursor protocol configurations..."
@@ -848,15 +852,18 @@ verify_complete_removal() {
 
     # Verification tasks with progress bar
     run_task "Verifying Applications directory" "find /Applications -type d,f -iname '*cursor*' 2>/dev/null"
-    local app_files=$(find /Applications -type d,f -iname '*cursor*' 2>/dev/null)
+    local app_files
+    app_files=$(find /Applications -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$app_files" ] && { found_files+=("$app_files"); verification_passed=false; }
 
     run_task "Scanning Library directory" "find \"${HOME}/Library\" -type d,f -iname '*cursor*' 2>/dev/null"
-    local lib_files=$(find "${HOME}/Library" -type d,f -iname '*cursor*' 2>/dev/null)
+    local lib_files
+    lib_files=$(find "${HOME}/Library" -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$lib_files" ] && { found_files+=("$lib_files"); verification_passed=false; }
 
     run_task "Checking configuration files" "find \"${HOME}/.config\" -type d,f -iname '*cursor*' 2>/dev/null"
-    local config_files=$(find "${HOME}/.config" -type d,f -iname '*cursor*' 2>/dev/null)
+    local config_files
+    config_files=$(find "${HOME}/.config" -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$config_files" ] && { found_files+=("$config_files"); verification_passed=false; }
 
     run_task "Scanning system preferences" "defaults read com.cursor.Cursor 2>/dev/null"
@@ -864,14 +871,18 @@ verify_complete_removal() {
     [ $pref_exists -eq 0 ] && { found_files+=("System preferences"); verification_passed=false; }
 
     run_task "Checking temporary directories" "find /private/var/folders -type d,f -iname '*cursor*' 2>/dev/null"
-    local temp_files=$(find /private/var/folders -type d,f -iname '*cursor*' 2>/dev/null)
+    local temp_files
+    temp_files=$(find /private/var/folders -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$temp_files" ] && { found_files+=("$temp_files"); verification_passed=false; }
 
     run_task "Verifying npm packages" "find \"${HOME}/.npm\" -type d,f -iname '*cursor*' 2>/dev/null"
-    local npm_files=$(find "${HOME}/.npm" -type d,f -iname '*cursor*' 2>/dev/null)
+    local npm_files
+    npm_files=$(find "${HOME}/.npm" -type d,f -iname '*cursor*' 2>/dev/null)
     [ -n "$npm_files" ] && { found_files+=("$npm_files"); verification_passed=false; }
 
     run_task "Checking launch agents" "find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null"
+    local launch_files
+    launch_files=$(find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null)
     local launch_files=$(find ~/Library/LaunchAgents /Library/LaunchAgents -type f -name '*cursor*' 2>/dev/null)
     [ -n "$launch_files" ] && { found_files+=("$launch_files"); verification_passed=false; }
 
@@ -3502,7 +3513,7 @@ handle_error() {
 
     # Don't exit if in test mode
     if [ "${CURSOR_TEST_MODE:-}" != true ] && [ "${BATS_TEST_SOURCED:-}" != 1 ]; then
-        exit $exit_code
+        exit "$exit_code"
     fi
 }
 
