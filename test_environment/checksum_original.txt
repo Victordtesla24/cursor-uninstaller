@@ -1,0 +1,1 @@
+e92560d8330c3d9cea14b614da557727e200abe0529ea0e37f8d69a6d766d6ff  uninstall_cursor.sh

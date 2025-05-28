@@ -1,0 +1,133 @@
+
+In uninstall_cursor.sh line 24:
+            echo "$(dirname "$TEST_DIR")"
+                 ^----------------------^ SC2005 (style): Useless echo? Instead of 'echo $(cmd)', just use 'cmd'.
+
+
+In uninstall_cursor.sh line 773:
+    eval "$@" >/dev/null 2>&1 &
+          ^-- SC2294 (warning): eval negates the benefit of arrays. Drop eval to preserve whitespace/symbols (or eval as string).
+
+
+In uninstall_cursor.sh line 846:
+    local cursor_patterns=(
+          ^-------------^ SC2034 (warning): cursor_patterns appears unused. Verify use (or export if used externally).
+
+
+In uninstall_cursor.sh line 1021:
+    local missing_deps=()
+          ^----------^ SC2034 (warning): missing_deps appears unused. Verify use (or export if used externally).
+
+
+In uninstall_cursor.sh line 1921:
+    local app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+          ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2022:
+        if [[ "$CURRENT_READ_CONTEXT" == "project_name" ]]; then
+        ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+           ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2023:
+            echo "$default_project_name"
+            ^--------------------------^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2024:
+        elif [[ "$CURRENT_READ_CONTEXT" == "env_choice" ]]; then
+             ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2025:
+            echo "2" # Choose conda as it's more comprehensive
+            ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2026:
+        elif [[ "$CURRENT_READ_CONTEXT" == "confirm" ]]; then
+             ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2027:
+            echo "y" # Always confirm
+            ^-----------------------^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2029:
+            echo ""
+            ^-----^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2055:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2083:
+    local app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+          ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2224:
+                local backup_time=$(date +"%Y%m%d%H%M%S")
+                      ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2332:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2574:
+    local project_name=$(basename "$project_dir")
+          ^----------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2791:
+    local project_name=$(basename "$project_dir")
+          ^----------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3224:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3232:
+        local version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+              ^-----^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3329:
+    local log_file="$CURSOR_SHARED_LOGS/repair_$(date +%Y%m%d%H%M%S).log"
+          ^------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3330:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3434:
+    ln -sf "/Applications/Cursor.app" "$HOME/Desktop/" && {
+                                                       ^-- SC2015 (info): Note that A && B || C is not if-then-else. C may run when A is true.
+
+
+In uninstall_cursor.sh line 3511:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3525:
+        exit $exit_code
+             ^--------^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+        exit "$exit_code"
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2034 -- cursor_patterns appears unused. V...
+  https://www.shellcheck.net/wiki/SC2155 -- Declare and assign separately to ...
+  https://www.shellcheck.net/wiki/SC2294 -- eval negates the benefit of array...

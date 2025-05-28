@@ -1,0 +1,20 @@
+9:get_script_path() {
+67:error_message() {
+72:warning_message() {
+77:success_message() {
+82:info_message() {
+87:execute_safely() {
+112:start_sudo_refresh() {
+125:stop_sudo_refresh() {
+133:enhanced_safe_remove() {
+143:enhanced_run_task() {
+165:enhanced_verify_complete_removal() {
+208:detect_cursor_paths() {
+244:        _sudo_in_tests() {
+256:            warning_message() {
+536:install_protocol_configs() {
+703:check_sudo() {
+711:safe_remove() {
+722:safe_remove_symlink() {
+730:clean_databases() {
+753:update_status() {

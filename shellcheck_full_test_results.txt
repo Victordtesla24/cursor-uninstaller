@@ -1,0 +1,137 @@
+(.venv) vicd@Vics-MacBook-Air cursor-uninstaller % shellcheck  uninstall_cursor.sh
+
+In uninstall_cursor.sh line 1154:
+    local cpu_info=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
+          ^------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1543:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1544:
+    local specs="CPU: $(sysctl -n machdep.cpu.brand_string), RAM: $(sysctl -n hw.memsize | awk '{print $0/1073741824 " GB"}')"
+          ^---^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1703:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1704:
+    local installation_log="$CURSOR_SHARED_LOGS/installation_$(date +%Y%m%d%H%M%S).log"
+          ^--------------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1735:
+    local dmg_size=$(stat -f%z "$dmg_path" 2>/dev/null)
+          ^------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 1905:
+    local app_version=$(defaults read "/Applications/$app_name/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+          ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2006:
+        if [[ "$CURRENT_READ_CONTEXT" == "project_name" ]]; then
+        ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+           ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2007:
+            echo "$default_project_name"
+            ^--------------------------^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2008:
+        elif [[ "$CURRENT_READ_CONTEXT" == "env_choice" ]]; then
+             ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2009:
+            echo "2" # Choose conda as it's more comprehensive
+            ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2010:
+        elif [[ "$CURRENT_READ_CONTEXT" == "confirm" ]]; then
+             ^-- SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2011:
+            echo "y" # Always confirm
+            ^-----------------------^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2013:
+            echo ""
+            ^-----^ SC2317 (info): Command appears to be unreachable. Check usage (or ignore if invoked indirectly).
+
+
+In uninstall_cursor.sh line 2039:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2067:
+    local app_version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+          ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2208:
+                local backup_time=$(date +"%Y%m%d%H%M%S")
+                      ^---------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2316:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2558:
+    local project_name=$(basename "$project_dir")
+          ^----------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 2775:
+    local project_name=$(basename "$project_dir")
+          ^----------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3208:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3216:
+        local version=$(defaults read "/Applications/Cursor.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
+              ^-----^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3313:
+    local log_file="$CURSOR_SHARED_LOGS/repair_$(date +%Y%m%d%H%M%S).log"
+          ^------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3314:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+
+In uninstall_cursor.sh line 3418:
+    ln -sf "/Applications/Cursor.app" "$HOME/Desktop/" && {
+                                                       ^-- SC2015 (info): Note that A && B || C is not if-then-else. C may run when A is true.
+
+
+In uninstall_cursor.sh line 3495:
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+          ^-------^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2155 -- Declare and assign separately to ...
+  https://www.shellcheck.net/wiki/SC2015 -- Note that A && B || C is not if-t...
+  https://www.shellcheck.net/wiki/SC2317 -- Command appears to be unreachable...
+(.venv) vicd@Vics-MacBook-Air cursor-uninstaller %
