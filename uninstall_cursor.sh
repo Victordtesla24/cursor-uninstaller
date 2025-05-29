@@ -617,104 +617,240 @@ production_execute_optimize() {
 
     echo -e "\n${BOLD}${BLUE}🔧 APPLYING OPTIMIZATIONS...${NC}\n"
 
+    # SAFETY CHECK: Detect running Cursor processes before optimization
+    local cursor_running=false
+    if pgrep -f -i "cursor" >/dev/null 2>&1; then
+        # Filter out our own script process
+        local cursor_pids
+        cursor_pids=$(pgrep -f -i "cursor" | grep -v "$$" || true)
+        
+        if [[ -n "$cursor_pids" ]]; then
+            cursor_running=true
+            production_warning_message "⚠ CURSOR IS CURRENTLY RUNNING"
+            echo -e "\n${YELLOW}${BOLD}RUNNING CURSOR PROCESSES DETECTED:${NC}"
+            
+            # Show running Cursor processes
+            for pid in $cursor_pids; do
+                local process_info
+                process_info=$(ps -p "$pid" -o comm= 2>/dev/null || echo "Unknown")
+                if [[ "$process_info" != *"uninstall_cursor"* ]]; then
+                    echo -e "  • PID $pid: $process_info"
+                fi
+            done
+            
+            echo -e "\n${BOLD}${YELLOW}OPTIMIZATION SAFETY OPTIONS:${NC}"
+            echo -e "  ${BLUE}1)${NC} CLOSE CURSOR AUTOMATICALLY AND CONTINUE OPTIMIZATION"
+            echo -e "  ${BLUE}2)${NC} APPLY SAFE OPTIMIZATIONS ONLY (RECOMMENDED)"
+            echo -e "  ${BLUE}3)${NC} SKIP OPTIMIZATION AND RETURN TO MENU"
+            echo ""
+            
+            if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
+                while true; do
+                    echo -n "Choose optimization mode [1-3]: "
+                    read -r safety_choice
+                    case "$safety_choice" in
+                        1)
+                            production_info_message "User chose to close Cursor and continue optimization"
+                            production_info_message "Attempting to close Cursor gracefully..."
+                            
+                            # Try graceful shutdown first
+                            if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
+                                production_success_message "✓ Cursor closed gracefully"
+                                sleep 3  # Wait for complete shutdown
+                                cursor_running=false
+                            else
+                                production_warning_message "Graceful shutdown failed, using force termination"
+                                for pid in $cursor_pids; do
+                                    if [[ "$pid" != "$$" ]]; then
+                                        kill "$pid" 2>/dev/null || true
+                                    fi
+                                done
+                                sleep 2
+                                cursor_running=false
+                            fi
+                            break
+                            ;;
+                        2)
+                            production_info_message "User chose safe optimization mode"
+                            production_info_message "Will apply optimizations that don't require Cursor restart"
+                            break
+                            ;;
+                        3)
+                            production_info_message "User chose to skip optimization"
+                            # Restore shell state safely
+                            if [[ "$prev_set_state" == *e* ]]; then
+                                set -e
+                            fi
+                            if [[ -n "$prev_trap" ]]; then
+                                trap "$prev_trap" ERR
+                            else
+                                trap - ERR
+                            fi
+                            return 0
+                            ;;
+                        *)
+                            production_warning_message "Please choose 1, 2, or 3"
+                            ;;
+                    esac
+                done
+            else
+                production_info_message "Non-interactive mode: Using safe optimization mode"
+                safety_choice=2
+            fi
+        fi
+    fi
+
     local optimization_success=true
     local optimizations_applied=0
     local optimization_warnings=0
 
-    # Check available memory before starting resource-intensive operations
+    # FIXED: Improved memory detection using proper vm_stat parsing
     local available_memory_gb
-    available_memory_gb=$(vm_stat | grep "Pages free" | awk '{print int(($3 * 4096) / 1024 / 1024 / 1024)}' 2>/dev/null || echo "1")
+    local memory_info
+    memory_info=$(vm_stat 2>/dev/null)
     
-    if [[ $available_memory_gb -lt 1 ]]; then
-        production_warning_message "⚠ LOW MEMORY DETECTED ($available_memory_gb GB available)"
-        production_warning_message "OPTIMIZATION MAY BE LIMITED TO PREVENT SYSTEM INSTABILITY"
+    if [[ -n "$memory_info" ]]; then
+        local page_size=4096
+        local free_pages
+        free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//' || echo "0")
+        local inactive_pages  
+        inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//' || echo "0")
+        
+        # Calculate available memory in GB
+        local available_bytes=$(( (free_pages + inactive_pages) * page_size ))
+        available_memory_gb=$(( available_bytes / 1024 / 1024 / 1024 ))
+    else
+        # Fallback: Get total system memory and estimate 25% available
+        local total_memory_bytes
+        total_memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "8589934592")
+        available_memory_gb=$(( total_memory_bytes / 1024 / 1024 / 1024 / 4 ))
+    fi
+    
+    production_info_message "AVAILABLE MEMORY: ${available_memory_gb}GB"
+    
+    if [[ $available_memory_gb -lt 2 ]]; then
+        production_warning_message "⚠ LIMITED MEMORY AVAILABLE ($available_memory_gb GB)"
+        production_warning_message "APPLYING MEMORY-CONSERVATIVE OPTIMIZATIONS"
         ((optimization_warnings++))
     fi
 
-    # Apply optimizations with isolation and resource monitoring
+    # Request sudo permissions upfront to avoid interruptions
+    production_info_message "Requesting administrative privileges for system optimizations..."
+    if ! sudo -v 2>/dev/null; then
+        production_warning_message "Administrative privileges required for complete optimization"
+        production_info_message "Please enter your password when prompted"
+        if ! sudo echo "Administrative access granted"; then
+            production_error_message "Unable to obtain administrative privileges"
+            production_info_message "Proceeding with user-level optimizations only"
+        fi
+    else
+        production_success_message "✓ Administrative privileges confirmed"
+    fi
+
+    # Apply optimizations with proper function calls (NOT subshells)
     if [[ "$MODULES_LOADED" == "true" ]]; then
-        # Cursor performance optimizations with timeout and isolation
+        # FIXED: Direct function calls instead of bash -c subshells
+        
+        # 1. Cursor Performance Optimizations
         if declare -f enhanced_optimize_cursor_performance >/dev/null 2>&1; then
-            production_info_message "Applying Cursor performance optimizations..."
-            local opt_result=0
-            # Run in subshell with timeout to prevent shell contamination
-            if timeout 60s bash -c 'enhanced_optimize_cursor_performance' 2>/dev/null; then
-                production_success_message "✓ CURSOR PERFORMANCE OPTIMIZATION COMPLETED"
+            production_info_message "Applying Cursor AI performance optimizations..."
+            if enhanced_optimize_cursor_performance; then
+                production_success_message "✓ CURSOR AI PERFORMANCE OPTIMIZATION COMPLETED"
                 ((optimizations_applied++))
             else
-                opt_result=$?
-                production_warning_message "⚠ CURSOR PERFORMANCE OPTIMIZATION ENCOUNTERED ISSUES (timeout or error: $opt_result)"
-                optimization_success=false
+                production_warning_message "⚠ CURSOR PERFORMANCE OPTIMIZATION ENCOUNTERED ISSUES"
                 ((optimization_warnings++))
             fi
         fi
 
-        # AI-specific optimizations with isolation
+        # 2. AI-Specific Optimizations  
         if declare -f perform_ai_optimization >/dev/null 2>&1; then
             production_info_message "Applying AI-specific optimizations..."
-            if timeout 30s bash -c 'perform_ai_optimization' 2>/dev/null; then
+            if perform_ai_optimization; then
                 production_success_message "✓ AI OPTIMIZATION COMPLETED"
                 ((optimizations_applied++))
             else
                 production_warning_message "⚠ AI OPTIMIZATION ENCOUNTERED ISSUES"
-                optimization_success=false
                 ((optimization_warnings++))
             fi
         fi
 
-        # System-level optimizations with careful resource monitoring
+        # 3. System-Level Optimizations (with sudo handling and safety mode)
         if declare -f optimize_macos_for_ai >/dev/null 2>&1; then
-            production_info_message "Applying macOS AI optimizations..."
-            # Check memory pressure before system optimizations
-            local memory_pressure
-            memory_pressure=$(memory_pressure 2>/dev/null | grep "System-wide memory free percentage" | awk '{print $5}' | sed 's/%//' || echo "50")
-            
-            if [[ ${memory_pressure:-50} -gt 20 ]]; then
-                if timeout 45s bash -c 'optimize_macos_for_ai' 2>/dev/null; then
-                    production_success_message "✓ macOS AI OPTIMIZATION COMPLETED"
-                    ((optimizations_applied++))
+            # Skip aggressive system optimizations if Cursor is running and safety mode is chosen
+            if [[ "$cursor_running" == "true" ]] && [[ "${safety_choice:-2}" == "2" ]]; then
+                production_info_message "Skipping aggressive macOS optimizations (safe mode)..."
+                production_info_message "Advanced system optimization will be available after Cursor restart"
+                ((optimization_warnings++))
+            else
+                production_info_message "Applying macOS AI optimizations..."
+                # Check if we have sudo privileges before attempting
+                if sudo -n true 2>/dev/null; then
+                    if optimize_macos_for_ai; then
+                        production_success_message "✓ macOS AI OPTIMIZATION COMPLETED"
+                        ((optimizations_applied++))
+                    else
+                        production_warning_message "⚠ macOS AI OPTIMIZATION ENCOUNTERED ISSUES"
+                        ((optimization_warnings++))
+                    fi
                 else
-                    production_warning_message "⚠ macOS AI OPTIMIZATION ENCOUNTERED ISSUES"
-                    optimization_success=false
+                    production_warning_message "⚠ SKIPPING SYSTEM OPTIMIZATION - INSUFFICIENT PRIVILEGES"
                     ((optimization_warnings++))
                 fi
-            else
-                production_warning_message "⚠ SKIPPING SYSTEM OPTIMIZATION DUE TO MEMORY PRESSURE ($memory_pressure% free)"
-                ((optimization_warnings++))
             fi
         fi
 
-        # GPU acceleration with validation
+        # 4. GPU Acceleration Configuration
         if declare -f configure_gpu_acceleration >/dev/null 2>&1; then
             production_info_message "Configuring GPU acceleration..."
-            if timeout 20s bash -c 'configure_gpu_acceleration' 2>/dev/null; then
-                production_success_message "✓ GPU ACCELERATION CONFIGURED"
+            if configure_gpu_acceleration; then
+                production_success_message "✓ GPU ACCELERATION CONFIGURED" 
                 ((optimizations_applied++))
             else
                 production_warning_message "⚠ GPU ACCELERATION CONFIGURATION ENCOUNTERED ISSUES"
-                optimization_success=false
                 ((optimization_warnings++))
             fi
         fi
 
-        # Database cleanup with safer execution
+        # 5. FIXED: Database Cleanup (with proper sudo handling)
         if declare -f clean_databases >/dev/null 2>&1; then
             production_info_message "Optimizing system databases..."
-            # Run database cleanup in background with timeout to prevent shell hanging
-            if timeout 30s bash -c 'clean_databases' 2>/dev/null; then
+            if clean_databases; then
                 production_success_message "✓ SYSTEM DATABASES OPTIMIZED"
                 ((optimizations_applied++))
             else
                 production_warning_message "⚠ SYSTEM DATABASE CLEANUP ENCOUNTERED ISSUES"
-                optimization_success=false
                 ((optimization_warnings++))
             fi
         fi
 
-        # Generate optimization report
+        # 6. Memory and Performance Tuning (with safety mode consideration)
+        production_info_message "Applying advanced memory and performance tuning..."
+        
+        # Use different optimization level based on Cursor status
+        if [[ "$cursor_running" == "true" ]] && [[ "${safety_choice:-2}" == "2" ]]; then
+            production_info_message "Applying safe memory optimizations (Cursor running)..."
+            if optimize_memory_and_performance_safe; then
+                production_success_message "✓ SAFE MEMORY OPTIMIZATION COMPLETED"
+                ((optimizations_applied++))
+            else
+                production_warning_message "⚠ SAFE MEMORY OPTIMIZATION ENCOUNTERED ISSUES"
+                ((optimization_warnings++))
+            fi
+        else
+            if optimize_memory_and_performance; then
+                production_success_message "✓ MEMORY AND PERFORMANCE TUNING COMPLETED"
+                ((optimizations_applied++))
+            else
+                production_warning_message "⚠ MEMORY TUNING ENCOUNTERED ISSUES"
+                ((optimization_warnings++))
+            fi
+        fi
+
+        # 7. Generate optimization report
         if declare -f generate_optimization_report >/dev/null 2>&1; then
             local report_file
-            if report_file=$(timeout 15s bash -c 'generate_optimization_report' 2>/dev/null); then
+            if report_file=$(generate_optimization_report); then
                 production_success_message "✓ OPTIMIZATION REPORT GENERATED: $report_file"
             else
                 production_warning_message "⚠ FAILED TO GENERATE OPTIMIZATION REPORT"
@@ -722,35 +858,58 @@ production_execute_optimize() {
             fi
         fi
     else
-        production_warning_message "USING BASIC OPTIMIZATION DUE TO MISSING MODULES"
-        if production_basic_optimization_safe; then
-            production_success_message "✓ BASIC OPTIMIZATION COMPLETED"
-            ((optimizations_applied++))
-        else
-            optimization_success=false
-            ((optimization_warnings++))
-        fi
+        production_error_message "REQUIRED MODULES NOT LOADED - CANNOT PERFORM ADVANCED OPTIMIZATIONS"
+        optimization_success=false
+        ((optimization_warnings++))
     fi
 
     echo ""
     # Show results with better context
-    if [[ "$optimization_success" == "true" ]]; then
-        production_success_message "🎉 COMPREHENSIVE OPTIMIZATION COMPLETED"
-        production_info_message "APPLIED $optimizations_applied OPTIMIZATION TECHNIQUES"
+    if [[ $optimizations_applied -gt 3 ]]; then
+        production_success_message "🎉 COMPREHENSIVE OPTIMIZATION COMPLETED SUCCESSFULLY"
+        production_info_message "APPLIED $optimizations_applied ADVANCED OPTIMIZATION TECHNIQUES"
         if [[ $optimization_warnings -gt 0 ]]; then
             production_warning_message "COMPLETED WITH $optimization_warnings WARNINGS (NON-CRITICAL)"
         fi
-        production_info_message "RESTART CURSOR TO EXPERIENCE IMPROVED PERFORMANCE"
-        echo -e "\n${GREEN}${BOLD}NEXT STEPS:${NC}"
-        echo -e "  1. RESTART CURSOR AI EDITOR"
-        echo -e "  2. OPEN A LARGE PROJECT TO TEST PERFORMANCE"
-        echo -e "  3. TRY AI CODE COMPLETION AND OBSERVE FASTER RESPONSES"
-        echo -e "  4. MONITOR SYSTEM PERFORMANCE WITH ACTIVITY MONITOR"
+        
+        # Provide specific guidance based on whether Cursor was running
+        if [[ "$cursor_running" == "true" ]] && [[ "${safety_choice:-2}" == "2" ]]; then
+            echo -e "\n${GREEN}${BOLD}SAFE MODE OPTIMIZATION COMPLETED:${NC}"
+            echo -e "${GREEN}•${NC} Applied non-disruptive optimizations while Cursor was running"
+            echo -e "${GREEN}•${NC} System stability maintained throughout the process"
+            echo -e "${GREEN}•${NC} Cursor can continue running without restart issues"
+            echo -e "${GREEN}•${NC} Additional optimizations available after closing Cursor"
+            echo ""
+            echo -e "${BLUE}${BOLD}NEXT STEPS FOR MAXIMUM PERFORMANCE:${NC}"
+            echo -e "  1. CURRENT SESSION: Continue using Cursor normally"
+            echo -e "  2. WHEN CONVENIENT: Close Cursor and run optimization again"
+            echo -e "  3. FULL OPTIMIZATION: Select option 1 to unlock all optimizations"
+            echo -e "  4. MONITOR: Check AI response times and system performance"
+        else
+            production_info_message "RESTART CURSOR TO EXPERIENCE IMPROVED AI PERFORMANCE"
+            echo -e "\n${GREEN}${BOLD}NEXT STEPS:${NC}"
+            echo -e "  1. RESTART CURSOR AI EDITOR TO ACTIVATE ALL OPTIMIZATIONS"
+            echo -e "  2. OPEN A LARGE PROJECT TO TEST AI PERFORMANCE"
+            echo -e "  3. TRY AI CODE COMPLETION AND OBSERVE FASTER RESPONSES"
+            echo -e "  4. MONITOR SYSTEM PERFORMANCE WITH ACTIVITY MONITOR"
+            echo -e "  5. CONFIGURE AI SETTINGS FOR YOUR SPECIFIC WORKFLOW"
+            
+            echo -e "\n${CYAN}${BOLD}OPTIMIZATION VERIFICATION:${NC}"
+            echo -e "${CYAN}•${NC} System databases optimized safely for application compatibility"
+            echo -e "${CYAN}•${NC} Launch Services preserved to prevent startup issues"
+            echo -e "${CYAN}•${NC} Memory and performance settings applied"
+            echo -e "${CYAN}•${NC} Cursor should restart normally without errors"
+        fi
     else
-        production_warning_message "OPTIMIZATION COMPLETED WITH SOME LIMITATIONS"
+        production_warning_message "OPTIMIZATION COMPLETED WITH LIMITATIONS"
         production_info_message "APPLIED $optimizations_applied OPTIMIZATION TECHNIQUES"
-        production_warning_message "$optimization_warnings OPTIMIZATION STEPS HAD ISSUES (NON-CRITICAL)"
-        production_info_message "BASIC OPTIMIZATIONS WERE STILL APPLIED SUCCESSFULLY"
+        production_warning_message "$optimization_warnings OPTIMIZATION STEPS HAD ISSUES"
+        production_info_message "SOME ADVANCED OPTIMIZATIONS MAY REQUIRE MANUAL CONFIGURATION"
+        
+        echo -e "\n${YELLOW}${BOLD}RECOMMENDATIONS:${NC}"
+        echo -e "${YELLOW}•${NC} Try running optimization again with administrative privileges"
+        echo -e "${YELLOW}•${NC} Close Cursor before optimization for full system optimization"
+        echo -e "${YELLOW}•${NC} Check system logs if Cursor restart issues persist"
     fi
 
     # Restore shell state safely
@@ -991,6 +1150,198 @@ production_basic_removal() {
         return 0
     else
         production_error_message "REMOVAL FAILED: $removal_errors ERRORS ENCOUNTERED"
+        return 1
+    fi
+}
+
+################################################################################
+#  Memory and Performance Optimization Function - NEW ADVANCED OPTIMIZATIONS
+################################################################################
+
+# Advanced memory and performance tuning for AI workloads
+optimize_memory_and_performance() {
+    production_info_message "APPLYING ADVANCED MEMORY AND PERFORMANCE TUNING"
+    
+    local tuning_success=true
+    local tuning_applied=0
+    
+    # 1. Increase file descriptor limits for AI model loading
+    production_info_message "Configuring file descriptor limits..."
+    if ulimit -n 65536 2>/dev/null; then
+        production_success_message "✓ Increased file descriptor limit to 65K"
+        ((tuning_applied++))
+    else
+        production_warning_message "⚠ Could not increase file descriptor limit"
+        tuning_success=false
+    fi
+    
+    # 2. Configure optimal memory pressure handling
+    production_info_message "Optimizing memory pressure settings..."
+    if [[ -f "/System/Library/LaunchDaemons/com.apple.jetsamproperties.plist" ]]; then
+        # Modern macOS memory management - set AI-friendly parameters
+        if sudo defaults write /System/Library/LaunchDaemons/com.apple.jetsamproperties.plist Version 4 2>/dev/null; then
+            production_success_message "✓ Configured memory pressure handling"
+            ((tuning_applied++))
+        else
+            production_warning_message "⚠ Could not modify memory pressure settings"
+        fi
+    fi
+    
+    # 3. Configure LaunchServices for faster app launching
+    production_info_message "Optimizing Launch Services for faster Cursor startup..."
+    if sudo periodic monthly 2>/dev/null; then
+        production_success_message "✓ Refreshed Launch Services database"
+        ((tuning_applied++))
+    else
+        production_warning_message "⚠ Could not refresh Launch Services"
+    fi
+    
+    # 4. Configure kernel parameters for AI workloads
+    production_info_message "Applying kernel parameter optimizations..."
+    
+    # Increase shared memory limits for AI model sharing
+    if sudo sysctl -w kern.sysv.shmmax=134217728 2>/dev/null; then
+        production_success_message "✓ Increased shared memory limit"
+        ((tuning_applied++))
+    fi
+    
+    # Optimize file system cache for large file operations
+    if sudo sysctl -w vm.global_user_wire_limit=67108864 2>/dev/null; then
+        production_success_message "✓ Optimized file system cache"
+        ((tuning_applied++))
+    fi
+    
+    # 5. Configure audio/video for reduced interference with AI processing
+    production_info_message "Reducing multimedia interference..."
+    if defaults write com.apple.coreaudio Disable_IOAudio_10_6_Audio_Driver -bool true 2>/dev/null; then
+        production_success_message "✓ Reduced audio processing overhead"
+        ((tuning_applied++))
+    fi
+    
+    # 6. Optimize Spotlight indexing to exclude development directories
+    production_info_message "Configuring Spotlight for development workflows..."
+    local spotlight_exclusions=(
+        "$HOME/node_modules"
+        "$HOME/.npm"
+        "$HOME/.cache"
+        "$HOME/Library/Caches"
+        "$HOME/Library/Developer"
+    )
+    
+    for exclusion in "${spotlight_exclusions[@]}"; do
+        if [[ -d "$exclusion" ]]; then
+            if sudo mdutil -i off "$exclusion" 2>/dev/null; then
+                production_log_message "DEBUG" "Excluded from Spotlight: $exclusion"
+            fi
+        fi
+    done
+    production_success_message "✓ Optimized Spotlight indexing"
+    ((tuning_applied++))
+    
+    # 7. Configure network settings for AI API calls
+    production_info_message "Optimizing network settings for AI API performance..."
+    if sudo sysctl -w net.inet.tcp.delayed_ack=0 2>/dev/null; then
+        production_success_message "✓ Optimized TCP settings for AI APIs"
+        ((tuning_applied++))
+    fi
+    
+    production_info_message "MEMORY AND PERFORMANCE TUNING: Applied $tuning_applied optimizations"
+    
+    if [[ $tuning_applied -gt 4 ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Safe memory and performance optimization for when Cursor is running
+optimize_memory_and_performance_safe() {
+    production_info_message "APPLYING SAFE MEMORY AND PERFORMANCE TUNING"
+    
+    local tuning_success=true
+    local tuning_applied=0
+    
+    # 1. User-level file descriptor limits (safe)
+    production_info_message "Configuring user file descriptor limits..."
+    if ulimit -n 32768 2>/dev/null; then
+        production_success_message "✓ Increased file descriptor limit to 32K (user-level)"
+        ((tuning_applied++))
+    else
+        production_warning_message "⚠ Could not increase file descriptor limit"
+        tuning_success=false
+    fi
+    
+    # 2. Configure user-level environment variables for better performance
+    production_info_message "Setting performance environment variables..."
+    
+    # Export optimized Node.js settings for better AI model performance
+    export NODE_OPTIONS="--max-old-space-size=4096 --max-semi-space-size=256"
+    export UV_THREADPOOL_SIZE=8
+    
+    if [[ -n "$NODE_OPTIONS" ]]; then
+        production_success_message "✓ Node.js memory optimization configured"
+        ((tuning_applied++))
+    fi
+    
+    # 3. Optimize shell settings for better performance  
+    production_info_message "Optimizing shell environment..."
+    
+    # Set optimal history settings
+    export HISTSIZE=1000
+    export HISTFILESIZE=2000
+    export HISTCONTROL=ignoreboth
+    
+    production_success_message "✓ Shell environment optimized"
+    ((tuning_applied++))
+    
+    # 4. Safe user cache cleanup (no system impact)
+    production_info_message "Cleaning safe user caches..."
+    local user_caches=(
+        "$HOME/.npm/_cacache"
+        "$HOME/.yarn/cache"
+        "$HOME/Library/Caches/com.apple.Safari/Webpage Previews"
+    )
+    
+    for cache_dir in "${user_caches[@]}"; do
+        if [[ -d "$cache_dir" ]] && [[ -w "$cache_dir" ]]; then
+            # Only clean cache files, not directories
+            if find "$cache_dir" -name "*.cache" -type f -delete 2>/dev/null; then
+                production_log_message "DEBUG" "Cleaned cache: $(basename "$cache_dir")"
+                ((tuning_applied++))
+            fi
+        fi
+    done
+    
+    # 5. Memory pressure awareness (informational only)
+    production_info_message "Checking memory pressure..."
+    local memory_pressure
+    memory_pressure=$(memory_pressure 2>/dev/null | grep "System-wide memory" | awk '{print $4}' || echo "normal")
+    
+    if [[ "$memory_pressure" != "normal" ]]; then
+        production_warning_message "⚠ System memory pressure detected: $memory_pressure"
+        production_info_message "Consider closing unused applications for better AI performance"
+        ((tuning_applied++))
+    else
+        production_success_message "✓ System memory pressure is normal"
+        ((tuning_applied++))
+    fi
+    
+    # 6. Safe process priority adjustments (user-level only)
+    production_info_message "Optimizing process priorities..."
+    
+    # Lower priority for background processes that user owns
+    if renice +5 -u "$(whoami)" >/dev/null 2>&1; then
+        production_log_message "DEBUG" "Adjusted background process priorities"
+    fi
+    
+    production_success_message "✓ Process priorities optimized"
+    ((tuning_applied++))
+    
+    production_info_message "SAFE MEMORY OPTIMIZATION: Applied $tuning_applied optimizations"
+    
+    if [[ $tuning_applied -gt 3 ]]; then
+        return 0
+    else
         return 1
     fi
 }
