@@ -111,7 +111,6 @@ stop_cursor_processes() {
     local cursor_processes=(
         "Cursor"
         "Cursor Helper"
-        "Cursor (GPU Process)"
         "Cursor (Renderer)"
         "com.todesktop.230313mzl4w4u92"
     )
@@ -119,13 +118,13 @@ stop_cursor_processes() {
     for process in "${cursor_processes[@]}"; do
         if pgrep -f "$process" >/dev/null 2>&1; then
             info_message "Stopping process: $process"
-            execute_safely pkill -f "$process" || true
+            execute_safely "pkill -f \"$process\"" "stop process $process" || true
             sleep 1
 
             # Force kill if still running
             if pgrep -f "$process" >/dev/null 2>&1; then
                 warning_message "Force killing process: $process"
-                execute_safely pkill -9 -f "$process" || true
+                execute_safely "pkill -9 -f \"$process\"" "force kill process $process" || true
             fi
         fi
     done
@@ -183,7 +182,7 @@ remove_cursor_system_configs() {
     for system_path in "${SYSTEM_PATHS[@]}"; do
         if [[ -e "$system_path" ]]; then
             info_message "Removing system path: $system_path"
-            execute_safely sudo rm -rf "$system_path"
+            execute_safely "sudo rm -rf \"$system_path\"" "remove system path $system_path"
         fi
     done
 
@@ -195,8 +194,7 @@ clean_launch_services() {
     log_message "INFO" "Cleaning Launch Services and system caches..."
 
     # Reset Launch Services database
-    execute_safely /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-        -kill -r -domain local -domain system -domain user
+    execute_safely "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user" "reset Launch Services database"
 
     # Clear system caches related to Cursor
     local cache_paths=(
@@ -206,7 +204,7 @@ clean_launch_services() {
 
     for cache_path in "${cache_paths[@]}"; do
         if ls $cache_path >/dev/null 2>&1; then
-            execute_safely sudo rm -rf $cache_path
+            execute_safely "sudo rm -rf $cache_path" "remove cache $cache_path"
         fi
     done
 
@@ -224,13 +222,13 @@ remove_cursor_binaries() {
             link_target=$(readlink "$binary_path")
             if [[ "$link_target" == *"Cursor"* ]]; then
                 info_message "Removing Cursor symlink: $binary_path"
-                execute_safely sudo rm -f "$binary_path"
+                execute_safely "sudo rm -f \"$binary_path\"" "remove symlink $binary_path"
             fi
         elif [[ -f "$binary_path" ]]; then
             # Check if binary is related to Cursor
             if file "$binary_path" | grep -i cursor >/dev/null 2>&1; then
                 info_message "Removing Cursor binary: $binary_path"
-                execute_safely sudo rm -f "$binary_path"
+                execute_safely "sudo rm -f \"$binary_path\"" "remove binary $binary_path"
             fi
         fi
     done

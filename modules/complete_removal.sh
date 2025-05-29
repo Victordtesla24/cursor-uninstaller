@@ -118,6 +118,7 @@ find_additional_cursor_files() {
     
     for search_dir in "${user_search_dirs[@]}"; do
         if [[ -d "$search_dir" ]]; then
+            production_log_message "DEBUG" "Searching user directory: $search_dir"
             while IFS= read -r -d '' file; do
                 if [[ -e "$file" ]]; then
                     additional_files+=("$file")
@@ -126,24 +127,37 @@ find_additional_cursor_files() {
         fi
     done
     
-    # Search in system directories (with sudo if available)
-    if command -v sudo >/dev/null 2>&1; then
+    # Search in system directories (with sudo if available and user has permission)
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
         local system_search_dirs=(
             "/Library"
-            "/System/Library"
             "/usr/local"
             "/opt"
         )
         
         for search_dir in "${system_search_dirs[@]}"; do
             if [[ -d "$search_dir" ]]; then
-                while IFS= read -r -d '' file; do
-                    if [[ -e "$file" ]]; then
-                        additional_files+=("$file")
-                    fi
-                done < <(sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null)
+                production_log_message "DEBUG" "Searching system directory: $search_dir"
+                # Use timeout and better error handling for system directories
+                local search_timeout=30
+                if command -v timeout >/dev/null 2>&1; then
+                    while IFS= read -r -d '' file; do
+                        if [[ -e "$file" ]]; then
+                            additional_files+=("$file")
+                        fi
+                    done < <(timeout "$search_timeout" sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
+                else
+                    # Fallback without timeout
+                    while IFS= read -r -d '' file; do
+                        if [[ -e "$file" ]]; then
+                            additional_files+=("$file")
+                        fi
+                    done < <(sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
+                fi
             fi
         done
+    else
+        production_warning_message "Skipping system directory search: insufficient permissions"
     fi
     
     # Filter out already known components
@@ -449,31 +463,65 @@ verify_complete_removal() {
         verification_failed=true
     fi
     
-    # System-wide search for remaining files
+    # System-wide search for remaining files with proper error handling
     production_info_message "Performing final system search for remaining Cursor files..."
     
     local search_results=()
     
-    # Search user directories
-    while IFS= read -r -d '' file; do
-        if [[ -e "$file" ]]; then
-            search_results+=("$file")
-        fi
-    done < <(find "$HOME" \( -iname "*cursor*" -o -iname "*.cursor" \) -not -path "*/.*" -print0 2>/dev/null || true)
-    
-    # Search system directories (with sudo if available)
-    if command -v sudo >/dev/null 2>&1; then
+    # Search user directories with timeout
+    production_log_message "DEBUG" "Searching user directories for remaining files"
+    local user_search_timeout=30
+    if command -v timeout >/dev/null 2>&1; then
         while IFS= read -r -d '' file; do
             if [[ -e "$file" ]]; then
                 search_results+=("$file")
             fi
-        done < <(sudo find /Applications /Library /usr/local /opt \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
+        done < <(timeout "$user_search_timeout" find "$HOME" \( -iname "*cursor*" -o -iname "*.cursor" \) -not -path "*/.*" -print0 2>/dev/null || true)
+    else
+        while IFS= read -r -d '' file; do
+            if [[ -e "$file" ]]; then
+                search_results+=("$file")
+            fi
+        done < <(find "$HOME" \( -iname "*cursor*" -o -iname "*.cursor" \) -not -path "*/.*" -print0 2>/dev/null || true)
+    fi
+    
+    # Search system directories with proper permissions check
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        production_log_message "DEBUG" "Searching system directories for remaining files"
+        local system_search_timeout=30
+        local system_search_dirs=("/Applications" "/Library" "/usr/local" "/opt")
+        
+        for search_dir in "${system_search_dirs[@]}"; do
+            if [[ -d "$search_dir" ]]; then
+                if command -v timeout >/dev/null 2>&1; then
+                    while IFS= read -r -d '' file; do
+                        if [[ -e "$file" ]]; then
+                            search_results+=("$file")
+                        fi
+                    done < <(timeout "$system_search_timeout" sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
+                else
+                    while IFS= read -r -d '' file; do
+                        if [[ -e "$file" ]]; then
+                            search_results+=("$file")
+                        fi
+                    done < <(sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
+                fi
+            fi
+        done
+    else
+        production_warning_message "Skipping system directory verification: insufficient permissions"
     fi
     
     # Filter results to exclude false positives
     for file in "${search_results[@]}"; do
-        # Skip temporary files and unrelated items
-        if [[ "$file" != *"/tmp/"* ]] && [[ "$file" != *"/.Trash/"* ]] && [[ "$file" != *"/node_modules/"* ]]; then
+        # Skip temporary files, build artifacts, and unrelated items
+        if [[ "$file" != *"/tmp/"* ]] && \
+           [[ "$file" != *"/.Trash/"* ]] && \
+           [[ "$file" != *"/node_modules/"* ]] && \
+           [[ "$file" != *"/build/"* ]] && \
+           [[ "$file" != *"/dist/"* ]] && \
+           [[ "$file" != *"/coverage/"* ]] && \
+           [[ "$file" != *"cursor-uninstaller"* ]]; then
             remaining_items+=("REMAINING_FILE:$file")
             verification_failed=true
         fi
@@ -481,19 +529,24 @@ verify_complete_removal() {
     
     # Display results
     if [[ "$verification_failed" == "true" ]]; then
-        production_error_message "Verification FAILED - Cursor components still present:"
-        for item in "${remaining_items[@]}"; do
-            echo "  $item"
+        production_warning_message "⚠ ${#remaining_items[@]} Cursor components still remain"
+        
+        # Show first few remaining items
+        local show_count=$((${#remaining_items[@]} < 10 ? ${#remaining_items[@]} : 10))
+        for (( i=0; i<show_count; i++ )); do
+            local item_type="${remaining_items[i]%%:*}"
+            local item_path="${remaining_items[i]#*:}"
+            production_warning_message "  $item_type: $item_path"
         done
         
-        # Save remaining items for manual cleanup
-        printf '%s\n' "${remaining_items[@]}" > "${TEMP_DIR}/remaining_cursor_items.txt"
-        production_info_message "Remaining items saved to: ${TEMP_DIR}/remaining_cursor_items.txt"
+        if [[ ${#remaining_items[@]} -gt 10 ]]; then
+            production_warning_message "  ... and $((${#remaining_items[@]} - 10)) more items"
+        fi
         
+        production_warning_message "Some Cursor components may still remain"
         return 1
     else
-        production_success_message "✓ VERIFICATION PASSED - System is in pristine state"
-        production_success_message "✓ Ready for fresh Cursor installation"
+        production_success_message "✓ Complete Cursor removal verified - no remaining components found"
         return 0
     fi
 }
