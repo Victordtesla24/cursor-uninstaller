@@ -650,13 +650,13 @@ Architecture: $(uname -m)
 $(df -h /)
 
 ## Memory Usage:
-$(vm_stat | head -10)
+$(vm_stat 2>/dev/null | head -10 2>/dev/null || echo "Memory information unavailable")
 
 ## Top Processes by CPU:
-$(ps aux | sort -nr -k 3 | head -10)
+$(ps aux 2>/dev/null | sort -nr -k 3 2>/dev/null | head -10 2>/dev/null || echo "Process information unavailable")
 
 ## Top Processes by Memory:
-$(ps aux | sort -nr -k 4 | head -10)
+$(ps aux 2>/dev/null | sort -nr -k 4 2>/dev/null | head -10 2>/dev/null || echo "Process information unavailable")
 EOF
     
     production_success_message "Detailed health report saved: $report_file"
