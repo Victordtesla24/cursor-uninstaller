@@ -181,32 +181,103 @@ configure_performance_settings() {
 
 # Reset performance settings to defaults
 reset_performance_settings() {
-    log_message "INFO" "Resetting Cursor performance settings to defaults..."
+    production_log_message "INFO" "Resetting ALL performance settings to defaults..."
 
-    # Reset application preferences
+    # Reset application preferences (Cursor specific)
     local preferences_dir="$HOME/Library/Preferences"
     local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
 
     if [[ -f "$preferences_dir/$cursor_pref" ]]; then
+        production_info_message "Resetting Cursor application preferences..."
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.memory.maxHeapSize" 2>/dev/null || true
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.performance.enableGC" 2>/dev/null || true
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "files.watcherExclude" 2>/dev/null || true
-        log_message "SUCCESS" "✓ Application preferences reset"
+        production_success_message "✓ Cursor application preferences reset"
     fi
 
-    # Reset system animations
+    # Reset system animations (macOS specific)
+    production_info_message "Resetting system visual effects..."
     execute_safely defaults delete NSGlobalDomain NSAutomaticWindowAnimationsEnabled 2>/dev/null || true
     execute_safely defaults delete NSGlobalDomain NSScrollAnimationEnabled 2>/dev/null || true
-    log_message "SUCCESS" "✓ System animations reset"
+    execute_safely defaults delete com.apple.universalaccess reduceTransparency 2>/dev/null || true
+    execute_safely defaults delete com.apple.universalaccess reduceMotion 2>/dev/null || true
+    execute_safely defaults delete com.apple.dock autohide 2>/dev/null || true
+    production_success_message "✓ System visual effects reset to defaults"
 
-    # Restore settings backup if available
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-    if [[ -f "$cursor_settings.backup" ]]; then
-        execute_safely mv "$cursor_settings.backup" "$cursor_settings"
-        log_message "SUCCESS" "✓ Cursor settings restored from backup"
+    # Reset Energy Saver settings (macOS specific)
+    production_info_message "Resetting Energy Saver settings..."
+    if command -v pmset >/dev/null 2>&1; then
+        execute_safely sudo pmset -c sleep 10        # Default computer sleep on AC
+        execute_safely sudo pmset -c disksleep 10     # Default disk sleep
+        execute_safely sudo pmset -c displaysleep 10  # Default display sleep
+        production_success_message "✓ Energy Saver settings reset to defaults"
     fi
 
-    log_message "SUCCESS" "✓ Performance settings reset completed"
+    # Reset kernel parameters (macOS specific)
+    # Note: Reverting sysctl changes requires setting them back to system defaults.
+    # This is complex and potentially risky if defaults are unknown or vary widely.
+    # For now, we will log a recommendation to reboot for these to be fully reset by macOS.
+    production_warning_message "Kernel parameters (maxfiles, maxfilesperproc, vm.swappiness) modified by optimization."
+    production_warning_message "A system reboot is recommended to fully restore default kernel parameters."
+
+
+    # Reset Cursor AI Editor specific settings
+    local cursor_user_dir="$HOME/Library/Application Support/Cursor/User"
+    local settings_file="$cursor_user_dir/settings.json"
+    local keybindings_file="$cursor_user_dir/keybindings.json"
+    local beta_settings_file="$cursor_user_dir/beta-settings.json"
+
+    production_info_message "Resetting Cursor AI Editor specific settings..."
+    if [[ -f "$settings_file.backup" ]]; then
+        execute_safely mv "$settings_file.backup" "$settings_file"
+        production_success_message "✓ Cursor settings.json restored from backup"
+    elif [[ -f "$settings_file" ]]; then
+        execute_safely rm -f "$settings_file"
+        production_success_message "✓ Removed custom Cursor settings.json"
+    fi
+
+    if [[ -f "$keybindings_file" ]]; then
+        execute_safely rm -f "$keybindings_file"
+        production_success_message "✓ Removed custom Cursor keybindings.json"
+    fi
+
+    if [[ -f "$beta_settings_file" ]];then
+        execute_safely rm -f "$beta_settings_file"
+        production_success_message "✓ Removed Cursor beta-settings.json"
+    fi
+
+    # Reset MCP Server configurations
+    local mcp_config_dir="$HOME/.cursor/mcp-servers"
+    if [[ -d "$mcp_config_dir" ]]; then
+        production_info_message "Removing MCP server configurations..."
+        execute_safely rm -rf "$mcp_config_dir"
+        production_success_message "✓ Removed MCP server configurations"
+    fi
+
+    # Reset Cursor Rules
+    local rules_dir="$HOME/.cursor/rules"
+    if [[ -d "$rules_dir" ]]; then
+        production_info_message "Removing Cursor Rules..."
+        execute_safely rm -rf "$rules_dir"
+        production_success_message "✓ Removed Cursor Rules"
+    fi
+    
+    # Reset environment variables set by GPU acceleration (users will need to restart shell/system)
+    production_info_message "Resetting GPU acceleration environment variables..."
+    # Unset variables for the current session, user needs to restart shell or system for full effect
+    unset METAL_DEVICE_WRAPPER_TYPE
+    unset METAL_DEBUG_ERROR_MODE
+    unset METAL_PERFORMANCE_SHADERS_FRAMEWORKS
+    unset PYTORCH_MPS_HIGH_WATERMARK_RATIO
+    unset LIBGL_ALWAYS_INDIRECT
+    unset MESA_GL_VERSION_OVERRIDE
+    unset GL_VERSION
+    unset OPENGL_PROFILE
+    production_success_message "✓ GPU acceleration environment variables unset for current session"
+    production_warning_message "Please restart your shell or system to fully reset GPU environment variables."
+
+    production_success_message "✓ ALL performance settings reset completed"
+    production_info_message "Please restart Cursor AI Editor and potentially your system for all changes to take effect."
 }
 
 # Check current performance settings

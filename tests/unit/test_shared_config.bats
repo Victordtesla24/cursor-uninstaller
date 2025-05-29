@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../helpers/test_helper
 
 @test "detect_cursor_paths creates shared cursor directory if it doesn't exist" {
     # Mock the original function temporarily

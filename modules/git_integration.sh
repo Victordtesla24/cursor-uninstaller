@@ -188,10 +188,19 @@ perform_git_commit_sequence() {
     local commit_message="Pre-Cursor-uninstall backup: $timestamp"
     production_info_message "Creating commit: $commit_message"
     
-    if ! git commit --no-verify -m "$commit_message"; then
+    # Set environment variables to bypass hooks completely
+    export SKIP=1
+    export PRE_COMMIT_ALLOW_NO_CONFIG=1
+    
+    if ! git -c core.hooksPath=/dev/null commit --no-verify -m "$commit_message"; then
         production_error_message "Failed to create commit"
+        # Clean up environment variables
+        unset SKIP PRE_COMMIT_ALLOW_NO_CONFIG
         return 1
     fi
+    
+    # Clean up environment variables
+    unset SKIP PRE_COMMIT_ALLOW_NO_CONFIG
     
     # Verify commit was created
     local latest_commit

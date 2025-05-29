@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Minimal test to debug BATS loading issues
-load test_helper
+load ../helpers/test_helper
 
 @test "Check script exists" {
   echo "Starting test"

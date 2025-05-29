@@ -2,7 +2,7 @@
 
 # A simple test file that will run quickly without hanging
 # Load our simplified test helper
-load simple_test_helper
+load ../helpers/simple_test_helper
 
 @test "Simple math test - should always pass" {
   result=$((2 + 2))
@@ -29,5 +29,5 @@ load simple_test_helper
 @test "Main script exists" {
   # This test just checks if the main script exists
   # Without trying to run or source it
-  [ -f "../uninstall_cursor.sh" ]
+  [ -f "$BATS_TEST_DIRNAME/../../uninstall_cursor.sh" ]
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../helpers/test_helper
 
 @test "get_script_path returns a valid directory" {
     # Source the function

@@ -14,99 +14,80 @@ fi
 # System Information and Performance Analysis
 ################################################################################
 
-# Detect and display system specifications
+# Display system specifications for AI optimization
 display_system_specifications() {
-    production_log_message "INFO" "Analyzing system specifications for AI optimization"
+    production_log_message "INFO" "Displaying system specifications for AI optimization"
     
-    echo -e "\n${BOLD}${BLUE}🖥️  SYSTEM SPECIFICATIONS ANALYSIS${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    echo -e "\n${BOLD}${BLUE}🖥️  SYSTEM SPECIFICATIONS FOR AI OPTIMIZATION${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
     
     # Hardware Information
-    local total_ram
-    local cpu_model
+    echo -e "${BOLD}${GREEN}HARDWARE SPECIFICATIONS:${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
+    
+    # System Information
+    local hardware_model
+    hardware_model=$(system_profiler SPHardwareDataType | grep "Model Name" | awk -F': ' '{print $2}' | xargs)
+    echo -e "${BOLD}Hardware:${NC} $hardware_model"
+    
+    # RAM Information
+    local memory_gb
+    memory_gb=$(sysctl -n hw.memsize | awk '{print int($1/1024/1024/1024)}')
+    echo -e "${BOLD}RAM:${NC} $memory_gb GB"
+    
+    # CPU Information
     local cpu_cores
-    local gpu_info
-    local storage_available
-    
-    total_ram=$(sysctl -n hw.memsize | awk '{print int($1/1024/1024/1024)" GB"}')
-    cpu_model=$(sysctl -n machdep.cpu.brand_string)
     cpu_cores=$(sysctl -n hw.ncpu)
-    storage_available=$(df -h / | awk 'NR==2 {print $4}')
+    echo -e "${BOLD}CPU Cores:${NC} $cpu_cores"
     
-    echo -e "${BOLD}Hardware Configuration:${NC}"
-    echo -e "  RAM: $total_ram"
-    echo -e "  CPU: $cpu_model"
-    echo -e "  CPU Cores: $cpu_cores"
-    echo -e "  Available Storage: $storage_available"
+    # Architecture
+    local arch
+    arch=$(uname -m)
+    echo -e "${BOLD}Architecture:${NC} $arch"
     
-    # Check for Apple Silicon features
-    if [[ "$IS_APPLE_SILICON" == "true" ]]; then
-        echo -e "  Architecture: Apple Silicon (ARM64)"
-        echo -e "  Neural Engine: Available"
-        echo -e "  Unified Memory: Available"
-    else
-        echo -e "  Architecture: Intel (x86_64)"
-        echo -e "  Neural Engine: Not Available"
-    fi
-    
-    # GPU Information
-    if command -v system_profiler >/dev/null 2>&1; then
-        gpu_info=$(system_profiler SPDisplaysDataType | grep "Chipset Model" | head -1 | awk -F': ' '{print $2}' | xargs)
-        if [[ -n "$gpu_info" ]]; then
-            echo -e "  GPU: $gpu_info"
-        fi
-    fi
-    
-    # Memory Pressure
-    local memory_pressure
-    memory_pressure=$(memory_pressure | grep "System-wide memory free percentage" | awk '{print $5}' | sed 's/%//')
-    if [[ -n "$memory_pressure" ]]; then
-        echo -e "  Memory Free: $memory_pressure%"
-    fi
+    # macOS Version
+    local macos_version
+    macos_version=$(sw_vers -productVersion)
+    echo -e "${BOLD}macOS Version:${NC} $macos_version"
     
     echo ""
     
-    # Performance Recommendations
-    echo -e "${BOLD}AI Workload Recommendations:${NC}"
+    # AI Performance Assessment
+    echo -e "${BOLD}${GREEN}AI PERFORMANCE ASSESSMENT:${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
     
-    local ram_gb
-    ram_gb=$(echo "$total_ram" | sed 's/ GB//')
-    
-    if [[ "$ram_gb" -ge 16 ]]; then
-        echo -e "  ${GREEN}✓${NC} RAM: Excellent for AI workloads"
-    elif [[ "$ram_gb" -ge 8 ]]; then
-        echo -e "  ${YELLOW}⚠${NC} RAM: Adequate for basic AI features"
+    # Memory Assessment
+    if [[ $memory_gb -ge 16 ]]; then
+        echo -e "${BOLD}Memory Status:${NC} ${GREEN}✓ Excellent${NC} ($memory_gb GB) - Ideal for large AI models"
+    elif [[ $memory_gb -ge 8 ]]; then
+        echo -e "${BOLD}Memory Status:${NC} ${YELLOW}○ Good${NC} ($memory_gb GB) - Suitable for most AI tasks"
     else
-        echo -e "  ${RED}✗${NC} RAM: May limit AI performance"
+        echo -e "${BOLD}Memory Status:${NC} ${RED}⚠ Limited${NC} ($memory_gb GB) - May struggle with large models"
     fi
     
-    if [[ "$cpu_cores" -ge 8 ]]; then
-        echo -e "  ${GREEN}✓${NC} CPU: Excellent for parallel processing"
-    elif [[ "$cpu_cores" -ge 4 ]]; then
-        echo -e "  ${YELLOW}⚠${NC} CPU: Good for basic AI operations"
+    # Architecture Assessment
+    if [[ "$arch" == "arm64" ]]; then
+        echo -e "${BOLD}AI Acceleration:${NC} ${GREEN}✓ Optimized${NC} - Apple Silicon with Neural Engine support"
+        echo -e "${BOLD}Metal Performance:${NC} ${GREEN}✓ Available${NC} - Hardware-accelerated AI operations"
     else
-        echo -e "  ${RED}✗${NC} CPU: May impact AI responsiveness"
+        echo -e "${BOLD}AI Acceleration:${NC} ${YELLOW}○ Standard${NC} - Intel processor without Neural Engine"
+        echo -e "${BOLD}Metal Performance:${NC} ${YELLOW}○ Limited${NC} - Reduced hardware acceleration"
     fi
     
-    if [[ "$IS_APPLE_SILICON" == "true" ]]; then
-        echo -e "  ${GREEN}✓${NC} Neural Engine: Hardware AI acceleration available"
-    else
-        echo -e "  ${YELLOW}⚠${NC} Neural Engine: Software-only AI processing"
-    fi
+    # Storage Assessment
+    local available_space
+    available_space=$(df -h / | tail -1 | awk '{print $4}')
+    echo -e "${BOLD}Available Storage:${NC} $available_space"
     
     echo ""
-}
-
-# Analyze current performance metrics
-analyze_performance_metrics() {
-    production_log_message "INFO" "Analyzing current system performance metrics"
     
-    echo -e "${BOLD}${BLUE}📊 PERFORMANCE METRICS${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════${NC}\n"
+    # Performance Metrics
+    echo -e "${BOLD}${GREEN}CURRENT PERFORMANCE METRICS:${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
     
     # CPU Usage
     local cpu_usage
-    cpu_usage=$(top -l 1 | grep "CPU usage" | awk '{print $3}' | sed 's/%//')
+    cpu_usage=$(top -l 1 -s 0 | grep "CPU usage" | awk '{print $3}' | sed 's/%//')
     echo -e "${BOLD}CPU Usage:${NC} $cpu_usage%"
     
     # Memory Usage
@@ -115,10 +96,14 @@ analyze_performance_metrics() {
     local page_size=4096
     
     # Parse memory information more robustly
-    local free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//')
-    local active_pages=$(echo "$memory_info" | grep "Pages active" | awk '{print $3}' | sed 's/\.//')
-    local inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//')
-    local wired_pages=$(echo "$memory_info" | grep "Pages wired down" | awk '{print $4}' | sed 's/\.//')
+    local free_pages
+    free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//')
+    local active_pages
+    active_pages=$(echo "$memory_info" | grep "Pages active" | awk '{print $3}' | sed 's/\.//')
+    local inactive_pages
+    inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//')
+    local wired_pages
+    wired_pages=$(echo "$memory_info" | grep "Pages wired down" | awk '{print $4}' | sed 's/\.//')
     
     # Ensure we have valid numbers
     [[ -z "$free_pages" ]] && free_pages=0
@@ -140,23 +125,36 @@ analyze_performance_metrics() {
     
     # Disk Usage
     local disk_usage
-    disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+    disk_usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
     echo -e "${BOLD}Disk Usage:${NC} $disk_usage%"
     
-    # Load Average
-    local load_avg
-    load_avg=$(uptime | awk -F'load averages:' '{print $2}' | xargs)
-    echo -e "${BOLD}Load Average:${NC} $load_avg"
+    echo ""
     
-    # Network Connectivity Test
-    echo -e "${BOLD}Network Test:${NC}"
-    if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Internet connectivity: Available"
-    else
-        echo -e "  ${RED}✗${NC} Internet connectivity: Limited"
+    # Optimization Recommendations
+    echo -e "${BOLD}${GREEN}OPTIMIZATION RECOMMENDATIONS:${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
+    
+    if [[ $memory_gb -lt 16 ]]; then
+        echo -e "${YELLOW}•${NC} Consider upgrading to 16GB+ RAM for optimal AI performance"
     fi
     
-    echo ""
+    if [[ "$arch" != "arm64" ]]; then
+        echo -e "${YELLOW}•${NC} Apple Silicon Macs provide better AI acceleration"
+    fi
+    
+    if [[ $memory_usage_percent -gt 80 ]]; then
+        echo -e "${RED}•${NC} High memory usage detected - close unnecessary applications"
+    fi
+    
+    if [[ $cpu_usage -gt 70 ]]; then
+        echo -e "${RED}•${NC} High CPU usage detected - system may be under load"
+    fi
+    
+    echo -e "${GREEN}•${NC} Run comprehensive optimization to improve AI performance"
+    echo -e "${GREEN}•${NC} Enable Metal Performance Shaders for hardware acceleration"
+    echo -e "${GREEN}•${NC} Configure Cursor AI settings for optimal response times"
+    
+    production_success_message "System specifications displayed successfully"
 }
 
 ################################################################################
@@ -928,7 +926,7 @@ EOF
 
 # Generate performance optimization report
 generate_optimization_report() {
-    local report_file="${TEMP_DIR}/cursor_optimization_report_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="${TEMP_DIR:-/tmp}/cursor_optimization_report_$(date +%Y%m%d_%H%M%S).txt"
     
     production_log_message "INFO" "Generating performance optimization report: $report_file"
     
@@ -939,15 +937,10 @@ generate_optimization_report() {
 # User: $(whoami)
 
 ## System Specifications:
-EOF
-    
-    # Add system info to report
-    echo "Hardware: $(sysctl -n machdep.cpu.brand_string)" >> "$report_file"
-    echo "RAM: $(sysctl -n hw.memsize | awk '{print int($1/1024/1024/1024)" GB"}')" >> "$report_file"
-    echo "CPU Cores: $(sysctl -n hw.ncpu)" >> "$report_file"
-    echo "Architecture: $(uname -m)" >> "$report_file"
-    
-    cat >> "$report_file" << EOF
+Hardware: $(system_profiler SPHardwareDataType | grep "Model Name" | awk -F': ' '{print $2}' | xargs)
+RAM: $(sysctl -n hw.memsize | awk '{print int($1/1024/1024/1024)}') GB
+CPU Cores: $(sysctl -n hw.ncpu)
+Architecture: $(uname -m)
 
 ## Optimizations Applied:
 - ✓ macOS visual effects disabled for GPU resource conservation
@@ -988,46 +981,52 @@ EOF
 
 # Perform complete AI optimization
 perform_ai_optimization() {
-    production_log_message "INFO" "Starting comprehensive AI-focused performance optimization"
+    production_log_message "INFO" "Starting comprehensive AI optimization process"
+    
+    echo -e "\n${BOLD}${BLUE}🔧 AI OPTIMIZATION PHASE${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
     
     local optimization_errors=0
     
-    # Step 1: System Analysis
-    production_info_message "Phase 1: System Analysis"
+    # Phase 1: System Analysis
+    production_info_message "Phase 1: Analyzing system for AI optimization..."
     display_system_specifications
-    analyze_performance_metrics
     
-    # Step 2: System-Level Optimizations
-    production_info_message "Phase 2: System-Level Optimizations"
-    optimize_macos_for_ai || ((optimization_errors++))
-    configure_gpu_acceleration || ((optimization_errors++))
+    # Phase 2: macOS Optimization
+    production_info_message "Phase 2: Optimizing macOS for AI workloads..."
+    if ! optimize_macos_for_ai; then
+        ((optimization_errors++))
+    fi
     
-    # Step 3: Cursor Configuration
-    production_info_message "Phase 3: Cursor AI Editor Configuration"
-    setup_cursor_configuration || ((optimization_errors++))
-    setup_mcp_servers || ((optimization_errors++))
-    setup_cursor_rules || ((optimization_errors++))
-    setup_beta_features || ((optimization_errors++))
+    # Phase 3: GPU Acceleration
+    production_info_message "Phase 3: Configuring GPU acceleration..."
+    if ! configure_gpu_acceleration; then
+        ((optimization_errors++))
+    fi
     
-    # Step 4: Development Environment
-    production_info_message "Phase 4: Development Environment Setup"
-    install_development_packages || ((optimization_errors++))
-    configure_nodejs_optimization || ((optimization_errors++))
-    setup_python_ai_environment || ((optimization_errors++))
+    # Phase 4: Cursor Configuration
+    production_info_message "Phase 4: Optimizing Cursor AI settings..."
+    if ! setup_cursor_configuration; then
+        ((optimization_errors++))
+    fi
     
-    # Step 5: Generate Report
-    production_info_message "Phase 5: Optimization Report"
+    # Phase 5: Advanced Features
+    production_info_message "Phase 5: Enabling advanced AI features..."
+    if ! setup_beta_features; then
+        ((optimization_errors++))
+    fi
+    
+    # Generate report
     local report_file
     report_file=$(generate_optimization_report)
     
     if [[ $optimization_errors -eq 0 ]]; then
-        production_success_message "✓ AI-focused optimization completed successfully"
-        production_info_message "Report: $report_file"
-        production_info_message "Please restart Cursor AI Editor to apply all optimizations"
+        production_success_message "✓ AI optimization completed successfully"
+        production_info_message "Report generated: $report_file"
         return 0
     else
-        production_error_message "AI optimization completed with $optimization_errors errors"
-        production_error_message "See report for details: $report_file"
+        production_warning_message "AI optimization completed with $optimization_errors errors"
+        production_info_message "Report generated: $report_file"
         return 1
     fi
 }
@@ -1039,6 +1038,8 @@ perform_ai_optimization() {
 # Mark module as loaded
 AI_OPTIMIZATION_LOADED="true"
 
-# Export functions for use in other modules
-export -f display_system_specifications perform_ai_optimization
-export -f generate_optimization_report analyze_performance_metrics 
+# Export functions for use by other modules
+export -f display_system_specifications optimize_macos_for_ai configure_gpu_acceleration
+export -f setup_cursor_configuration setup_mcp_servers setup_cursor_rules
+export -f setup_beta_features install_development_packages configure_nodejs_optimization
+export -f setup_python_ai_environment generate_optimization_report perform_ai_optimization 

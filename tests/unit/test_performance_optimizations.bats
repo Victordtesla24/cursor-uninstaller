@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../helpers/test_helper
 
 @test "Optimization detects M-series chip correctly" {
     # Source the script

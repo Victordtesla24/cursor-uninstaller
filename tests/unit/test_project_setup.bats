@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../helpers/test_helper
 
 @test "Verify test framework is working" {
     [ 1 -eq 1 ]
