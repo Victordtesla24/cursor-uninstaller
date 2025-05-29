@@ -323,7 +323,7 @@ install_cursor_from_dmg() {
 
     # Copy the app to Applications
     info_message "Installing Cursor.app to /Applications..."
-    if execute_safely cp -R "$app_bundle" "/Applications/"; then
+    if cp -R "$app_bundle" "/Applications/" 2>/dev/null; then
         log_message "SUCCESS" "✓ Cursor.app installed successfully"
     else
         error_message "Failed to copy Cursor.app to /Applications"
@@ -412,7 +412,7 @@ install_shell_integration() {
 
     # Create target directory if it doesn't exist
     if [[ ! -d "$target_dir" ]]; then
-        if execute_safely sudo mkdir -p "$target_dir"; then
+        if sudo mkdir -p "$target_dir" 2>/dev/null; then
             log_message "SUCCESS" "Created directory: $target_dir"
         else
             error_message "Failed to create directory: $target_dir"
@@ -421,7 +421,7 @@ install_shell_integration() {
     fi
 
     # Create symlink to cursor binary
-    if execute_safely sudo ln -sf "$cursor_binary" "$target_binary"; then
+    if sudo ln -sf "$cursor_binary" "$target_binary" 2>/dev/null; then
         log_message "SUCCESS" "✓ Cursor command line tool installed at $target_binary"
     else
         error_message "Failed to install cursor command line tool"
@@ -431,7 +431,7 @@ install_shell_integration() {
     # Optionally create 'code' symlink for VS Code compatibility
     local code_symlink="$target_dir/code"
     if [[ ! -e "$code_symlink" ]]; then
-        if execute_safely sudo ln -sf "$target_binary" "$code_symlink"; then
+        if sudo ln -sf "$target_binary" "$code_symlink" 2>/dev/null; then
             log_message "SUCCESS" "✓ Created 'code' symlink for VS Code compatibility"
         else
             warning_message "Failed to create 'code' symlink (may already exist)"
@@ -455,7 +455,7 @@ setup_default_project() {
 
     # Create project directory
     if [[ ! -d "$project_path" ]]; then
-        if execute_safely mkdir -p "$project_path"; then
+        if mkdir -p "$project_path"; then
             log_message "SUCCESS" "Created project directory: $project_path"
         else
             error_message "Failed to create project directory: $project_path"

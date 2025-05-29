@@ -133,7 +133,7 @@ production_sudo() {
             echo "[ERROR] PASSWORDLESS SUDO REQUIRED IN NON-INTERACTIVE MODE" >&2
             return 1
         fi
-        # Execute with sudo
+        # Execute with sudo - use direct command execution
         if ! sudo "$@"; then
             echo "[ERROR] SUDO COMMAND FAILED: $cmd" >&2
             return 1
@@ -141,7 +141,7 @@ production_sudo() {
         return 0
     fi
 
-    # Interactive mode - prompt for sudo
+    # Interactive mode - prompt for sudo - use direct command execution
     if ! sudo "$@"; then
         echo "[ERROR] SUDO COMMAND FAILED: $cmd" >&2
         return 1
@@ -606,7 +606,7 @@ production_execute_optimize() {
                     set -e
                 fi
                 if [[ -n "$prev_trap" ]]; then
-                    trap "$prev_trap" ERR
+                    trap -- "$prev_trap" ERR
                 else
                     trap - ERR
                 fi
@@ -682,7 +682,7 @@ production_execute_optimize() {
                                 set -e
                             fi
                             if [[ -n "$prev_trap" ]]; then
-                                trap "$prev_trap" ERR
+                                trap -- "$prev_trap" ERR
                             else
                                 trap - ERR
                             fi
@@ -700,7 +700,6 @@ production_execute_optimize() {
         fi
     fi
 
-    local optimization_success=true
     local optimizations_applied=0
     local optimization_warnings=0
 
@@ -859,7 +858,6 @@ production_execute_optimize() {
         fi
     else
         production_error_message "REQUIRED MODULES NOT LOADED - CANNOT PERFORM ADVANCED OPTIMIZATIONS"
-        optimization_success=false
         ((optimization_warnings++))
     fi
 
@@ -917,7 +915,7 @@ production_execute_optimize() {
         set -e
     fi
     if [[ -n "$prev_trap" ]]; then
-        trap "$prev_trap" ERR
+        trap -- "$prev_trap" ERR
     else
         trap - ERR
     fi
@@ -1162,7 +1160,6 @@ production_basic_removal() {
 optimize_memory_and_performance() {
     production_info_message "APPLYING ADVANCED MEMORY AND PERFORMANCE TUNING"
     
-    local tuning_success=true
     local tuning_applied=0
     
     # 1. Increase file descriptor limits for AI model loading
@@ -1172,7 +1169,6 @@ optimize_memory_and_performance() {
         ((tuning_applied++))
     else
         production_warning_message "⚠ Could not increase file descriptor limit"
-        tuning_success=false
     fi
     
     # 2. Configure optimal memory pressure handling
@@ -1258,7 +1254,6 @@ optimize_memory_and_performance() {
 optimize_memory_and_performance_safe() {
     production_info_message "APPLYING SAFE MEMORY AND PERFORMANCE TUNING"
     
-    local tuning_success=true
     local tuning_applied=0
     
     # 1. User-level file descriptor limits (safe)
@@ -1268,7 +1263,6 @@ optimize_memory_and_performance_safe() {
         ((tuning_applied++))
     else
         production_warning_message "⚠ Could not increase file descriptor limit"
-        tuning_success=false
     fi
     
     # 2. Configure user-level environment variables for better performance

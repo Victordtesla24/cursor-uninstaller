@@ -13,6 +13,60 @@ HELPERS_VERSION="1.0.0"
 HELPERS_DEBUG="${HELPERS_DEBUG:-false}"
 
 ################################################################################
+# Core Removal Functions - FIXES MISSING FUNCTION ERRORS
+################################################################################
+
+# Production safe removal function with comprehensive error handling
+production_safe_remove() {
+    local path="$1"
+    
+    if [[ -z "$path" ]]; then
+        log_with_context "ERROR" "No path provided for removal" "PROD_SAFE_REMOVE"
+        return 1
+    fi
+    
+    # Safety check - never remove critical system directories
+    case "$path" in
+        "/" | "/System" | "/Library/System" | "/usr/bin" | "/usr/sbin" | "/bin" | "/sbin")
+            log_with_context "ERROR" "Refusing to remove critical system directory: $path" "PROD_SAFE_REMOVE"
+            return 1
+            ;;
+    esac
+    
+    # Check if path exists
+    if [[ ! -e "$path" ]]; then
+        log_with_context "DEBUG" "Path does not exist, nothing to remove: $path" "PROD_SAFE_REMOVE"
+        return 0
+    fi
+    
+    log_with_context "INFO" "Attempting to remove: $path" "PROD_SAFE_REMOVE"
+    
+    # Try standard removal first
+    if rm -rf "$path" 2>/dev/null; then
+        log_with_context "SUCCESS" "Successfully removed: $path" "PROD_SAFE_REMOVE"
+        return 0
+    fi
+    
+    # If standard removal fails, try with elevated permissions
+    log_with_context "DEBUG" "Standard removal failed, attempting with sudo" "PROD_SAFE_REMOVE"
+    
+    # First try to fix permissions
+    if sudo chmod -R 755 "$path" 2>/dev/null; then
+        log_with_context "DEBUG" "Fixed permissions for: $path" "PROD_SAFE_REMOVE"
+    fi
+    
+    # Now try removal with sudo
+    if sudo rm -rf "$path" 2>/dev/null; then
+        log_with_context "SUCCESS" "Successfully removed with sudo: $path" "PROD_SAFE_REMOVE"
+        return 0
+    fi
+    
+    # If all removal attempts fail, log but don't fail the script
+    log_with_context "WARNING" "Failed to remove: $path" "PROD_SAFE_REMOVE"
+    return 1
+}
+
+################################################################################
 # Logging and Message Functions
 ################################################################################
 
@@ -563,5 +617,5 @@ validate_system_requirements() {
 # Export functions for use by other modules
 export -f validate_file_exists validate_directory_exists validate_application_exists
 export -f apply_sysctl_parameter handle_plist_file terminate_process_safely
-export -f execute_command_safely check_system_requirements validate_script_environment
-export -f validate_system_requirements 
+export -f check_system_requirements validate_script_environment
+export -f validate_system_requirements production_safe_remove 

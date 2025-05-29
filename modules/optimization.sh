@@ -755,18 +755,30 @@ clean_databases() {
     )
     
     for cache_pattern in "${safe_user_caches[@]}"; do
-        # Use shell expansion to find matching files
-        local cache_files
-        cache_files=(${cache_pattern})
-        
-        for cache_file in "${cache_files[@]}"; do
-            if [[ -e "$cache_file" ]] && [[ "$cache_file" != *"LaunchServices"* ]]; then
-                if rm -rf "$cache_file" 2>/dev/null; then
-                    production_log_message "DEBUG" "Cleaned cache: $(basename "$cache_file")"
+        # Use find command instead of shell expansion for safer glob handling
+        if [[ "$cache_pattern" == *"*"* ]]; then
+            # Handle glob patterns using find
+            local cache_dir="${cache_pattern%/*}"
+            local cache_name="${cache_pattern##*/}"
+            if [[ -d "$cache_dir" ]]; then
+                while IFS= read -r -d '' cache_file; do
+                    if [[ -e "$cache_file" ]] && [[ "$cache_file" != *"LaunchServices"* ]]; then
+                        if rm -rf "$cache_file" 2>/dev/null; then
+                            production_log_message "DEBUG" "Cleaned cache: $(basename "$cache_file")"
+                            ((cleanup_count++))
+                        fi
+                    fi
+                done < <(find "$cache_dir" -maxdepth 1 -name "$cache_name" -print0 2>/dev/null || true)
+            fi
+        else
+            # Handle exact paths
+            if [[ -e "$cache_pattern" ]] && [[ "$cache_pattern" != *"LaunchServices"* ]]; then
+                if rm -rf "$cache_pattern" 2>/dev/null; then
+                    production_log_message "DEBUG" "Cleaned cache: $(basename "$cache_pattern")"
                     ((cleanup_count++))
                 fi
             fi
-        done
+        fi
     done
     
     # SAFER: Skip aggressive Spotlight reindex during optimization
@@ -798,9 +810,6 @@ clean_databases() {
     
     for cache_dir in "${app_caches[@]}"; do
         if [[ -d "$cache_dir" ]] && [[ -w "$cache_dir" ]]; then
-            local cache_size_before
-            cache_size_before=$(du -sh "$cache_dir" 2>/dev/null | cut -f1 || echo "unknown")
-            
             # Only clean safe cache files, not entire directories
             if find "$cache_dir" -name "*.cache" -type f -delete 2>/dev/null; then
                 production_success_message "✓ Cleaned $(basename "$cache_dir") cache files"

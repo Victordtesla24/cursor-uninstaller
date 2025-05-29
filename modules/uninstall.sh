@@ -185,7 +185,7 @@ remove_cursor_application() {
             production_info_message "  Bundle ID: $bundle_id"
             production_info_message "  Bundle Name: $bundle_name"
             
-            if enhanced_safe_remove "$app_path"; then
+            if production_safe_remove "$app_path"; then
                 production_success_message "Successfully removed Cursor.app"
                 return 0
             else
@@ -235,7 +235,7 @@ remove_cursor_user_data() {
             
             production_info_message "Removing: $path ($path_size)"
             
-            if enhanced_safe_remove "$path"; then
+            if production_safe_remove "$path"; then
                 production_success_message "  ✓ Removed: $path"
                 ((removed_count++))
             else
@@ -253,7 +253,7 @@ remove_cursor_user_data() {
             while IFS= read -r pref_file; do
                 if [[ -e "$pref_file" ]]; then
                     production_info_message "Removing preference: $(basename "$pref_file")"
-                    if enhanced_safe_remove "$pref_file"; then
+                    if production_safe_remove "$pref_file"; then
                         production_success_message "  ✓ Removed: $(basename "$pref_file")"
                         ((removed_count++))
                     fi
@@ -308,7 +308,7 @@ remove_cursor_cli_tools() {
             fi
             
             if [[ "$is_cursor_tool" == "true" ]]; then
-                if enhanced_safe_remove "$location"; then
+                if production_safe_remove "$location"; then
                     production_success_message "  ✓ Removed: $location"
                     ((tools_removed++))
                 else
@@ -355,7 +355,7 @@ clean_cursor_caches() {
                 while IFS= read -r cache_dir; do
                     if [[ -d "$cache_dir" ]]; then
                         production_info_message "Cleaning system cache: $cache_dir"
-                        if enhanced_safe_remove "$cache_dir"; then
+                        if production_safe_remove "$cache_dir"; then
                             production_success_message "  ✓ Cleaned: $cache_dir"
                             ((caches_cleaned++))
                         fi
@@ -365,7 +365,7 @@ clean_cursor_caches() {
         else
             if [[ -d "$cache_path" ]]; then
                 production_info_message "Cleaning cache: $cache_path"
-                if enhanced_safe_remove "$cache_path"; then
+                if production_safe_remove "$cache_path"; then
                     production_success_message "  ✓ Cleaned: $cache_path"
                     ((caches_cleaned++))
                 fi
@@ -390,7 +390,7 @@ clean_cursor_caches() {
             while IFS= read -r temp_file; do
                 if [[ -e "$temp_file" ]]; then
                     production_info_message "Removing temp file: $temp_file"
-                    if enhanced_safe_remove "$temp_file"; then
+                    if production_safe_remove "$temp_file"; then
                         production_success_message "  ✓ Removed: $temp_file"
                         ((caches_cleaned++))
                     fi
@@ -411,15 +411,15 @@ reset_cursor_system_registrations() {
     
     # Reset Launch Services database
     production_info_message "Resetting Launch Services database..."
-    if command -v lsregister >/dev/null 2>&1; then
-        if lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
+    if command -v /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister >/dev/null 2>&1; then
+        if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
             production_success_message "✓ Launch Services database reset"
             ((registrations_reset++))
         else
-            production_warning_message "Failed to reset Launch Services database"
+            production_warning_message "Failed to reset Launch Services database (command execution failed)"
         fi
     else
-        production_warning_message "lsregister command not available"
+        production_warning_message "lsregister command not available at the expected path. Skipping Launch Services reset."
     fi
     
     # Clear any LaunchAgent/LaunchDaemon entries
@@ -450,7 +450,7 @@ reset_cursor_system_registrations() {
                         fi
                         
                         # Remove the plist file
-                        if enhanced_safe_remove "$plist_file"; then
+                        if production_safe_remove "$plist_file"; then
                             production_success_message "  ✓ Removed: $plist_file"
                             ((registrations_reset++))
                         fi

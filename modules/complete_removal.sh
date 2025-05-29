@@ -186,22 +186,23 @@ clear_launch_services_entries() {
     production_log_message "INFO" "Clearing Launch Services database entries"
     
     # Reset Launch Services database
-    if command -v /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister >/dev/null 2>&1; then
+    local lsregister_path="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+    if command -v "$lsregister_path" >/dev/null 2>&1; then
         production_info_message "Resetting Launch Services database..."
         
-        if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user; then
+        if "$lsregister_path" -kill -r -domain local -domain system -domain user; then
             production_success_message "Launch Services database reset successfully"
         else
-            production_warning_message "Failed to reset Launch Services database"
+            production_warning_message "Failed to reset Launch Services database (command execution failed)"
         fi
     else
-        production_warning_message "lsregister command not found"
+        production_warning_message "lsregister command not found at $lsregister_path. Skipping Launch Services reset."
     fi
     
     # Remove specific Cursor entries if possible
-    if command -v lsregister >/dev/null 2>&1; then
+    if command -v "$lsregister_path" >/dev/null 2>&1; then
         production_info_message "Removing specific Cursor entries..."
-        lsregister -u "/Applications/Cursor.app" 2>/dev/null || true
+        "$lsregister_path" -u "/Applications/Cursor.app" 2>/dev/null || true
     fi
 }
 
@@ -332,7 +333,7 @@ remove_background_processes() {
             fi
             
             # Remove the plist file
-            if enhanced_safe_remove "$item"; then
+            if production_safe_remove "$item"; then
                 production_success_message "Removed: $item"
             fi
         fi
@@ -373,7 +374,7 @@ remove_cursor_application() {
             local app_size
             app_size=$(du -sh "$app_path" 2>/dev/null | cut -f1)
             
-            if enhanced_safe_remove "$app_path"; then
+            if production_safe_remove "$app_path"; then
                 production_success_message "Removed Cursor.app ($app_size)"
                 return 0
             else
@@ -395,7 +396,7 @@ remove_cursor_application() {
                 local app_size
                 app_size=$(du -sh "$app_path" 2>/dev/null | cut -f1)
                 
-                if enhanced_safe_remove "$app_path"; then
+                if production_safe_remove "$app_path"; then
                     production_success_message "Removed Cursor.app ($app_size)"
                     return 0
                 else
@@ -425,7 +426,7 @@ remove_user_data() {
         while IFS=':' read -r type path size; do
             if [[ "$type" == "USER_DATA" ]] && [[ -e "$path" ]]; then
                 production_info_message "Removing: $path ($size)"
-                if enhanced_safe_remove "$path"; then
+                if production_safe_remove "$path"; then
                     production_success_message "Removed: $path"
                     ((removed_count++))
                 else
@@ -450,7 +451,7 @@ remove_user_data() {
     
     for path in "${user_paths[@]}"; do
         if [[ -e "$path" ]]; then
-            if enhanced_safe_remove "$path"; then
+            if production_safe_remove "$path"; then
                 production_success_message "Removed: $path"
                 ((removed_count++))
             else
@@ -484,7 +485,7 @@ remove_cli_tools() {
                 link_target=$(readlink "$path")
                 if [[ "$link_target" == *"Cursor"* ]] || [[ "$link_target" == *"cursor"* ]]; then
                     production_info_message "Removing symlink: $path -> $link_target"
-                    if enhanced_safe_remove "$path"; then
+                    if production_safe_remove "$path"; then
                         production_success_message "Removed symlink: $path"
                         ((removed_count++))
                     fi
@@ -495,7 +496,7 @@ remove_cli_tools() {
                 file_info=$(file "$path" 2>/dev/null || echo "unknown")
                 if [[ "$file_info" == *"cursor"* ]] || [[ "$file_info" == *"Cursor"* ]]; then
                     production_info_message "Removing CLI tool: $path"
-                    if enhanced_safe_remove "$path"; then
+                    if production_safe_remove "$path"; then
                         production_success_message "Removed CLI tool: $path"
                         ((removed_count++))
                     fi
