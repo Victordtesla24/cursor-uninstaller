@@ -454,6 +454,224 @@ get_system_metrics() {
 }
 
 ################################################################################
+# Health Check Functions
+################################################################################
+
+# Comprehensive health check function
+perform_health_check() {
+    log_message "INFO" "Starting comprehensive system health check"
+    
+    local health_issues=0
+    local warnings=0
+    
+    echo -e "\n${BOLD}${BLUE}🔍 COMPREHENSIVE SYSTEM HEALTH CHECK${NC}"
+    echo -e "${BOLD}════════════════════════════════════════════════════════${NC}\n"
+    
+    # System Requirements Check
+    echo -e "${BOLD}${CYAN}1. SYSTEM REQUIREMENTS${NC}"
+    echo -e "   ${CYAN}•${NC} Operating System: $(sw_vers -productName) $(sw_vers -productVersion)"
+    echo -e "   ${CYAN}•${NC} Architecture: $(uname -m)"
+    echo -e "   ${CYAN}•${NC} Kernel Version: $(uname -r)"
+    
+    # Check macOS version compatibility
+    local macos_version
+    macos_version=$(sw_vers -productVersion | cut -d. -f1-2)
+    local macos_major=$(echo "$macos_version" | cut -d. -f1)
+    local macos_minor=$(echo "$macos_version" | cut -d. -f2)
+    
+    if [[ "$macos_major" -lt 11 ]] || [[ "$macos_major" -eq 11 && "$macos_minor" -lt 0 ]]; then
+        echo -e "   ${RED}✗${NC} macOS version may be too old for optimal Cursor performance"
+        ((health_issues++))
+    else
+        echo -e "   ${GREEN}✓${NC} macOS version compatible"
+    fi
+    
+    # Memory Check
+    echo -e "\n${BOLD}${CYAN}2. MEMORY AND STORAGE${NC}"
+    local total_mem=$(sysctl -n hw.memsize | awk '{print int($1/1024/1024/1024)}')
+    echo -e "   ${CYAN}•${NC} Total RAM: ${total_mem}GB"
+    
+    if [[ "$total_mem" -lt 8 ]]; then
+        echo -e "   ${YELLOW}⚠${NC} Low RAM detected - AI features may be slower"
+        ((warnings++))
+    elif [[ "$total_mem" -ge 16 ]]; then
+        echo -e "   ${GREEN}✓${NC} Excellent RAM for AI development"
+    else
+        echo -e "   ${GREEN}✓${NC} Sufficient RAM for basic AI development"
+    fi
+    
+    # Disk Space Check
+    local disk_usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
+    local disk_avail=$(df -h / | tail -1 | awk '{print $4}')
+    echo -e "   ${CYAN}•${NC} Disk Usage: ${disk_usage}% used, ${disk_avail} available"
+    
+    if [[ "$disk_usage" -gt 90 ]]; then
+        echo -e "   ${RED}✗${NC} Critical: Very low disk space available"
+        ((health_issues++))
+    elif [[ "$disk_usage" -gt 80 ]]; then
+        echo -e "   ${YELLOW}⚠${NC} Warning: Low disk space - consider cleanup"
+        ((warnings++))
+    else
+        echo -e "   ${GREEN}✓${NC} Sufficient disk space available"
+    fi
+    
+    # CPU and Performance Check
+    echo -e "\n${BOLD}${CYAN}3. PROCESSOR AND PERFORMANCE${NC}"
+    local cpu_model=$(sysctl -n machdep.cpu.brand_string)
+    echo -e "   ${CYAN}•${NC} CPU: $cpu_model"
+    
+    # Check if Apple Silicon
+    if [[ "$(uname -m)" == "arm64" ]]; then
+        echo -e "   ${GREEN}✓${NC} Apple Silicon detected - excellent AI performance expected"
+    else
+        echo -e "   ${YELLOW}⚠${NC} Intel processor - AI performance may be limited"
+        ((warnings++))
+    fi
+    
+    # Load Average Check
+    local load_avg=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+    local load_num=$(echo "$load_avg" | bc -l 2>/dev/null || echo "$load_avg")
+    echo -e "   ${CYAN}•${NC} Current Load Average: $load_avg"
+    
+    if (( $(echo "$load_num > 5.0" | bc -l 2>/dev/null || echo 0) )); then
+        echo -e "   ${YELLOW}⚠${NC} High system load detected"
+        ((warnings++))
+    else
+        echo -e "   ${GREEN}✓${NC} System load is normal"
+    fi
+    
+    # Cursor Installation Check
+    echo -e "\n${BOLD}${CYAN}4. CURSOR INSTALLATION STATUS${NC}"
+    if [[ -d "/Applications/Cursor.app" ]]; then
+        echo -e "   ${GREEN}✓${NC} Cursor.app found at /Applications/Cursor.app"
+        
+        # Check Cursor version
+        if [[ -f "/Applications/Cursor.app/Contents/Info.plist" ]]; then
+            local cursor_version=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "unknown")
+            echo -e "   ${CYAN}•${NC} Version: $cursor_version"
+        fi
+        
+        # Check app size
+        local app_size=$(get_file_size "/Applications/Cursor.app")
+        echo -e "   ${CYAN}•${NC} Application Size: $app_size"
+        
+    else
+        echo -e "   ${YELLOW}ℹ${NC} Cursor.app not found - not currently installed"
+    fi
+    
+    # Check CLI tools
+    if command -v cursor >/dev/null 2>&1; then
+        local cursor_cli_path=$(which cursor)
+        echo -e "   ${GREEN}✓${NC} Cursor CLI available at: $cursor_cli_path"
+    else
+        echo -e "   ${YELLOW}ℹ${NC} Cursor CLI not found in PATH"
+    fi
+    
+    # Network Connectivity Check
+    echo -e "\n${BOLD}${CYAN}5. NETWORK CONNECTIVITY${NC}"
+    if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✓${NC} Internet connectivity available"
+        
+        # Check Cursor API connectivity (if applicable)
+        if curl -s --max-time 5 https://api.cursor.sh/health >/dev/null 2>&1; then
+            echo -e "   ${GREEN}✓${NC} Cursor API reachable"
+        else
+            echo -e "   ${YELLOW}⚠${NC} Cursor API may be unreachable"
+            ((warnings++))
+        fi
+    else
+        echo -e "   ${RED}✗${NC} No internet connectivity detected"
+        ((health_issues++))
+    fi
+    
+    # Development Environment Check
+    echo -e "\n${BOLD}${CYAN}6. DEVELOPMENT ENVIRONMENT${NC}"
+    
+    # Check for Git
+    if command -v git >/dev/null 2>&1; then
+        local git_version=$(git --version | awk '{print $3}')
+        echo -e "   ${GREEN}✓${NC} Git available (version $git_version)"
+    else
+        echo -e "   ${YELLOW}⚠${NC} Git not found - version control may be limited"
+        ((warnings++))
+    fi
+    
+    # Check for Node.js
+    if command -v node >/dev/null 2>&1; then
+        local node_version=$(node --version)
+        echo -e "   ${GREEN}✓${NC} Node.js available ($node_version)"
+    else
+        echo -e "   ${YELLOW}ℹ${NC} Node.js not found - JavaScript development may be limited"
+    fi
+    
+    # Check for Python
+    if command -v python3 >/dev/null 2>&1; then
+        local python_version=$(python3 --version | awk '{print $2}')
+        echo -e "   ${GREEN}✓${NC} Python 3 available (version $python_version)"
+    else
+        echo -e "   ${YELLOW}ℹ${NC} Python 3 not found - Python development may be limited"
+    fi
+    
+    # Security and Permissions Check
+    echo -e "\n${BOLD}${CYAN}7. SECURITY AND PERMISSIONS${NC}"
+    
+    # Check SIP status
+    if csrutil status | grep -q "disabled"; then
+        echo -e "   ${YELLOW}⚠${NC} System Integrity Protection is disabled"
+        ((warnings++))
+    else
+        echo -e "   ${GREEN}✓${NC} System Integrity Protection is enabled"
+    fi
+    
+    # Check sudo access
+    if sudo -n true 2>/dev/null; then
+        echo -e "   ${GREEN}✓${NC} Sudo access available without password"
+    elif sudo -v >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✓${NC} Sudo access available with password"
+    else
+        echo -e "   ${RED}✗${NC} No sudo access - administrative operations will fail"
+        ((health_issues++))
+    fi
+    
+    # Final Health Summary
+    echo -e "\n${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${CYAN}HEALTH CHECK SUMMARY${NC}"
+    echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
+    if [[ "$health_issues" -eq 0 && "$warnings" -eq 0 ]]; then
+        echo -e "${BOLD}${GREEN}🎉 EXCELLENT HEALTH${NC}"
+        echo -e "   ${GREEN}•${NC} System is optimally configured for Cursor AI development"
+        log_message "SUCCESS" "Health check passed with no issues"
+    elif [[ "$health_issues" -eq 0 ]]; then
+        echo -e "${BOLD}${YELLOW}⚠️  GOOD HEALTH WITH WARNINGS${NC}"
+        echo -e "   ${YELLOW}•${NC} $warnings warning(s) detected - minor optimization possible"
+        echo -e "   ${GREEN}•${NC} No critical issues found"
+        log_message "SUCCESS" "Health check passed with $warnings warnings"
+    else
+        echo -e "${BOLD}${RED}🚨 HEALTH ISSUES DETECTED${NC}"
+        echo -e "   ${RED}•${NC} $health_issues critical issue(s) require attention"
+        echo -e "   ${YELLOW}•${NC} $warnings warning(s) detected"
+        echo -e "   ${RED}•${NC} System may not function optimally until issues are resolved"
+        log_message "WARNING" "Health check completed with $health_issues issues and $warnings warnings"
+    fi
+    
+    echo -e "\n${BOLD}${CYAN}RECOMMENDATIONS:${NC}"
+    if [[ "$total_mem" -lt 16 ]]; then
+        echo -e "   ${CYAN}•${NC} Consider upgrading to 16GB+ RAM for better AI performance"
+    fi
+    if [[ "$disk_usage" -gt 70 ]]; then
+        echo -e "   ${CYAN}•${NC} Clean up disk space for optimal performance"
+    fi
+    if [[ "$(uname -m)" != "arm64" ]]; then
+        echo -e "   ${CYAN}•${NC} Consider upgrading to Apple Silicon Mac for best AI performance"
+    fi
+    echo -e "   ${CYAN}•${NC} Keep Cursor updated for latest AI improvements"
+    echo -e "   ${CYAN}•${NC} Regularly restart Cursor to free up memory"
+    
+    return 0
+}
+
+################################################################################
 # Module Initialization
 ################################################################################
 
