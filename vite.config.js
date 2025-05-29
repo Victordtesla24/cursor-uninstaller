@@ -5,10 +5,11 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  root: './src/dashboard',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
-      '@components': path.resolve(__dirname, './components')
+      '@': path.resolve(__dirname, './src/dashboard'),
+      '@components': path.resolve(__dirname, './src/components')
     }
   },
   server: {
@@ -16,11 +17,11 @@ export default defineConfig({
     open: true
   },
   build: {
-    outDir: 'dist',
+    outDir: '../../dist',
     sourcemap: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html')
+        main: path.resolve(__dirname, './src/dashboard/index.html')
       }
     }
   },
