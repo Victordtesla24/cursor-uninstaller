@@ -343,4 +343,225 @@ initialize_helpers() {
 # Auto-initialize when sourced
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     initialize_helpers
-fi 
+fi
+
+# Comprehensive system requirements validation for Cursor Management Utility
+validate_system_requirements() {
+    local validation_errors=0
+    local validation_warnings=0
+    
+    log_with_context "INFO" "Starting comprehensive system requirements validation" "SYS_VALIDATION"
+    
+    # 1. Operating System Validation
+    log_with_context "DEBUG" "Validating operating system compatibility" "SYS_VALIDATION"
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        log_with_context "ERROR" "This utility requires macOS - Current OS: $OSTYPE" "SYS_VALIDATION"
+        ((validation_errors++))
+    else
+        # Check macOS version
+        local macos_version
+        macos_version=$(sw_vers -productVersion 2>/dev/null)
+        if [[ -n "$macos_version" ]]; then
+            local major_version
+            major_version=$(echo "$macos_version" | cut -d. -f1)
+            if [[ $major_version -lt 10 ]]; then
+                log_with_context "ERROR" "macOS version too old: $macos_version (minimum: 10.0)" "SYS_VALIDATION"
+                ((validation_errors++))
+            elif [[ $major_version -eq 10 ]]; then
+                local minor_version
+                minor_version=$(echo "$macos_version" | cut -d. -f2)
+                if [[ $minor_version -lt 12 ]]; then
+                    log_with_context "WARNING" "macOS version may have compatibility issues: $macos_version (recommended: 10.12+)" "SYS_VALIDATION"
+                    ((validation_warnings++))
+                fi
+            fi
+            log_with_context "SUCCESS" "macOS version validated: $macos_version" "SYS_VALIDATION"
+        else
+            log_with_context "WARNING" "Could not determine macOS version" "SYS_VALIDATION"
+            ((validation_warnings++))
+        fi
+    fi
+    
+    # 2. Architecture Validation
+    local arch
+    arch=$(uname -m)
+    log_with_context "INFO" "System architecture: $arch" "SYS_VALIDATION"
+    case "$arch" in
+        "arm64")
+            log_with_context "SUCCESS" "Apple Silicon architecture detected (optimal)" "SYS_VALIDATION"
+            ;;
+        "x86_64")
+            log_with_context "SUCCESS" "Intel x86_64 architecture detected (compatible)" "SYS_VALIDATION"
+            ;;
+        *)
+            log_with_context "WARNING" "Unsupported architecture detected: $arch" "SYS_VALIDATION"
+            ((validation_warnings++))
+            ;;
+    esac
+    
+    # 3. Memory Requirements
+    local memory_gb
+    memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' 2>/dev/null || echo "0")
+    if [[ $memory_gb -lt 4 ]]; then
+        log_with_context "ERROR" "Insufficient memory: ${memory_gb}GB (minimum: 4GB)" "SYS_VALIDATION"
+        ((validation_errors++))
+    elif [[ $memory_gb -lt 8 ]]; then
+        log_with_context "WARNING" "Limited memory for optimal performance: ${memory_gb}GB (recommended: 8GB+)" "SYS_VALIDATION"
+        ((validation_warnings++))
+    else
+        log_with_context "SUCCESS" "Memory requirements satisfied: ${memory_gb}GB" "SYS_VALIDATION"
+    fi
+    
+    # 4. Disk Space Requirements
+    local available_space_gb
+    available_space_gb=$(df -g / 2>/dev/null | tail -1 | awk '{print $4}' 2>/dev/null || echo "0")
+    if [[ $available_space_gb -lt 1 ]]; then
+        log_with_context "ERROR" "Insufficient disk space: ${available_space_gb}GB (minimum: 1GB)" "SYS_VALIDATION"
+        ((validation_errors++))
+    elif [[ $available_space_gb -lt 5 ]]; then
+        log_with_context "WARNING" "Limited disk space: ${available_space_gb}GB (recommended: 5GB+)" "SYS_VALIDATION"
+        ((validation_warnings++))
+    else
+        log_with_context "SUCCESS" "Disk space requirements satisfied: ${available_space_gb}GB available" "SYS_VALIDATION"
+    fi
+    
+    # 5. Essential Commands Validation
+    local required_commands=("defaults" "sudo" "pgrep" "pkill" "ps" "grep" "awk" "sed" "find" "xargs")
+    local missing_commands=()
+    
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_commands+=("$cmd")
+            log_with_context "ERROR" "Required command not found: $cmd" "SYS_VALIDATION"
+            ((validation_errors++))
+        else
+            log_with_context "DEBUG" "Command available: $cmd" "SYS_VALIDATION"
+        fi
+    done
+    
+    # 6. Optional but Recommended Commands
+    local recommended_commands=("brew" "git" "curl" "wget" "jq" "plutil")
+    local missing_recommended=()
+    
+    for cmd in "${recommended_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_recommended+=("$cmd")
+            log_with_context "WARNING" "Recommended command not found: $cmd" "SYS_VALIDATION"
+            ((validation_warnings++))
+        else
+            log_with_context "DEBUG" "Recommended command available: $cmd" "SYS_VALIDATION"
+        fi
+    done
+    
+    # 7. System Integrity Protection (SIP) Check
+    if command -v csrutil >/dev/null 2>&1; then
+        local sip_status
+        sip_status=$(csrutil status 2>/dev/null)
+        if echo "$sip_status" | grep -q "enabled"; then
+            log_with_context "SUCCESS" "System Integrity Protection is enabled (secure)" "SYS_VALIDATION"
+        else
+            log_with_context "WARNING" "System Integrity Protection is disabled" "SYS_VALIDATION"
+            ((validation_warnings++))
+        fi
+    else
+        log_with_context "WARNING" "Cannot check System Integrity Protection status" "SYS_VALIDATION"
+        ((validation_warnings++))
+    fi
+    
+    # 8. Admin/Sudo Privileges Check
+    log_with_context "DEBUG" "Checking administrative privileges" "SYS_VALIDATION"
+    if sudo -n true 2>/dev/null; then
+        log_with_context "SUCCESS" "Administrative privileges available (passwordless sudo)" "SYS_VALIDATION"
+    elif command -v sudo >/dev/null 2>&1; then
+        log_with_context "INFO" "Administrative privileges available (sudo with password)" "SYS_VALIDATION"
+    else
+        log_with_context "ERROR" "No administrative privileges available (sudo not found)" "SYS_VALIDATION"
+        ((validation_errors++))
+    fi
+    
+    # 9. File System Permissions Check
+    local temp_test_file="/tmp/.cursor_uninstaller_permission_test_$$"
+    if touch "$temp_test_file" 2>/dev/null; then
+        if [[ -w "$temp_test_file" ]]; then
+            log_with_context "SUCCESS" "File system write permissions validated" "SYS_VALIDATION"
+            rm -f "$temp_test_file" 2>/dev/null
+        else
+            log_with_context "ERROR" "File system write permissions denied" "SYS_VALIDATION"
+            ((validation_errors++))
+        fi
+    else
+        log_with_context "ERROR" "Cannot create temporary files in /tmp" "SYS_VALIDATION"
+        ((validation_errors++))
+    fi
+    
+    # 10. Network Connectivity Check (optional)
+    log_with_context "DEBUG" "Checking network connectivity" "SYS_VALIDATION"
+    if ping -c 1 -W 3000 8.8.8.8 >/dev/null 2>&1; then
+        log_with_context "SUCCESS" "Network connectivity available" "SYS_VALIDATION"
+    else
+        log_with_context "WARNING" "Network connectivity issues detected" "SYS_VALIDATION"
+        ((validation_warnings++))
+    fi
+    
+    # 11. CPU Core Count Check
+    local cpu_cores
+    cpu_cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "1")
+    if [[ $cpu_cores -ge 2 ]]; then
+        log_with_context "SUCCESS" "CPU requirements satisfied: $cpu_cores cores" "SYS_VALIDATION"
+    else
+        log_with_context "WARNING" "Limited CPU cores: $cpu_cores (recommended: 2+)" "SYS_VALIDATION"
+        ((validation_warnings++))
+    fi
+    
+    # 12. Shell Environment Validation
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+        log_with_context "SUCCESS" "Bash shell environment validated: $BASH_VERSION" "SYS_VALIDATION"
+    elif [[ -n "${ZSH_VERSION:-}" ]]; then
+        log_with_context "SUCCESS" "Zsh shell environment validated: $ZSH_VERSION" "SYS_VALIDATION"
+    else
+        log_with_context "WARNING" "Unknown shell environment: $SHELL" "SYS_VALIDATION"
+        ((validation_warnings++))
+    fi
+    
+    # Generate Validation Summary
+    local total_checks=12
+    local passed_checks=$((total_checks - validation_errors))
+    
+    log_with_context "INFO" "=== SYSTEM VALIDATION SUMMARY ===" "SYS_VALIDATION"
+    log_with_context "INFO" "Total Checks: $total_checks" "SYS_VALIDATION"
+    log_with_context "INFO" "Passed: $passed_checks" "SYS_VALIDATION"
+    log_with_context "INFO" "Errors: $validation_errors" "SYS_VALIDATION"
+    log_with_context "INFO" "Warnings: $validation_warnings" "SYS_VALIDATION"
+    
+    # Provide specific remediation advice if there are issues
+    if [[ $validation_errors -gt 0 ]]; then
+        log_with_context "ERROR" "SYSTEM VALIDATION FAILED: $validation_errors critical issues found" "SYS_VALIDATION"
+        log_with_context "ERROR" "Please resolve the above errors before proceeding" "SYS_VALIDATION"
+        
+        if [[ ${#missing_commands[@]} -gt 0 ]]; then
+            log_with_context "ERROR" "Missing required commands: ${missing_commands[*]}" "SYS_VALIDATION"
+            log_with_context "ERROR" "Install missing commands using: brew install <command> or xcode-select --install" "SYS_VALIDATION"
+        fi
+        
+        return 1
+    elif [[ $validation_warnings -gt 0 ]]; then
+        log_with_context "WARNING" "SYSTEM VALIDATION PASSED WITH WARNINGS: $validation_warnings non-critical issues" "SYS_VALIDATION"
+        
+        if [[ ${#missing_recommended[@]} -gt 0 ]]; then
+            log_with_context "WARNING" "Missing recommended commands: ${missing_recommended[*]}" "SYS_VALIDATION"
+            log_with_context "INFO" "Consider installing: brew install ${missing_recommended[*]}" "SYS_VALIDATION"
+        fi
+        
+        log_with_context "SUCCESS" "System is suitable for operation with minor limitations" "SYS_VALIDATION"
+        return 0
+    else
+        log_with_context "SUCCESS" "SYSTEM VALIDATION PASSED: All requirements satisfied" "SYS_VALIDATION"
+        return 0
+    fi
+}
+
+# Export functions for use by other modules
+export -f validate_file_exists validate_directory_exists validate_application_exists
+export -f apply_sysctl_parameter handle_plist_file terminate_process_safely
+export -f execute_command_safely check_system_requirements validate_script_environment
+export -f validate_system_requirements 

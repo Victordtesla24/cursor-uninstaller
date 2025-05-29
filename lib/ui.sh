@@ -337,7 +337,12 @@ perform_health_check() {
     # Generate detailed report
     generate_health_report $health_issues $total_checks
     
-    return $health_issues
+    # Ensure return value is within valid exit code range (0-255)
+    if [[ $health_issues -gt 255 ]]; then
+        return 255
+    else
+        return $health_issues
+    fi
 }
 
 ################################################################################
@@ -476,7 +481,18 @@ check_filesystem_health() {
 check_system_updates() {
     if command -v softwareupdate >/dev/null 2>&1; then
         local updates
-        updates=$(softwareupdate -l 2>/dev/null | grep -c "recommended")
+        local software_output
+        software_output=$(softwareupdate -l 2>/dev/null)
+        
+        # Count recommended updates safely
+        if [[ -n "$software_output" ]]; then
+            updates=$(echo "$software_output" | grep -c "recommended" 2>/dev/null || echo "0")
+            # Sanitize the value - remove any whitespace/newlines and ensure it's a number
+            updates=$(echo "$updates" | tr -d '\n\r\t ' | grep -E '^[0-9]+$' || echo "0")
+        else
+            updates=0
+        fi
+        
         # Return success if no updates or can't check
         [[ $updates -eq 0 ]]
     else
