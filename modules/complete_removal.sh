@@ -239,21 +239,35 @@ clear_keychain_entries() {
 remove_background_processes() {
     production_log_message "INFO" "Checking for and removing Cursor background processes"
     
-    # Check for running Cursor processes
+    # Get current script PID to avoid self-termination
+    local current_script_pid=$$
+    local current_script_name="$(basename "$0")"
+    
+    # Check for running Cursor processes with proper filtering
     local cursor_processes
-    cursor_processes=$(ps aux | grep -i cursor | grep -v grep | awk '{print $2}' || true)
+    cursor_processes=$(ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" | awk '{print $2}' || true)
     
     if [[ -n "$cursor_processes" ]]; then
         production_warning_message "Found running Cursor processes:"
-        ps aux | grep -i cursor | grep -v grep || true
+        # Show processes but exclude our own script
+        ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" || true
         
         production_info_message "Terminating Cursor processes..."
         while IFS= read -r pid; do
-            if [[ -n "$pid" ]]; then
-                if kill "$pid" 2>/dev/null; then
-                    production_success_message "Terminated process: $pid"
+            if [[ -n "$pid" ]] && [[ "$pid" != "$current_script_pid" ]]; then
+                # Double-check this isn't our script or a related process
+                local process_info
+                process_info=$(ps -p "$pid" -o command= 2>/dev/null || echo "")
+                
+                if [[ "$process_info" != *"uninstall_cursor.sh"* ]] && [[ "$process_info" != *"cursor-uninstaller"* ]]; then
+                    production_info_message "Stopping process: $(ps -p "$pid" -o comm= 2>/dev/null || echo "PID $pid")"
+                    if kill "$pid" 2>/dev/null; then
+                        production_success_message "Terminated process: $pid"
+                    else
+                        production_warning_message "Failed to terminate process: $pid"
+                    fi
                 else
-                    production_warning_message "Failed to terminate process: $pid"
+                    production_log_message "DEBUG" "Skipping uninstaller-related process: $pid ($process_info)"
                 fi
             fi
         done <<< "$cursor_processes"
@@ -261,13 +275,21 @@ remove_background_processes() {
         # Wait for processes to terminate
         sleep 2
         
-        # Force kill if still running
-        cursor_processes=$(ps aux | grep -i cursor | grep -v grep | awk '{print $2}' || true)
+        # Force kill if still running (with same protection)
+        cursor_processes=$(ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" | awk '{print $2}' || true)
         if [[ -n "$cursor_processes" ]]; then
             production_warning_message "Force killing remaining processes..."
             while IFS= read -r pid; do
-                if [[ -n "$pid" ]]; then
-                    kill -9 "$pid" 2>/dev/null || true
+                if [[ -n "$pid" ]] && [[ "$pid" != "$current_script_pid" ]]; then
+                    local process_info
+                    process_info=$(ps -p "$pid" -o command= 2>/dev/null || echo "")
+                    
+                    if [[ "$process_info" != *"uninstall_cursor.sh"* ]] && [[ "$process_info" != *"cursor-uninstaller"* ]]; then
+                        production_warning_message "Force killing process: $(ps -p "$pid" -o comm= 2>/dev/null || echo "PID $pid")"
+                        kill -9 "$pid" 2>/dev/null || true
+                    else
+                        production_log_message "DEBUG" "Protected uninstaller process from force kill: $pid"
+                    fi
                 fi
             done <<< "$cursor_processes"
         fi
@@ -315,12 +337,24 @@ remove_cursor_application() {
     local app_path="/Applications/Cursor.app"
     
     if [[ -d "$app_path" ]]; then
-        # Verify it's actually Cursor
+        # Verify it's actually Cursor by checking bundle ID and app name
         local bundle_id
         bundle_id=$(defaults read "$app_path/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "unknown")
         
-        if [[ "$bundle_id" == *"cursor"* ]] || [[ "$bundle_id" == *"Cursor"* ]]; then
-            production_info_message "Verified Cursor application bundle: $bundle_id"
+        local bundle_name
+        bundle_name=$(defaults read "$app_path/Contents/Info.plist" CFBundleName 2>/dev/null || echo "unknown")
+        
+        local bundle_display_name
+        bundle_display_name=$(defaults read "$app_path/Contents/Info.plist" CFBundleDisplayName 2>/dev/null || echo "unknown")
+        
+        # Enhanced verification to handle todesktop bundle IDs used by Cursor
+        if [[ "$bundle_id" == *"cursor"* ]] || [[ "$bundle_id" == *"Cursor"* ]] || \
+           [[ "$bundle_id" == *"todesktop"* ]] || \
+           [[ "$bundle_name" == *"cursor"* ]] || [[ "$bundle_name" == *"Cursor"* ]] || \
+           [[ "$bundle_display_name" == *"cursor"* ]] || [[ "$bundle_display_name" == *"Cursor"* ]] || \
+           [[ "$(basename "$app_path")" == "Cursor.app" ]]; then
+            
+            production_info_message "Verified Cursor application bundle: $bundle_id ($bundle_name)"
             
             # Get size before removal
             local app_size
@@ -334,8 +368,31 @@ remove_cursor_application() {
                 return 1
             fi
         else
-            production_error_message "Application bundle verification failed: $bundle_id"
-            return 1
+            # Log detailed information for troubleshooting but don't fail hard
+            production_warning_message "Application bundle verification inconclusive:"
+            production_warning_message "  Bundle ID: $bundle_id"
+            production_warning_message "  Bundle Name: $bundle_name" 
+            production_warning_message "  Display Name: $bundle_display_name"
+            production_warning_message "  Path: $app_path"
+            
+            # If it's in the Cursor.app path, it's likely Cursor regardless of bundle ID
+            if [[ "$(basename "$app_path")" == "Cursor.app" ]]; then
+                production_warning_message "Proceeding with removal based on application path"
+                
+                local app_size
+                app_size=$(du -sh "$app_path" 2>/dev/null | cut -f1)
+                
+                if enhanced_safe_remove "$app_path"; then
+                    production_success_message "Removed Cursor.app ($app_size)"
+                    return 0
+                else
+                    production_error_message "Failed to remove Cursor.app"
+                    return 1
+                fi
+            else
+                production_error_message "Application bundle verification failed: cannot confirm this is Cursor"
+                return 1
+            fi
         fi
     else
         production_info_message "Cursor.app not found at $app_path"
