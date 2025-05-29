@@ -1,7 +1,45 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ModelSelector } from '../components/ModelSelector';
+
+// Mock UI components that ModelSelector depends on
+// ModelSelector imports from '../ui/index.js' relative to src/components/features/
+jest.mock('../../src/components/ui/index.js', () => ({
+  Card: ({ children, className }) => <div className={`card ${className || ''}`}>{children}</div>,
+  CardContent: ({ children, className }) => <div className={`card-content ${className || ''}`}>{children}</div>,
+  CardDescription: ({ children }) => <div>{children}</div>,
+  CardHeader: ({ children, className }) => <div className={`card-header ${className || ''}`}>{children}</div>,
+  CardTitle: ({ children, className }) => <div className={`card-title ${className || ''}`}>{children}</div>,
+  Badge: ({ children, variant, className }) => <span className={`badge ${variant || ''} ${className || ''}`}>{children}</span>,
+  Button: ({ children, variant, size, className, disabled, onClick }) => (
+    <button 
+      className={`button ${variant || ''} ${size || ''} ${className || ''}`} 
+      disabled={disabled} 
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  ),
+  Tooltip: ({ children }) => <div>{children}</div>,
+  TooltipContent: ({ children }) => <div>{children}</div>,
+  TooltipProvider: ({ children }) => <div>{children}</div>,
+  TooltipTrigger: ({ children, asChild }) => asChild ? children : <div>{children}</div>,
+  Separator: ({ className }) => <hr className={className || ''} />
+}));
+
+// Mock Lucide React icons
+jest.mock('lucide-react', () => ({
+  Code2: () => <span data-testid="icon-code">Code Icon</span>,
+  BrainCircuit: () => <span data-testid="icon-brain">Brain Icon</span>,
+  TextIcon: () => <span data-testid="icon-text">Text Icon</span>,
+  Eye: () => <span data-testid="icon-eye">Eye Icon</span>,
+  Calculator: () => <span data-testid="icon-calculator">Calculator Icon</span>,
+  CheckCircle: () => <span data-testid="icon-check">Check Icon</span>,
+  CheckCircle2: () => <span data-testid="icon-check2">Check2 Icon</span>,
+  Sparkles: () => <span data-testid="icon-sparkles">Sparkles Icon</span>,
+}));
+
+import { ModelSelector } from '../../src/components/features/ModelSelector';
 
 describe('ModelSelector Component', () => {
   const mockModels = {
@@ -39,10 +77,10 @@ describe('ModelSelector Component', () => {
     const onSelectMock = jest.fn();
     render(<ModelSelector modelData={mockModels} onModelSelect={onSelectMock} />);
 
-    // Check if all models are rendered
-    expect(screen.getByText('Test Model 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Model 2')).toBeInTheDocument();
-    expect(screen.getByText('Test Model 3 with null cost')).toBeInTheDocument();
+    // Check if all models are rendered by their test IDs
+    expect(screen.getByTestId('model-name-model1')).toHaveTextContent('Test Model 1');
+    expect(screen.getByTestId('model-name-model2')).toHaveTextContent('Test Model 2');
+    expect(screen.getByTestId('model-name-model3')).toHaveTextContent('Test Model 3 with null cost');
   });
 
   test('shows current model as selected', () => {
@@ -63,14 +101,14 @@ describe('ModelSelector Component', () => {
     const selectButton = screen.getAllByText('Select')[0];
     fireEvent.click(selectButton);
 
-    // Verify the callback was called
-    expect(onSelectMock).toHaveBeenCalled();
+    // Verify the callback was called with the correct model ID
+    expect(onSelectMock).toHaveBeenCalledWith('model2');
   });
 
   test('handles null cost values', () => {
     render(<ModelSelector modelData={mockModels} onModelSelect={jest.fn()} />);
 
     // All models should be rendered without errors, including the one with null cost
-    expect(screen.getByText('Test Model 3 with null cost')).toBeInTheDocument();
+    expect(screen.getByTestId('model-name-model3')).toHaveTextContent('Test Model 3 with null cost');
   });
 });

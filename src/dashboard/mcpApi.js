@@ -8,18 +8,11 @@
 
 import mockApi from './mockApi';
 
-// Helper function to handle MCP errors consistently
-const handleMcpError = (operation, error) => {
-  // Only log errors in non-test environments
-  if (process.env.NODE_ENV !== 'test') {
-    console.error(`MCP operation failed (${operation}):`, error);
-  }
-  return false;
-};
-
 // Utility function to safely parse JSON
 const safeJsonParse = (jsonString, fallback = null) => {
-  if (!jsonString) return fallback;
+  if (!jsonString) {
+    return fallback;
+  }
 
   try {
     return JSON.parse(jsonString);
@@ -38,7 +31,7 @@ const isMcpAvailable = () => {
     return typeof window !== 'undefined' &&
            window?.cline?.callMcpFunction !== undefined &&
            typeof window.cline.callMcpFunction === 'function';
-  } catch (e) {
+  } catch {
     return false;
   }
 };

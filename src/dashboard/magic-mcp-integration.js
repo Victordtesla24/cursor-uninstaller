@@ -31,7 +31,9 @@ const __setupTestMode = (handlers = {}) => {
 
 // Utility function to safely parse JSON with fallback
 const safeJsonParse = (jsonString, fallback = null) => {
-  if (!jsonString) return fallback;
+  if (!jsonString) {
+    return fallback;
+  }
 
   try {
     return JSON.parse(jsonString);
@@ -132,7 +134,7 @@ function useMagicMcpDashboard() {
         const mockData = await mockApi.fetchDashboardData();
         setData(mockData);
         setLastUpdated(new Date());
-      } catch (mockError) {
+      } catch {
         // In case even the mock data fails
         setError('Failed to load any dashboard data');
       }
@@ -299,17 +301,15 @@ function useMagicMcpDashboard() {
 
     // Apply constraints based on budget type
     if (budgetType === 'codeCompletion') {
-      if (value < 100 || value > 1000) {
-        setError(`Invalid budget value for ${budgetType}. Must be between 100 and 1000`);
-        return false;
-      }
-    } else {
-      // For other budget types
-      if (value < 100 || value > 5000) {
-        setError(`Invalid budget value for ${budgetType}. Must be between 100 and 5000`);
-        return false;
-      }
-    }
+          if (value < 100 || value > 1000) {
+            setError(`Invalid budget value for ${budgetType}. Must be between 100 and 1000`);
+            return false;
+          }
+        }
+    else if (value < 100 || value > 5000) {
+            setError(`Invalid budget value for ${budgetType}. Must be between 100 and 5000`);
+            return false;
+          }
 
     // Special handling for test mode
     if (__TEST_MODE__ && __TEST_HANDLERS__.updateTokenBudget) {
@@ -484,8 +484,7 @@ const initializeDashboard = async () => {
   try {
     if (isMcpAvailable()) {
       // First attempt to get data from MCP
-      const data = await fetchDashboardData();
-      return data;
+      return await fetchDashboardData();
     }
 
     // Fallback to mock API
@@ -509,8 +508,7 @@ const refreshDashboardData = async () => {
         args: {}
       });
 
-      const result = safeJsonParse(response, {});
-      return result;
+      return safeJsonParse(response, {});
     }
 
     // Fallback to mock API
@@ -592,8 +590,7 @@ const callPuppeteerMcp = async (toolName, args) => {
     }
 
     console.log(`Using Puppeteer MCP tool: ${toolName}`, args);
-    const result = await window.__MCP_CLIENT.useTool('puppeteer', toolName, args);
-    return result;
+    return await window.__MCP_CLIENT.useTool('puppeteer', toolName, args);
   } catch (error) {
     console.error(`Error using Puppeteer MCP tool ${toolName}:`, error);
     throw error;

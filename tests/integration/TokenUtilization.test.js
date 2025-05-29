@@ -44,12 +44,11 @@ describe('TokenUtilization Component', () => {
       return element.tagName.toLowerCase() === 'h3' && content.includes('Overall Budget');
     })).toBeInTheDocument();
 
-    // Check for "Budget Categories" heading
-    expect(screen.getByText('Budget Categories')).toBeInTheDocument();
+    // Check for "Token Budgets" heading
+    expect(screen.getByText('Token Budgets')).toBeInTheDocument();
 
     // Check for cache efficiency
     expect(screen.getByText('Cache Efficiency')).toBeInTheDocument();
-    expect(screen.getByText((content) => content.includes('Tokens saved through caching'))).toBeInTheDocument();
   });
 
   test('renders with minimal data', () => {

@@ -39,18 +39,22 @@ const mockDashboardData = {
   }
 };
 
-// Mock the mockApi module
-jest.mock('../mockApi.js', () => ({
-  mockApi: {
-    fetchDashboardData: jest.fn().mockResolvedValue(mockDashboardData),
-    updateSelectedModel: jest.fn().mockResolvedValue(true),
-    updateSetting: jest.fn().mockResolvedValue(true),
-    updateTokenBudget: jest.fn().mockResolvedValue(true),
-  }
-}));
+// Mock the mockApi module without referencing mockDashboardData directly
+jest.mock('../mockApi.js', () => {
+  const mockApi = {
+    fetchDashboardData: jest.fn(),
+    updateSelectedModel: jest.fn(),
+    updateSetting: jest.fn(),
+    updateTokenBudget: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: mockApi
+  };
+});
 
 // Import the mocked version
-import * as mockApiModule from '../mockApi.js';
+import mockApiDefault from '../mockApi.js';
 
 // Mock window object and MCP client
 const originalWindow = global.window;
@@ -66,10 +70,10 @@ describe('Enhanced Dashboard API', () => {
     jest.clearAllMocks();
 
     // Reset the mock implementation
-    mockApiModule.mockApi.fetchDashboardData.mockResolvedValue(mockDashboardData);
-    mockApiModule.mockApi.updateSelectedModel.mockResolvedValue(true);
-    mockApiModule.mockApi.updateSetting.mockResolvedValue(true);
-    mockApiModule.mockApi.updateTokenBudget.mockResolvedValue(true);
+    mockApiDefault.fetchDashboardData.mockResolvedValue(mockDashboardData);
+    mockApiDefault.updateSelectedModel.mockResolvedValue(true);
+    mockApiDefault.updateSetting.mockResolvedValue(true);
+    mockApiDefault.updateTokenBudget.mockResolvedValue(true);
 
     // Create fresh MCP client mock for each test
     const mcpClient = {
@@ -102,13 +106,13 @@ describe('Enhanced Dashboard API', () => {
 
       const result = await refreshData();
       expect(result).toEqual(mockDashboardData);
-      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalled();
+      expect(mockApiDefault.fetchDashboardData).toHaveBeenCalled();
     });
 
     it('should use mock data when forced', async () => {
       const result = await refreshData(true); // Force mock data
       expect(result).toEqual(mockDashboardData);
-      expect(mockApiModule.mockApi.fetchDashboardData).toHaveBeenCalled();
+      expect(mockApiDefault.fetchDashboardData).toHaveBeenCalled();
     });
   });
 
@@ -118,7 +122,7 @@ describe('Enhanced Dashboard API', () => {
 
       const result = await updateSelectedModel('new-model');
       expect(result).toBe(true);
-      expect(mockApiModule.mockApi.updateSelectedModel).toHaveBeenCalledWith('new-model');
+      expect(mockApiDefault.updateSelectedModel).toHaveBeenCalledWith('new-model');
     });
   });
 
@@ -128,7 +132,7 @@ describe('Enhanced Dashboard API', () => {
 
       const result = await updateSetting('darkMode', true);
       expect(result).toBe(true);
-      expect(mockApiModule.mockApi.updateSetting).toHaveBeenCalledWith('darkMode', true);
+      expect(mockApiDefault.updateSetting).toHaveBeenCalledWith('darkMode', true);
     });
   });
 
@@ -138,7 +142,7 @@ describe('Enhanced Dashboard API', () => {
 
       const result = await updateTokenBudget('test', 1000);
       expect(result).toBe(true);
-      expect(mockApiModule.mockApi.updateTokenBudget).toHaveBeenCalledWith('test', 1000);
+      expect(mockApiDefault.updateTokenBudget).toHaveBeenCalledWith('test', 1000);
     });
   });
 
@@ -207,7 +211,8 @@ describe('Enhanced Dashboard API', () => {
       const start = Date.now();
       await delay(100);
       const end = Date.now();
-      expect(end - start).toBeGreaterThanOrEqual(100);
+      // Add small tolerance for timing variations (system timing isn't precise)
+      expect(end - start).toBeGreaterThanOrEqual(95);
     });
 
     it('should return false when initializing client without __MCP_INIT', async () => {

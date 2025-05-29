@@ -6,27 +6,6 @@
 
 import * as magicMcpClient from './magicMcpClient.js';
 
-// Utility function to wait for a global variable to be defined
-const waitForGlobal = (name, timeout = 5000) => {
-  return new Promise((resolve, reject) => {
-    if (window[name] !== undefined) {
-      return resolve(window[name]);
-    }
-
-    const startTime = Date.now();
-
-    const interval = setInterval(() => {
-      if (window[name] !== undefined) {
-        clearInterval(interval);
-        resolve(window[name]);
-      } else if (Date.now() > startTime + timeout) {
-        clearInterval(interval);
-        reject(new Error(`Timeout waiting for ${name} to be defined`));
-      }
-    }, 100);
-  });
-};
-
 // Configuration for the Cline Dashboard MCP server
 const setupClineServer = async () => {
   // Detect if running in VS Code or standalone mode
@@ -154,10 +133,10 @@ export const initializeMcpServers = async () => {
 
 /**
  * Create a new MCP server configuration for a project
- * @param {string} projectPath - Path to the project
+ * @param {string} _projectPath - Path to the project
  * @returns {Object} MCP configuration object
  */
-export const createMcpConfig = (projectPath = '.') => {
+export const createMcpConfig = (_projectPath = '.') => {
   return {
     mcpServers: {
       '@21st-dev/magic': {

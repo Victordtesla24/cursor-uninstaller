@@ -27,6 +27,7 @@ jest.mock('../../src/components/ui', () => ({
   Badge: ({ children, variant, className }) => (
     <span data-testid="badge" data-variant={variant} className={className}>{children}</span>
   ),
+  Progress: ({ value, className }) => <div data-testid="progress" data-value={value} className={className}>Progress: {value}%</div>,
   Tooltip: ({ children }) => <div data-testid="tooltip">{children}</div>,
   TooltipContent: ({ children, side }) => <div data-testid="tooltip-content" data-side={side}>{children}</div>,
   TooltipProvider: ({ children }) => <div data-testid="tooltip-provider">{children}</div>,
@@ -55,28 +56,36 @@ jest.mock('lucide-react', () => {
 
   // Return an object with all the icons used in the component
   return {
+    Activity: createIconMock('Activity'),
+    AlertTriangle: createIconMock('AlertTriangle'),
+    ArrowDown: createIconMock('ArrowDown'),
+    ArrowUp: createIconMock('ArrowUp'),
+    BarChart2: createIconMock('BarChart2'),
     BarChart3: createIconMock('BarChart3'),
-    PieChart: createIconMock('PieChart'),
-    LineChart: createIconMock('LineChart'),
     Calendar: createIconMock('Calendar'),
-    Filter: createIconMock('Filter'),
-    Download: createIconMock('Download'),
+    CheckCircle: createIconMock('CheckCircle'),
     Clock: createIconMock('Clock'),
-    Tag: createIconMock('Tag'),
-    RefreshCw: createIconMock('RefreshCw'),
-    Search: createIconMock('Search'),
+    CreditCard: createIconMock('CreditCard'),
+    Database: createIconMock('Database'),
+    Download: createIconMock('Download'),
     FileDown: createIconMock('FileDown'),
     FileText: createIconMock('FileText'),
-    Share2: createIconMock('Share2'),
-    MailIcon: createIconMock('MailIcon'),
-    BarChart2: createIconMock('BarChart2'),
-    CreditCard: createIconMock('CreditCard'),
-    TrendingUp: createIconMock('TrendingUp'),
-    TrendingDown: createIconMock('TrendingDown'),
+    Filter: createIconMock('Filter'),
+    Gauge: createIconMock('Gauge'),
     Info: createIconMock('Info'),
+    LineChart: createIconMock('LineChart'),
+    MailIcon: createIconMock('MailIcon'),
+    PieChart: createIconMock('PieChart'),
+    RefreshCw: createIconMock('RefreshCw'),
+    Search: createIconMock('Search'),
+    Server: createIconMock('Server'),
+    Share2: createIconMock('Share2'),
     Shield: createIconMock('Shield'),
+    Tag: createIconMock('Tag'),
+    TrendingDown: createIconMock('TrendingDown'),
+    TrendingUp: createIconMock('TrendingUp'),
+    Wifi: createIconMock('Wifi'),
     Zap: createIconMock('Zap'),
-    // Add any other icons that might be used
   };
 });
 
@@ -270,7 +279,7 @@ describe('EnhancedAnalyticsDashboard Component', () => {
   });
 
   // Comparison functionality tests
-  test('enables comparison mode when compare button clicked', () => {
+  test('enables comparison mode when compare button clicked', async () => {
     render(
       <EnhancedAnalyticsDashboard
         usageData={mockUsageData}
@@ -278,23 +287,15 @@ describe('EnhancedAnalyticsDashboard Component', () => {
       />
     );
 
-    // Find and click the compare button
-    const compareButtons = screen.getAllByRole('button').filter(button =>
-      button.textContent.includes('Compare')
-    );
+    // Find and click the compare button more specifically
+    const compareButton = screen.getByRole('button', { name: /Compare/i });
+    expect(compareButton).toBeInTheDocument(); // Ensure button is found
+    fireEvent.click(compareButton);
 
-    if (compareButtons.length > 0) {
-      fireEvent.click(compareButtons[0]);
-
-      // Check if comparison options appear
-      // This depends on the actual implementation
-      const periodButtons = screen.getAllByRole('button').filter(button =>
-        button.textContent.includes('Previous') ||
-        button.textContent.includes('Same')
-      );
-
-      expect(periodButtons.length).toBeGreaterThan(0);
-    }
+    // Wait for comparison metric values to appear
+    await waitFor(() => {
+      expect(screen.getAllByTestId('comparison-metric-value').length).toBeGreaterThan(0);
+    });
   });
 
   // Export functionality tests

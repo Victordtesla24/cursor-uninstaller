@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger
-} from "./ui/index.js";
+} from "../ui/index.js";
 import {
   ChevronDown,
   ChevronUp,

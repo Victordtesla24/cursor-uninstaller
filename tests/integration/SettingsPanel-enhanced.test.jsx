@@ -1,119 +1,78 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import SettingsPanel from '../components/SettingsPanel';
 
-// Mock the UI components
-jest.mock('../../src/components/ui', () => ({
-  Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
-  CardHeader: ({ children }) => <div data-testid="card-header">{children}</div>,
-  CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
-  CardDescription: ({ children }) => <div data-testid="card-description">{children}</div>,
-  CardTitle: ({ children, className }) => <div data-testid="card-title" className={className}>{children}</div>,
-  CardFooter: ({ children, className }) => <div data-testid="card-footer" className={className}>{children}</div>,
-  Button: ({ children, variant, size, onClick, className, disabled, ...props }) => (
-    <button
-      data-testid="button"
-      data-variant={variant}
-      data-size={size}
+// Mock UI components that SettingsPanel depends on
+jest.mock('../../src/components/ui/index.js', () => ({
+  Card: ({ children, className }) => <div className={`card ${className || ''}`}>{children}</div>,
+  CardContent: ({ children, className }) => <div className={`card-content ${className || ''}`}>{children}</div>,
+  CardDescription: ({ children }) => <div>{children}</div>,
+  CardHeader: ({ children, className }) => <div className={`card-header ${className || ''}`}>{children}</div>,
+  CardTitle: ({ children, className }) => <div className={`card-title ${className || ''}`}>{children}</div>,
+  CardFooter: ({ children, className }) => <div className={`card-footer ${className || ''}`}>{children}</div>,
+  Badge: ({ children, variant, className }) => <span className={`badge ${variant || ''} ${className || ''}`}>{children}</span>,
+  Button: ({ children, variant, size, className, disabled, onClick, ...props }) => (
+    <button 
+      className={`button ${variant || ''} ${size || ''} ${className || ''}`} 
+      disabled={disabled} 
       onClick={onClick}
-      className={className}
-      disabled={disabled}
       {...props}
     >
       {children}
     </button>
   ),
-  Switch: ({ checked, onCheckedChange, id, className, ...props }) => (
-    <input
-      type="checkbox"
-      data-testid={id || "switch"}
+  Switch: ({ checked, onCheckedChange, id, ...props }) => (
+    <input 
+      type="checkbox" 
       checked={checked}
       onChange={(e) => onCheckedChange && onCheckedChange(e.target.checked)}
-      className={className}
+      id={id}
       role="switch"
       aria-checked={checked}
       {...props}
     />
   ),
   Label: ({ children, htmlFor, className }) => (
-    <label data-testid="label" htmlFor={htmlFor} className={className}>{children}</label>
+    <label htmlFor={htmlFor} className={className}>{children}</label>
   ),
-  Input: ({ value, onChange, className, autoFocus, ...props }) => (
-    <input
-      data-testid="input"
-      value={value}
-      onChange={onChange}
-      className={className}
-      {...props}
-    />
+  Input: ({ value, onChange, className, ...props }) => (
+    <input value={value} onChange={onChange} className={className} {...props} />
   ),
-  Badge: ({ children, variant, className }) => (
-    <span data-testid="badge" data-variant={variant} className={className}>{children}</span>
-  ),
-  Separator: ({ className }) => <hr data-testid="separator" className={className} />,
-  Tooltip: ({ children }) => <div data-testid="tooltip">{children}</div>,
-  TooltipContent: ({ children, side }) => <div data-testid="tooltip-content" data-side={side}>{children}</div>,
-  TooltipProvider: ({ children }) => <div data-testid="tooltip-provider">{children}</div>,
-  TooltipTrigger: ({ children, asChild }) => <div data-testid="tooltip-trigger" data-aschild={asChild}>{children}</div>,
-  Collapsible: ({ children, open, className }) => (
-    <div data-testid="collapsible" data-open={open} className={className}>{children}</div>
-  ),
-  CollapsibleContent: ({ children, className }) => (
-    <div data-testid="collapsible-content" className={className}>{children}</div>
-  ),
-  CollapsibleTrigger: ({ children }) => <div data-testid="collapsible-trigger">{children}</div>,
-  Accordion: ({ children, type, collapsible, className, defaultValue }) => (
-    <div
-      data-testid="accordion"
-      data-type={type}
-      data-collapsible={collapsible}
-      className={className}
-      data-default-value={defaultValue}
-    >
-      {children}
-    </div>
-  ),
-  AccordionItem: ({ children, value, className }) => (
-    <div data-testid="accordion-item" data-value={value} className={className}>{children}</div>
-  ),
-  AccordionTrigger: ({ children, className }) => (
-    <div data-testid="accordion-trigger" className={className}>{children}</div>
-  ),
-  AccordionContent: ({ children, className }) => (
-    <div data-testid="accordion-content" className={className}>{children}</div>
-  ),
+  Separator: ({ className }) => <hr className={className || ''} />,
+  Collapsible: ({ children, open, className }) => <div className={className} data-open={open}>{children}</div>,
+  CollapsibleContent: ({ children, className }) => <div className={className}>{children}</div>,
+  CollapsibleTrigger: ({ children, onClick }) => <button onClick={onClick}>{children}</button>,
+  Accordion: ({ children, type, collapsible, className }) => <div className={className}>{children}</div>,
+  AccordionItem: ({ children, value, className }) => <div className={className} data-value={value}>{children}</div>,
+  AccordionTrigger: ({ children, className }) => <div className={className}>{children}</div>,
+  AccordionContent: ({ children, className }) => <div className={className}>{children}</div>,
+  Tooltip: ({ children }) => <div>{children}</div>,
+  TooltipContent: ({ children, side }) => <div data-side={side}>{children}</div>,
+  TooltipProvider: ({ children }) => <div>{children}</div>,
+  TooltipTrigger: ({ children, asChild }) => asChild ? children : <div>{children}</div>,
 }));
 
-// Mock lucide-react icons
-jest.mock('lucide-react', () => {
-  // Create a mock icon component generator
-  const createIconMock = (name) => ({ className, size }) => (
-    <span data-testid={`icon-${name.toLowerCase()}`} className={className} data-size={size}>
-      {name} Icon
-    </span>
-  );
+// Mock Lucide React icons (same as the working test file)
+jest.mock('lucide-react', () => ({
+  Settings: () => <span data-testid="icon-settings">Settings Icon</span>,
+  ChevronDown: () => <span data-testid="icon-chevron-down">ChevronDown Icon</span>,
+  ChevronUp: () => <span data-testid="icon-chevron-up">ChevronUp Icon</span>,
+  Edit: () => <span data-testid="icon-edit">Edit Icon</span>,
+  Save: () => <span data-testid="icon-save">Save Icon</span>,
+  X: () => <span data-testid="icon-x">X Icon</span>,
+  Check: () => <span data-testid="icon-check">Check Icon</span>,
+  AlertCircle: () => <span data-testid="icon-alert">Alert Icon</span>,
+  Info: () => <span data-testid="icon-info">Info Icon</span>,
+  CreditCard: () => <span data-testid="icon-credit-card">CreditCard Icon</span>,
+  Bell: () => <span data-testid="icon-bell">Bell Icon</span>,
+  WrenchIcon: () => <span data-testid="icon-wrench">Wrench Icon</span>,
+  MonitorIcon: () => <span data-testid="icon-monitor">Monitor Icon</span>,
+  RefreshCwIcon: () => <span data-testid="icon-refresh">RefreshCw Icon</span>,
+  MoonIcon: () => <span data-testid="icon-moon">Moon Icon</span>,
+  LayoutGrid: () => <span data-testid="icon-layout">LayoutGrid Icon</span>,
+}));
 
-  // Return mocked icon components
-  return {
-    Settings: createIconMock("Settings"),
-    ChevronDown: createIconMock("ChevronDown"),
-    ChevronUp: createIconMock("ChevronUp"),
-    CreditCard: createIconMock("CreditCard"),
-    Save: createIconMock("Save"),
-    X: createIconMock("X"),
-    Check: createIconMock("Check"),
-    Edit: createIconMock("Edit"),
-    AlertCircle: createIconMock("AlertCircle"),
-    Info: createIconMock("Info"),
-    Bell: createIconMock("Bell"),
-    WrenchIcon: createIconMock("Wrench"),
-    MonitorIcon: createIconMock("Monitor"),
-    RefreshCwIcon: createIconMock("RefreshCw"),
-    MoonIcon: createIconMock("Moon"),
-    LayoutGrid: createIconMock("LayoutGrid"),
-  };
-});
+import SettingsPanel from '../../src/components/features/SettingsPanel';
 
 describe('SettingsPanel Component (Enhanced Tests)', () => {
   // Test data
@@ -202,16 +161,18 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   });
 
   test('renders collapsible content when not collapsed', () => {
-    const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
+    const { container } = render(<SettingsPanel {...defaultProps} isCollapsed={false} />);
 
-    const collapsible = getByTestId('collapsible');
+    // Find the collapsible element by its class and data-open attribute
+    const collapsible = container.querySelector('[data-open="true"]');
     expect(collapsible).toHaveAttribute('data-open', 'true');
   });
 
   test('does not render collapsible content when collapsed', () => {
-    const { getByTestId } = render(<SettingsPanel {...defaultProps} isCollapsed={true} />);
+    const { container } = render(<SettingsPanel {...defaultProps} isCollapsed={true} />);
 
-    const collapsible = getByTestId('collapsible');
+    // Find the collapsible element by its class and data-open attribute
+    const collapsible = container.querySelector('[data-open="false"]');
     expect(collapsible).toHaveAttribute('data-open', 'false');
   });
 
@@ -234,9 +195,8 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   test('renders all settings in appropriate categories', () => {
     const { container, getAllByTestId } = render(<SettingsPanel {...defaultProps} />); // Use container from here
 
-    // Check that all accordion items are rendered
-    // Note: The mock for AccordionItem in mocks/ui/index.js uses data-testid="mock-accordion-item"
-    const accordionItems = getAllByTestId('mock-accordion-item');
+    // Check that all accordion items are rendered by looking for actual accordion items
+    const accordionItems = container.querySelectorAll('[data-value]');
     expect(accordionItems.length).toBeGreaterThanOrEqual(3); // At least 3 categories
 
     // Check that all settings are rendered
@@ -391,11 +351,11 @@ describe('SettingsPanel Component (Enhanced Tests)', () => {
   test('applies correct styling with dark mode', () => {
     const { container } = render(<SettingsPanel {...defaultProps} darkMode={true} />);
 
-    // For this test, we'll just check that the props were passed correctly
-    const card = container.querySelector('[data-testid="mock-card"]');
+    // Check that the component renders properly with dark mode prop
+    const card = container.querySelector('.card');
     expect(card).toBeInTheDocument();
 
-    // Additional checks could be added for specific dark mode classes
-    // depending on implementation
+    // The component should still render all its content
+    expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 });

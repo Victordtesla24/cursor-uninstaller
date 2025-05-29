@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Separator
-} from './ui/index.js';
+} from '../ui/index.js';
 import {
   Code2,
   BrainCircuit,

@@ -21,7 +21,6 @@ export const Dashboard = () => {
   const [viewMode, setViewMode] = useState('overview');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sessionTime, setSessionTime] = useState(0);
 
   // Load dashboard data from MCP
   const loadDashboardData = async () => {
@@ -49,7 +48,9 @@ export const Dashboard = () => {
 
   // Handle model selection change
   const handleModelChange = async (model) => {
-    if (!model) return;
+    if (!model) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -202,7 +203,6 @@ export const Dashboard = () => {
         appName="Cline AI Dashboard"
         isDarkMode={isDarkMode}
         onThemeToggle={toggleTheme}
-        sessionTime={sessionTime}
       />
 
       {viewMode === 'overview' && (

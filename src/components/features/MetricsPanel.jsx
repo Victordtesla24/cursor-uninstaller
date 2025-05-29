@@ -8,7 +8,7 @@ import {
   Badge,
   Separator,
   Progress
-} from './ui/index.js';
+} from '../ui/index.js';
 import {
   Activity,
   Clock,

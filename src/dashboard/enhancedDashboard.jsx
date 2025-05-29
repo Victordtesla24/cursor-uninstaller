@@ -1,60 +1,37 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Header,
   CostTracker,
   ModelSelector,
   SettingsPanel,
   TokenUtilization,
   UsageChart,
   UsageStats,
-  EnhancedHeader,
   MetricsPanel,
   TokenBudgetRecommendations,
   EnhancedAnalyticsDashboard,
   ModelPerformanceComparison
-} from './components';
+} from '../components/features';
 import {
   Card,
   CardHeader,
   CardContent,
-  CardFooter,
   CardTitle,
   CardDescription,
   Separator,
   Button,
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-  Badge,
-  Switch
+  Badge
 } from '../components/ui/index.js';
 import * as enhancedDashboardApi from './lib/enhancedDashboardApi';
 import { dashboardConfig } from "./lib/config.js";
-import { cn } from "./lib/utils.js";
 import {
-  LayoutDashboard,
   BarChart3,
   Settings as SettingsIcon,
   RefreshCw,
-  AlertCircle,
   ChevronDown,
-  Wifi,
-  WifiOff,
-  ArrowUpRight,
-  ArrowDownRight,
   Moon,
   Sun,
-  BarChart2,
-  Lightbulb,
-  LineChart,
   Activity,
-  TrendingUp,
-  Menu,
   Bell,
-  Search,
-  Filter,
-  Download,
   Eye,
   Sparkles,
   Clock,
@@ -98,7 +75,7 @@ function AnimatedTabs({ tabs, activeTab, onChange }) {
 }
 
 // Status Badge component for connection status
-function StatusBadge({ connected, label, type = 'default' }) {
+function StatusBadge({ connected, label }) {
   const getStatusStyles = () => {
     if (connected) {
       return {
@@ -270,12 +247,7 @@ const EnhancedDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [settings, setSettings] = useState({});
-  const [selectedModel, setSelectedModel] = useState(null);
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-  const [refreshTimestamp, setRefreshTimestamp] = useState(Date.now());
-  const [tokenBudget, setTokenBudget] = useState(null);
-  const [useMockData, setUseMockData] = useState(false); // Flag for switching between mock and real data
+  const [useMockData] = useState(false); // Flag for switching between mock and real data
   const [viewMode, setViewMode] = useState('overview'); // From index.jsx: Control which view is shown
   const [darkMode, setDarkMode] = useState(() => {
     // Initialize from localStorage or system preference
@@ -286,9 +258,9 @@ const EnhancedDashboard = () => {
     // Check system preference as fallback
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState({
+  const [connectionStatus] = useState({
     clineServerConnected: false,
     magicApiConnected: false,
     usingMockData: true
@@ -319,15 +291,11 @@ const EnhancedDashboard = () => {
     });
   }, []);
 
-  // Function to toggle between mock and real data (from Dashboard.jsx)
-  const toggleDataSource = useCallback(() => {
-    setUseMockData(prev => !prev);
-  }, []);
-  // End toggleDataSource
-
   // Function to fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
-    if (isPendingRefresh.current) return;
+    if (isPendingRefresh.current) {
+      return;
+    }
 
     isPendingRefresh.current = true;
     setLoading(isInitialLoad.current);
@@ -338,9 +306,6 @@ const EnhancedDashboard = () => {
 
       if (data) {
         setDashboardData(data);
-        setSettings(data.settings || {});
-        setSelectedModel(data.models?.selected);
-        setTokenBudget(data.tokens?.budgets?.total?.budget);
         setError(null);
         setLastUpdated(new Date());
       }
@@ -356,7 +321,6 @@ const EnhancedDashboard = () => {
       setLoading(false);
       isInitialLoad.current = false;
       isPendingRefresh.current = false;
-      setRefreshTimestamp(Date.now());
     }
   }, [dashboardData, useMockData]);
 
@@ -386,86 +350,6 @@ const EnhancedDashboard = () => {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [fetchDashboardData]);
-
-  // Handle model selection
-  const handleModelChange = useCallback(async (modelId) => {
-    try {
-      const success = await enhancedDashboardApi.updateSelectedModel(modelId);
-      if (success) {
-        setSelectedModel(modelId);
-        // Trigger a refresh after a short delay to get updated data
-        setTimeout(fetchDashboardData, 500);
-      }
-    } catch (err) {
-      console.error('Error changing model:', err);
-      setError(`Failed to change model: ${err.message}`);
-    }
-  }, [fetchDashboardData]);
-
-  // Handle settings updates
-  const handleSettingChange = useCallback(async (key, value) => {
-    try {
-      const success = await enhancedDashboardApi.updateSetting(key, value);
-      if (success) {
-        setSettings(prev => ({
-          ...prev,
-          [key]: value
-        }));
-      }
-    } catch (err) {
-      console.error(`Error updating setting ${key}:`, err);
-      setError(`Failed to update setting: ${err.message}`);
-    }
-  }, []);
-
-  // Handle token budget updates
-  const handleTokenBudgetChange = useCallback(async (budgetType, value) => {
-    try {
-      const success = await enhancedDashboardApi.updateTokenBudget(budgetType, value);
-      if (success) {
-        setTokenBudget(value);
-        // Refresh to get updated token budget data
-        fetchDashboardData();
-      }
-    } catch (err) {
-      console.error('Error updating token budget:', err);
-      setError(`Failed to update token budget: ${err.message}`);
-    }
-  }, [fetchDashboardData]);
-
-  // Force a manual refresh
-  const handleRefresh = useCallback(() => {
-    if (!isPendingRefresh.current) {
-      fetchDashboardData();
-    }
-  }, [fetchDashboardData]);
-
-  // Toggle advanced settings visibility
-  const toggleAdvancedSettings = useCallback(() => {
-    setShowAdvancedSettings(prev => !prev);
-  }, []);
-
-  // Handle view mode change (from index.jsx)
-  const handleViewModeChange = useCallback((mode) => {
-    setViewMode(mode);
-  }, []);
-
-  // Handle applying a budget recommendation
-  const handleApplyRecommendation = useCallback(async (category, recommendedBudget) => {
-    try {
-      const success = await enhancedDashboardApi.updateTokenBudget(category, recommendedBudget);
-      if (success) {
-        if (category === 'total') {
-          setTokenBudget(recommendedBudget);
-        }
-        // Refresh to get updated token budget data
-        fetchDashboardData();
-      }
-    } catch (err) {
-      console.error('Error applying budget recommendation:', err);
-      setError(`Failed to apply recommendation: ${err.message}`);
-    }
   }, [fetchDashboardData]);
 
   // Show loading state if initial load is in progress
@@ -509,7 +393,7 @@ const EnhancedDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <Button onClick={handleRefresh} className="w-full bg-red-600 hover:bg-red-700">
+            <Button onClick={fetchDashboardData} className="w-full bg-red-600 hover:bg-red-700">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry Connection
             </Button>
@@ -524,7 +408,7 @@ const EnhancedDashboard = () => {
       <DashboardHeader 
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
-        onRefresh={handleRefresh}
+        onRefresh={fetchDashboardData}
         refreshing={refreshing}
         lastUpdated={lastUpdated}
         connectionStatus={connectionStatus}
@@ -639,7 +523,6 @@ const EnhancedDashboard = () => {
               <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
                 <TokenBudgetRecommendations 
                   tokenData={dashboardData?.tokens}
-                  onApplyRecommendation={handleSettingChange}
                   darkMode={darkMode}
                 />
               </div>
@@ -657,7 +540,6 @@ const EnhancedDashboard = () => {
                 <ModelPerformanceComparison 
                   modelsData={dashboardData?.models}
                   usageData={dashboardData?.usage}
-                  onModelSelect={handleModelChange}
                   darkMode={darkMode}
                 />
               </div>
@@ -676,7 +558,6 @@ const EnhancedDashboard = () => {
                 <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
                   <ModelSelector 
                     modelData={dashboardData?.models}
-                    onModelSelect={handleModelChange}
                     darkMode={darkMode}
                   />
                 </div>
@@ -685,8 +566,6 @@ const EnhancedDashboard = () => {
                   <SettingsPanel 
                     settings={dashboardData?.settings}
                     tokenBudgets={dashboardData?.tokens?.budgets}
-                    onSettingChange={handleSettingChange}
-                    onBudgetChange={handleTokenBudgetChange}
                     darkMode={darkMode}
                   />
                 </div>

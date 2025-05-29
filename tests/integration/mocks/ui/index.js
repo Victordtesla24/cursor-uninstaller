@@ -5,144 +5,204 @@ import React from 'react';
  */
 
 // Card components
-export const Card = ({ className = '', children, ...props }) => (
-  <div className={`mock-card ${className}`} data-testid="mock-card" {...props}>{children}</div>
-);
-
-export const CardContent = ({ className = '', children, ...props }) => (
-  <div className={`mock-card-content ${className}`} data-testid="mock-card-content" {...props}>{children}</div>
-);
-
-export const CardDescription = ({ className = '', children, ...props }) => (
-  <p className={`mock-card-description ${className}`} data-testid="mock-card-description" {...props}>{children}</p>
-);
-
-export const CardFooter = ({ className = '', children, ...props }) => (
-  <div className={`mock-card-footer ${className}`} data-testid="mock-card-footer" {...props}>{children}</div>
-);
-
-export const CardHeader = ({ className = '', children, ...props }) => (
-  <div className={`mock-card-header ${className}`} data-testid="mock-card-header" {...props}>{children}</div>
-);
-
-export const CardTitle = ({ className = '', children, ...props }) => (
-  <h3 className={`mock-card-title ${className}`} data-testid="mock-card-title" {...props}>{children}</h3>
-);
-
-// Collapsible components
-export const Collapsible = ({ className = '', children, open, ...props }) => (
-  <div
-    className={`mock-collapsible ${className}`}
-    data-testid="collapsible" // Align with test expectations
-    data-open={open} // Use the open prop
-    {...props}
-  >
+export const Card = ({ children, className, ...props }) => (
+  <div className={`card ${className || ''}`} {...props}>
     {children}
   </div>
 );
 
-export const CollapsibleContent = ({ className = '', children, ...props }) => (
-  <div className={`mock-collapsible-content ${className}`} data-testid="mock-collapsible-content" {...props}>{children}</div>
+export const CardHeader = ({ children, className, ...props }) => (
+  <div className={`card-header ${className || ''}`} {...props}>
+    {children}
+  </div>
 );
 
-export const CollapsibleTrigger = ({ className = '', children, ...props }) => (
-  <button className={`mock-collapsible-trigger ${className}`} data-testid="mock-collapsible-trigger" {...props}>{children}</button>
+export const CardContent = ({ children, className, ...props }) => (
+  <div className={`card-content ${className || ''}`} {...props}>
+    {children}
+  </div>
+);
+
+export const CardFooter = ({ children, className, ...props }) => (
+  <div className={`card-footer ${className || ''}`} {...props}>
+    {children}
+  </div>
+);
+
+export const CardTitle = ({ children, className, ...props }) => (
+  <h3 className={`card-title ${className || ''}`} {...props}>
+    {children}
+  </h3>
+);
+
+export const CardDescription = ({ children, className, ...props }) => (
+  <p className={`card-description ${className || ''}`} {...props}>
+    {children}
+  </p>
+);
+
+// Collapsible components
+export const Collapsible = ({ children, open, ...props }) => (
+  <div data-testid="mock-collapsible" data-open={open ? 'true' : 'false'} {...props}>
+    {children}
+  </div>
+);
+
+export const CollapsibleTrigger = ({ children, ...props }) => (
+  <button data-testid="mock-collapsible-trigger" {...props}>
+    {children}
+  </button>
+);
+
+export const CollapsibleContent = ({ children, ...props }) => (
+  <div data-testid="mock-collapsible-content" {...props}>
+    {children}
+  </div>
 );
 
 // Accordion components
-export const Accordion = ({ className = '', children, collapsible, ...props }) => {
-  // Convert boolean prop to string to avoid React warning
-  const accordionProps = { ...props };
-  if (collapsible !== undefined) {
-    accordionProps['data-collapsible'] = collapsible.toString();
-  }
-
-  return (
-    <div className={`mock-accordion ${className}`} data-testid="mock-accordion" {...accordionProps}>
-      {children}
-    </div>
-  );
-};
-
-export const AccordionContent = ({ className = '', children, ...props }) => (
-  <div className={`mock-accordion-content ${className}`} data-testid="mock-accordion-content" {...props}>{children}</div>
+export const Accordion = ({ children, ...props }) => (
+  <div data-testid="mock-accordion" {...props}>
+    {children}
+  </div>
 );
 
-export const AccordionItem = ({ className = '', children, ...props }) => (
-  <div className={`mock-accordion-item ${className}`} data-testid="mock-accordion-item" {...props}>{children}</div>
+export const AccordionItem = ({ children, value, ...props }) => (
+  <div data-testid="mock-accordion-item" data-value={value} {...props}>
+    {children}
+  </div>
 );
 
-export const AccordionTrigger = ({ className = '', children, ...props }) => (
-  <button className={`mock-accordion-trigger ${className}`} data-testid="mock-accordion-trigger" {...props}>{children}</button>
+export const AccordionTrigger = ({ children, ...props }) => (
+  <button data-testid="mock-accordion-trigger" {...props}>
+    {children}
+  </button>
+);
+
+export const AccordionContent = ({ children, ...props }) => (
+  <div data-testid="mock-accordion-content" {...props}>
+    {children}
+  </div>
 );
 
 // Form components
-export const Button = ({ className = '', children, ...props }) => (
-  <button className={`mock-button ${className}`} data-testid="mock-button" {...props}>{children}</button>
+export const Button = ({ children, variant = 'default', size = 'default', className, onClick, disabled, ...props }) => (
+  <button 
+    className={`button ${variant} ${size} ${className || ''}`}
+    onClick={onClick}
+    disabled={disabled}
+    {...props}
+  >
+    {children}
+  </button>
 );
 
-export const Input = ({ className = '', ...props }) => (
-  <input className={`mock-input ${className}`} data-testid="mock-input" {...props} />
+export const Input = ({ value, onChange, className, ...props }) => (
+  <input 
+    data-testid="mock-input" 
+    value={value} 
+    onChange={onChange} 
+    className={className} 
+    {...props} 
+  />
 );
 
-export const Label = ({ className = '', children, ...props }) => (
-  <label className={`mock-label ${className}`} data-testid="mock-label" {...props}>{children}</label>
+export const Label = ({ children, htmlFor, ...props }) => (
+  <label data-testid="mock-label" htmlFor={htmlFor} {...props}>
+    {children}
+  </label>
 );
 
-export const Switch = ({ className = '', checked, onCheckedChange, ...props }) => {
-  // Handle the onCheckedChange prop properly
-  const handleChange = (e) => {
-    if (onCheckedChange && typeof onCheckedChange === 'function') {
-      onCheckedChange(e.target.checked);
-    }
-  };
+export const Select = ({ children, value, onValueChange, ...props }) => (
+  <select 
+    data-testid="mock-select" 
+    value={value} 
+    onChange={(e) => onValueChange?.(e.target.value)} 
+    {...props}
+  >
+    {children}
+  </select>
+);
 
-  return (
-    <input
-      type="checkbox"
-      role="switch" // Explicitly add the role
-      className={`mock-switch ${className}`}
-      data-testid="mock-switch"
-      checked={checked} // Use checked attribute directly
-      aria-checked={checked} // Add aria-checked attribute
-      onChange={handleChange}
-      {...props}
-    />
-  );
-};
+export const Switch = ({ checked, onCheckedChange, disabled, className, ...props }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    className={`switch ${checked ? 'checked' : ''} ${className || ''}`}
+    onClick={() => onCheckedChange?.(!checked)}
+    disabled={disabled}
+    {...props}
+  >
+    <span className="switch-thumb" />
+  </button>
+);
 
 // Tooltip components
-export const Tooltip = ({ children }) => children;
-
-export const TooltipContent = ({ className = '', children, ...props }) => (
-  <div className={`mock-tooltip-content ${className}`} data-testid="mock-tooltip-content" {...props}>{children}</div>
+export const TooltipProvider = ({ children, ...props }) => (
+  <div className="tooltip-provider" {...props}>
+    {children}
+  </div>
 );
 
-export const TooltipProvider = ({ children }) => children;
+export const Tooltip = ({ children, ...props }) => (
+  <div className="tooltip" {...props}>
+    {children}
+  </div>
+);
 
-export const TooltipTrigger = ({ className = '', children, asChild, ...props }) => {
-  // Filter out asChild prop to avoid React DOM attribute warning
-  const triggerProps = { ...props };
-  if (asChild !== undefined) {
-    triggerProps['data-aschild'] = asChild.toString();
-  }
+export const TooltipTrigger = ({ children, ...props }) => (
+  <div className="tooltip-trigger" {...props}>
+    {children}
+  </div>
+);
 
-  return (
-    <div
-      className={`mock-tooltip-trigger ${className}`}
-      data-testid="mock-tooltip-trigger"
-      {...triggerProps}
-    >
-      {children}
-    </div>
-  );
-};
+export const TooltipContent = ({ children, className, ...props }) => (
+  <div className={`tooltip-content ${className || ''}`} {...props}>
+    {children}
+  </div>
+);
 
 // Miscellaneous components
-export const Badge = ({ className = '', children, ...props }) => (
-  <div className={`mock-badge ${className}`} data-testid="mock-badge" {...props}>{children}</div>
+export const Badge = ({ children, variant = 'default', className, ...props }) => (
+  <span className={`badge ${variant} ${className || ''}`} {...props}>
+    {children}
+  </span>
 );
 
-export const Separator = ({ className = '', ...props }) => (
-  <hr className={`mock-separator ${className}`} data-testid="mock-separator" {...props} />
+export const Separator = ({ orientation = 'horizontal', className, ...props }) => (
+  <div 
+    className={`separator ${orientation} ${className || ''}`} 
+    {...props}
+  />
 );
+
+export const Progress = ({ value = 0, className, ...props }) => (
+  <div className={`progress ${className || ''}`} {...props}>
+    <div 
+      className="progress-bar" 
+      style={{ width: `${value}%` }}
+    />
+  </div>
+);
+
+export default {
+  Card,
+  CardHeader, 
+  CardContent,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Select,
+  Switch,
+  Label,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent
+};

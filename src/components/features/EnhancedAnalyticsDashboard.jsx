@@ -141,7 +141,9 @@ const EnhancedAnalyticsDashboard = ({
 
   // Memoized options
   const modelOptions = useMemo(() => {
-    if (!modelsData || !modelsData.available) return [];
+    if (!modelsData || !modelsData.available) {
+      return [];
+    }
     return modelsData.available.map(model => ({
       id: model.id,
       name: model.name,
@@ -859,7 +861,9 @@ const EnhancedAnalyticsDashboard = ({
                   {filteredData ? formatNumber(filteredData.totalTokens) : '0'}
                 </div>
                 {comparisonEnabled && comparisonData && (
-                  <div className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.totalTokens > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <div 
+                    data-testid="comparison-metric-value"
+                    className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.totalTokens > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {comparisonData.percentageChange.totalTokens > 0 ? (
                       <>
                         <TrendingUp className="h-3 w-3 mr-1" />
@@ -882,7 +886,9 @@ const EnhancedAnalyticsDashboard = ({
                   {filteredData ? formatNumber(filteredData.averageDailyUsage) : '0'}
                 </div>
                 {comparisonEnabled && comparisonData && (
-                  <div className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.averageDailyUsage > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <div 
+                    data-testid="comparison-metric-value"
+                    className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.averageDailyUsage > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {comparisonData.percentageChange.averageDailyUsage > 0 ? (
                       <>
                         <TrendingUp className="h-3 w-3 mr-1" />
@@ -905,7 +911,9 @@ const EnhancedAnalyticsDashboard = ({
                   {filteredData ? formatNumber(filteredData.peakUsage) : '0'}
                 </div>
                 {comparisonEnabled && comparisonData && (
-                  <div className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.peakUsage > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <div 
+                    data-testid="comparison-metric-value"
+                    className={`text-xs mt-1 flex items-center ${comparisonData.percentageChange.peakUsage > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {comparisonData.percentageChange.peakUsage > 0 ? (
                       <>
                         <TrendingUp className="h-3 w-3 mr-1" />
