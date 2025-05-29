@@ -23,7 +23,7 @@ get_script_path() {
 # Store the script's directory path
 SCRIPT_DIR="$(get_script_path)"
 
-#  GRADE ERROR HANDLING - NO MASKING OR SUPPRESSION
+#  GRADE ERROR HANDLING - NO MASKING
 set -eE
 trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
 
@@ -31,6 +31,7 @@ trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
 ERRORS_ENCOUNTERED=0
 NON_INTERACTIVE_MODE=false
 SCRIPT_RUNNING=true
+SCRIPT_EXITING=false
 FORCE_EXIT=false
 
 # -GRADE ERROR HANDLER - Reports real errors without masking
@@ -38,10 +39,19 @@ production_error_handler() {
     local line_number="$1"
     local failed_command="$2"
 
+    # Skip error handling if we're in the process of a normal exit
+    if [[ "${SCRIPT_EXITING:-false}" == "true" ]] || [[ "${SCRIPT_RUNNING:-true}" == "false" ]]; then
+        return 0
+    fi
+
     ((ERRORS_ENCOUNTERED++))
 
+    # Sanitize the command to prevent display issues
+    local sanitized_command
+    sanitized_command=$(echo "$failed_command" | tr -cd '[:print:]' | head -c 100)
+
     # Report the actual error without masking
-    echo -e "\n[ERROR] LINE $line_number: COMMAND FAILED: $failed_command" >&2
+    echo -e "\n[ERROR] LINE $line_number: COMMAND FAILED: $sanitized_command" >&2
     echo "[ERROR] ERROR COUNT: $ERRORS_ENCOUNTERED" >&2
 
     # In production, we log but do NOT exit the script unless explicitly requested
@@ -911,42 +921,78 @@ production_basic_removal() {
 ################################################################################
 
 production_basic_check() {
-    production_info_message "CURSOR INSTALLATION CHECK"
-    echo "================================================"
+    echo -e "\n${BOLD}${BLUE}🔍 CURSOR INSTALLATION STATUS CHECK${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
 
     local found_issues=0
+    local total_checks=0
 
     # Check application
+    ((total_checks++))
+    echo -e "${BOLD}1. CHECKING CURSOR APPLICATION:${NC}"
     if [[ -d "/Applications/Cursor.app" ]]; then
         if [[ -f "/Applications/Cursor.app/Contents/Info.plist" ]]; then
             if command -v defaults >/dev/null 2>&1; then
                 local version
                 version=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null)
                 if [[ -n "$version" ]]; then
-                    production_success_message "CURSOR.APP FOUND: VERSION $version"
+                    local bundle_id
+                    bundle_id=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "Unknown")
+                    
+                    # Get app size
+                    local app_size
+                    app_size=$(du -sh "/Applications/Cursor.app" 2>/dev/null | cut -f1 || echo "Unknown")
+                    
+                    production_success_message "✓ CURSOR.APP FOUND"
+                    echo -e "    ${CYAN}Version:${NC} $version"
+                    echo -e "    ${CYAN}Bundle ID:${NC} $bundle_id"
+                    echo -e "    ${CYAN}Size:${NC} $app_size"
+                    echo -e "    ${CYAN}Location:${NC} /Applications/Cursor.app"
                 else
-                    production_warning_message "CURSOR.APP FOUND BUT VERSION UNREADABLE"
+                    production_warning_message "⚠ CURSOR.APP FOUND BUT VERSION UNREADABLE"
+                    echo -e "    ${YELLOW}Issue:${NC} Version information not accessible"
                     ((found_issues++))
                 fi
             else
-                production_success_message "CURSOR.APP FOUND (VERSION CHECK UNAVAILABLE)"
+                production_success_message "✓ CURSOR.APP FOUND"
+                echo -e "    ${YELLOW}Note:${NC} Version check unavailable (defaults command missing)"
             fi
         else
-            production_warning_message "CURSOR.APP FOUND BUT INFO.PLIST MISSING"
+            production_warning_message "⚠ CURSOR.APP FOUND BUT INFO.PLIST MISSING"
+            echo -e "    ${YELLOW}Issue:${NC} Application bundle may be corrupted"
             ((found_issues++))
         fi
     else
-        production_error_message "CURSOR.APP NOT FOUND AT /APPLICATIONS/CURSOR.APP"
+        production_error_message "✗ CURSOR.APP NOT FOUND"
+        echo -e "    ${RED}Status:${NC} Cursor application is not installed at /Applications/Cursor.app"
         ((found_issues++))
     fi
+    echo ""
 
     # Check CLI tools
+    ((total_checks++))
+    echo -e "${BOLD}2. CHECKING CURSOR CLI TOOLS:${NC}"
     local cli_found=false
     local cli_locations=("/usr/local/bin/cursor" "/opt/homebrew/bin/cursor")
 
     for location in "${cli_locations[@]}"; do
         if [[ -f "$location" ]] && [[ -x "$location" ]]; then
-            production_success_message "CURSOR CLI FOUND: $location"
+            production_success_message "✓ CURSOR CLI FOUND: $location"
+            
+            # Get CLI version if possible
+            local cli_version
+            cli_version=$("$location" --version 2>/dev/null | head -1 || echo "Version unknown")
+            echo -e "    ${CYAN}Version:${NC} $cli_version"
+            
+            # Check if it's a symlink
+            if [[ -L "$location" ]]; then
+                local link_target
+                link_target=$(readlink "$location")
+                echo -e "    ${CYAN}Type:${NC} Symlink -> $link_target"
+            else
+                echo -e "    ${CYAN}Type:${NC} Binary executable"
+            fi
+            
             cli_found=true
             break
         fi
@@ -956,19 +1002,104 @@ production_basic_check() {
         if command -v cursor >/dev/null 2>&1; then
             local cursor_path
             cursor_path=$(which cursor 2>/dev/null)
-            production_success_message "CURSOR CLI FOUND IN PATH: $cursor_path"
+            production_success_message "✓ CURSOR CLI FOUND IN PATH: $cursor_path"
+            
+            # Get version
+            local cli_version
+            cli_version=$(cursor --version 2>/dev/null | head -1 || echo "Version unknown")
+            echo -e "    ${CYAN}Version:${NC} $cli_version"
         else
-            production_error_message "CURSOR CLI NOT FOUND"
+            production_error_message "✗ CURSOR CLI NOT FOUND"
+            echo -e "    ${RED}Status:${NC} No cursor command available in PATH or standard locations"
+            echo -e "    ${YELLOW}Suggestion:${NC} Install CLI tools from Cursor app or run Cursor setup"
             ((found_issues++))
         fi
     fi
+    echo ""
 
-    # Report final status
-    echo "================================================"
-    if [[ $found_issues -eq 0 ]]; then
-        production_success_message "CHECKS PASSED: CURSOR PROPERLY INSTALLED"
+    # Check user configuration
+    ((total_checks++))
+    echo -e "${BOLD}3. CHECKING USER CONFIGURATION:${NC}"
+    local config_paths=(
+        "$HOME/Library/Application Support/Cursor"
+        "$HOME/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
+        "$HOME/.cursor"
+    )
+    
+    local configs_found=0
+    for config_path in "${config_paths[@]}"; do
+        if [[ -e "$config_path" ]]; then
+            ((configs_found++))
+            local config_size
+            config_size=$(du -sh "$config_path" 2>/dev/null | cut -f1 || echo "Unknown")
+            echo -e "    ${GREEN}✓${NC} Found: $config_path ($config_size)"
+        fi
+    done
+    
+    if [[ $configs_found -gt 0 ]]; then
+        production_success_message "✓ USER CONFIGURATION DETECTED ($configs_found directories/files)"
     else
-        production_error_message "CHECKS FAILED: $found_issues ISSUES FOUND"
+        production_warning_message "⚠ NO USER CONFIGURATION FOUND"
+        echo -e "    ${YELLOW}Note:${NC} This is normal for fresh installations"
+    fi
+    echo ""
+
+    # Check system integration
+    ((total_checks++))
+    echo -e "${BOLD}4. CHECKING SYSTEM INTEGRATION:${NC}"
+    
+    # Check Launch Services registration
+    if command -v lsregister >/dev/null 2>&1; then
+        if lsregister -dump | grep -q "Cursor"; then
+            production_success_message "✓ LAUNCH SERVICES REGISTRATION FOUND"
+            echo -e "    ${CYAN}Status:${NC} Cursor is registered with macOS Launch Services"
+        else
+            production_warning_message "⚠ NO LAUNCH SERVICES REGISTRATION"
+            echo -e "    ${YELLOW}Note:${NC} May need to open Cursor once to register"
+        fi
+    else
+        echo -e "    ${YELLOW}Note:${NC} Launch Services check unavailable"
+    fi
+    
+    # Check running processes
+    if pgrep -f -i cursor >/dev/null 2>&1; then
+        local cursor_processes
+        cursor_processes=$(pgrep -f -i cursor | wc -l | xargs)
+        production_info_message "🔄 CURSOR PROCESSES RUNNING: $cursor_processes"
+        echo -e "    ${CYAN}Status:${NC} Cursor is currently active"
+    else
+        echo -e "    ${CYAN}Status:${NC} No Cursor processes currently running"
+    fi
+    echo ""
+
+    # Summary
+    echo -e "${BOLD}${BLUE}📊 INSTALLATION CHECK SUMMARY${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════${NC}"
+    
+    local passed_checks=$((total_checks - found_issues))
+    echo -e "${BOLD}Total Checks:${NC} $total_checks"
+    echo -e "${BOLD}Passed:${NC} ${GREEN}$passed_checks${NC}"
+    echo -e "${BOLD}Issues:${NC} ${RED}$found_issues${NC}"
+    
+    echo ""
+    if [[ $found_issues -eq 0 ]]; then
+        production_success_message "🎉 ALL CHECKS PASSED - CURSOR IS PROPERLY INSTALLED"
+        echo -e "\n${GREEN}${BOLD}NEXT STEPS:${NC}"
+        echo -e "  • Cursor is ready to use"
+        echo -e "  • Open Cursor to start coding with AI assistance"
+        echo -e "  • Configure your preferred settings and extensions"
+    elif [[ $found_issues -eq $total_checks ]]; then
+        production_error_message "❌ ALL CHECKS FAILED - CURSOR IS NOT INSTALLED"
+        echo -e "\n${RED}${BOLD}INSTALLATION REQUIRED:${NC}"
+        echo -e "  • Download Cursor from https://cursor.sh"
+        echo -e "  • Install the application to /Applications/"
+        echo -e "  • Set up CLI tools if needed"
+    else
+        production_warning_message "⚠ PARTIAL INSTALLATION DETECTED - $found_issues ISSUES FOUND"
+        echo -e "\n${YELLOW}${BOLD}RECOMMENDED ACTIONS:${NC}"
+        echo -e "  • Reinstall Cursor to fix missing components"
+        echo -e "  • Set up CLI tools from within the app"
+        echo -e "  • Check system permissions if needed"
     fi
 
     return $found_issues
@@ -1150,7 +1281,10 @@ production_show_menu() {
                 ;;
             [Qq]|[Qq][Uu][Ii][Tt])
                 production_info_message "EXITING SCRIPT...GOODBYE!"
+                SCRIPT_EXITING=true
                 SCRIPT_RUNNING=false
+                # Disable error trap to prevent false errors during exit
+                trap - ERR
                 break
                 ;;
             *)
@@ -1165,7 +1299,10 @@ production_show_menu() {
         fi
     done
 
-    production_info_message "EXITING SCRIPT...GOODBYE!"
+    # Only show final message if we haven't already shown it during normal exit
+    if [[ "${SCRIPT_EXITING:-false}" != "true" ]]; then
+        production_info_message "EXITING SCRIPT...GOODBYE!"
+    fi
 }
 
 ################################################################################
