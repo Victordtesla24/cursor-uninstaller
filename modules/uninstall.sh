@@ -185,7 +185,7 @@ remove_cursor_application() {
             production_info_message "  Bundle ID: $bundle_id"
             production_info_message "  Bundle Name: $bundle_name"
             
-            if production_safe_remove "$app_path"; then
+            if production_remove "$app_path"; then
                 production_success_message "Successfully removed Cursor.app"
                 return 0
             else
@@ -235,7 +235,7 @@ remove_cursor_user_data() {
             
             production_info_message "Removing: $path ($path_size)"
             
-            if production_safe_remove "$path"; then
+            if production_remove "$path"; then
                 production_success_message "  ✓ Removed: $path"
                 ((removed_count++))
             else
@@ -252,10 +252,22 @@ remove_cursor_user_data() {
         if [[ -n "$cursor_prefs" ]]; then
             while IFS= read -r pref_file; do
                 if [[ -e "$pref_file" ]]; then
-                    production_info_message "Removing preference: $(basename "$pref_file")"
-                    if production_safe_remove "$pref_file"; then
-                        production_success_message "  ✓ Removed: $(basename "$pref_file")"
-                        ((removed_count++))
+                    # Check if this is actually a Cursor AI Editor preference file
+                    local pref_basename
+                    pref_basename=$(basename "$pref_file")
+                    
+                    # Only remove files that are clearly Cursor AI Editor related
+                    if [[ "$pref_basename" == *"com.cursor."* ]] || \
+                       [[ "$pref_basename" == *"com.todesktop."* ]] || \
+                       [[ "$pref_basename" == "Cursor."* ]] || \
+                       [[ "$pref_basename" == "cursor."* ]]; then
+                        production_info_message "Removing preference: $(basename "$pref_file")"
+                        if production_remove "$pref_file"; then
+                            production_success_message "  ✓ Removed: $(basename "$pref_file")"
+                            ((removed_count++))
+                        fi
+                    else
+                        production_log_message "DEBUG" "Skipping non-Cursor preference: $pref_basename"
                     fi
                 fi
             done <<< "$cursor_prefs"
@@ -308,7 +320,7 @@ remove_cursor_cli_tools() {
             fi
             
             if [[ "$is_cursor_tool" == "true" ]]; then
-                if production_safe_remove "$location"; then
+                if production_remove "$location"; then
                     production_success_message "  ✓ Removed: $location"
                     ((tools_removed++))
                 else
@@ -355,7 +367,7 @@ clean_cursor_caches() {
                 while IFS= read -r cache_dir; do
                     if [[ -d "$cache_dir" ]]; then
                         production_info_message "Cleaning system cache: $cache_dir"
-                        if production_safe_remove "$cache_dir"; then
+                        if production_remove "$cache_dir"; then
                             production_success_message "  ✓ Cleaned: $cache_dir"
                             ((caches_cleaned++))
                         fi
@@ -365,7 +377,7 @@ clean_cursor_caches() {
         else
             if [[ -d "$cache_path" ]]; then
                 production_info_message "Cleaning cache: $cache_path"
-                if production_safe_remove "$cache_path"; then
+                if production_remove "$cache_path"; then
                     production_success_message "  ✓ Cleaned: $cache_path"
                     ((caches_cleaned++))
                 fi
@@ -390,7 +402,7 @@ clean_cursor_caches() {
             while IFS= read -r temp_file; do
                 if [[ -e "$temp_file" ]]; then
                     production_info_message "Removing temp file: $temp_file"
-                    if production_safe_remove "$temp_file"; then
+                    if production_remove "$temp_file"; then
                         production_success_message "  ✓ Removed: $temp_file"
                         ((caches_cleaned++))
                     fi
@@ -439,20 +451,31 @@ reset_cursor_system_registrations() {
             if [[ -n "$cursor_plists" ]]; then
                 while IFS= read -r plist_file; do
                     if [[ -f "$plist_file" ]]; then
-                        production_info_message "Found LaunchAgent/Daemon: $plist_file"
+                        local plist_basename
+                        plist_basename=$(basename "$plist_file")
                         
-                        # Unload the service first
-                        local service_name
-                        service_name=$(basename "$plist_file" .plist)
-                        if launchctl list | grep -q "$service_name" 2>/dev/null; then
-                            production_info_message "Unloading service: $service_name"
-                            launchctl unload "$plist_file" 2>/dev/null || true
-                        fi
-                        
-                        # Remove the plist file
-                        if production_safe_remove "$plist_file"; then
-                            production_success_message "  ✓ Removed: $plist_file"
-                            ((registrations_reset++))
+                        # Only process files that are clearly Cursor AI Editor related
+                        if [[ "$plist_basename" == *"com.cursor."* ]] || \
+                           [[ "$plist_basename" == *"com.todesktop."* ]] || \
+                           [[ "$plist_basename" == "Cursor."* ]] || \
+                           [[ "$plist_basename" == "cursor."* ]]; then
+                            production_info_message "Found LaunchAgent/Daemon: $plist_file"
+                            
+                            # Unload the service first
+                            local service_name
+                            service_name=$(basename "$plist_file" .plist)
+                            if launchctl list | grep -q "$service_name" 2>/dev/null; then
+                                production_info_message "Unloading service: $service_name"
+                                launchctl unload "$plist_file" 2>/dev/null || true
+                            fi
+                            
+                            # Remove the plist file
+                            if production_remove "$plist_file"; then
+                                production_success_message "  ✓ Removed: $plist_file"
+                                ((registrations_reset++))
+                            fi
+                        else
+                            production_log_message "DEBUG" "Skipping non-Cursor LaunchAgent: $plist_basename"
                         fi
                     fi
                 done <<< "$cursor_plists"

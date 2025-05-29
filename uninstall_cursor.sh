@@ -25,6 +25,7 @@ SCRIPT_DIR="$(get_script_path)"
 
 #  GRADE ERROR HANDLING - NO MASKING
 set -eE
+set -o pipefail
 trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
 
 # Global state tracking for production environment

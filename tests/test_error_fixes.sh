@@ -5,6 +5,8 @@
 # Tests all fixes applied to resolve syntax errors and shellcheck warnings
 ################################################################################
 
+# shellcheck disable=SC1091,SC1090  # Disable "Not following" warnings for dynamic paths
+
 # Set strict error handling
 set -euo pipefail
 
@@ -139,34 +141,53 @@ test_execute_safely_function() {
 test_floating_point_handling() {
     echo "Testing floating-point handling..."
     
-    # Source the ai_optimization module
-    if source "$PROJECT_ROOT/modules/ai_optimization.sh" 2>/dev/null; then
-        echo "  ✓ AI optimization module loaded"
+    # Source the UI module first (provides color variables)
+    if source "$PROJECT_ROOT/lib/ui.sh" 2>/dev/null; then
+        echo "  ✓ UI module loaded"
+    fi
+    
+    # Source the helpers module first (required dependency)
+    if source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null; then
+        echo "  ✓ Helpers module loaded"
         
-        # Test the display_system_specifications function
-        if declare -f display_system_specifications >/dev/null 2>&1; then
-            echo "  ✓ display_system_specifications function exists"
+        # Source the ai_optimization module
+        if source "$PROJECT_ROOT/modules/ai_optimization.sh" 2>/dev/null; then
+            echo "  ✓ AI optimization module loaded"
             
-            # Test execution (capture any floating-point errors)
-            local test_output
-            if test_output=$(display_system_specifications 2>&1); then
-                echo "  ✓ Function executes without syntax errors"
+            # Test the display_system_specifications function
+            if declare -f display_system_specifications >/dev/null 2>&1; then
+                echo "  ✓ display_system_specifications function exists"
                 
-                # Check for floating-point arithmetic errors
-                if echo "$test_output" | grep -q "invalid arithmetic operator"; then
-                    test_fail "floating-point handling" "Arithmetic error still present"
+                # Test execution (capture any floating-point errors) - TEMPORARILY DISABLE STRICT ERROR HANDLING
+                local test_output
+                set +e  # Disable exit on error temporarily
+                test_output=$(display_system_specifications 2>&1)
+                local exit_code=$?
+                set -e  # Re-enable exit on error
+                
+                if [[ $exit_code -eq 0 ]]; then
+                    echo "  ✓ Function executes without syntax errors"
+                    
+                    # Check for floating-point arithmetic errors
+                    if echo "$test_output" | grep -q "invalid arithmetic operator"; then
+                        test_fail "floating-point handling" "Arithmetic error still present"
+                    else
+                        echo "  ✓ No floating-point arithmetic errors found"
+                        test_pass "floating-point handling"
+                    fi
                 else
-                    echo "  ✓ No floating-point arithmetic errors found"
-                    test_pass "floating-point handling"
+                    echo "  ✗ Function failed with exit code: $exit_code"
+                    echo "  ✗ Error output: $(echo "$test_output" | tail -3)"
+                    test_fail "floating-point handling" "Function execution failed with code $exit_code"
                 fi
             else
-                test_fail "floating-point handling" "Function execution failed"
+                test_fail "floating-point handling" "display_system_specifications function not found"
             fi
         else
-            test_fail "floating-point handling" "display_system_specifications function not found"
+            test_fail "floating-point handling" "Could not load ai_optimization module"
         fi
     else
-        test_fail "floating-point handling" "Could not load ai_optimization module"
+        test_fail "floating-point handling" "Could not load helpers module"
     fi
 }
 

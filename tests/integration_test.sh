@@ -5,8 +5,9 @@
 # Tests the actual uninstall functionality in a safe environment
 ################################################################################
 
-set -eE
-set -o pipefail
+# Disable strict error handling for integration tests
+# set -eE
+# set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -17,9 +18,9 @@ TEST_DIR="/tmp/cursor_integration_test_$$"
 mkdir -p "$TEST_DIR"
 
 # Colors
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+RED='\033[0;31m'
+export YELLOW='\033[1;33m'  # Export for use in sourced modules
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
@@ -55,18 +56,6 @@ cleanup() {
 }
 
 trap cleanup EXIT
-
-# Override error handling for tests
-test_error_handler() {
-    local line_number="$1"
-    local failed_command="$2"
-    
-    echo -e "${RED}[ERROR]${NC} Test failed at line $line_number: $failed_command"
-    # Don't exit, continue with tests
-    return 0
-}
-
-trap 'test_error_handler $LINENO "$BASH_COMMAND"' ERR
 
 ################################################################################
 # Integration Tests

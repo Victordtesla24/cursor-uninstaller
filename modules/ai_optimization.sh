@@ -147,12 +147,12 @@ display_system_specifications() {
     fi
     
     # FIXED: Handle decimal CPU usage values - convert to integer for comparison
-    local cpu_usage_int
-    if [[ -n "$cpu_usage" ]]; then
-        # Convert decimal to integer (e.g., "11.0" -> "11")  
-        cpu_usage_int=$(printf "%.0f" "$cpu_usage" 2>/dev/null || echo "0")
-    else
-        cpu_usage_int=0
+    local cpu_usage_int=0
+    if [[ -n "$cpu_usage" ]] && [[ "$cpu_usage" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+        # Convert decimal to integer safely (e.g., "11.0" -> "11")  
+        cpu_usage_int=$(echo "$cpu_usage" | cut -d'.' -f1)
+        # Ensure we have a valid integer
+        [[ -z "$cpu_usage_int" ]] && cpu_usage_int=0
     fi
     
     if [[ $cpu_usage_int -gt 70 ]]; then

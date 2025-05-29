@@ -72,6 +72,7 @@ TEMP_FILES=()
 detect_system_info() {
     MACOS_VERSION=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
     MACOS_BUILD=$(sw_vers -buildVersion 2>/dev/null || echo "unknown")
+    HARDWARE_ARCH=$(uname -m 2>/dev/null || echo "unknown")
 
     # Determine if running on Apple Silicon
     if [[ "$HARDWARE_ARCH" == "arm64" ]]; then

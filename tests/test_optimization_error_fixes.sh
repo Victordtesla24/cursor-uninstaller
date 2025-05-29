@@ -5,6 +5,8 @@
 # Tests all fixes for optimization performance errors identified in the user query
 ################################################################################
 
+# shellcheck disable=SC1091  # Disable "Not following" warnings for dynamic paths
+
 set -eE
 set -o pipefail
 
@@ -28,9 +30,9 @@ FAILED_TESTS=0
 CRITICAL_FAILURES=0
 
 # Test environment
-TEST_MODE=true
-DRY_RUN=true
-VERBOSE=true
+export TEST_MODE=true
+export DRY_RUN=true
+export VERBOSE=true
 
 # Logging
 LOG_FILE="/tmp/optimization-error-fixes-test-$(date +%Y%m%d_%H%M%S).log"
@@ -38,7 +40,8 @@ LOG_FILE="/tmp/optimization-error-fixes-test-$(date +%Y%m%d_%H%M%S).log"
 log_message() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
 }
 
@@ -92,6 +95,7 @@ test_execute_safely_special_characters() {
     info_message "Testing execute_safely function with special characters..."
     
     # Source the helpers module
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         return 1
@@ -124,6 +128,7 @@ test_log_message_special_characters() {
     info_message "Testing log_message function with special characters..."
     
     # Source the helpers module
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         return 1
@@ -206,12 +211,14 @@ test_optimization_functions_mock() {
     touch "$test_dir/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
     
     # Source the optimization module
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         cleanup_test_env "$test_dir"
         return 1
     }
     
+    # shellcheck source=../modules/optimization.sh
     source "$PROJECT_ROOT/modules/optimization.sh" 2>/dev/null || {
         error_message "Failed to source optimization.sh"
         cleanup_test_env "$test_dir"
@@ -245,6 +252,7 @@ test_error_message_formatting() {
     info_message "Testing error message formatting..."
     
     # Source the helpers module
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         return 1
@@ -292,12 +300,14 @@ test_optimization_integration() {
     mkdir -p "$test_dir/Library/Application Support/Cursor/User"
     
     # Source modules
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         cleanup_test_env "$test_dir"
         return 1
     }
     
+    # shellcheck source=../modules/optimization.sh
     source "$PROJECT_ROOT/modules/optimization.sh" 2>/dev/null || {
         error_message "Failed to source optimization.sh"
         cleanup_test_env "$test_dir"
@@ -334,6 +344,7 @@ test_production_error_handling() {
     info_message "Testing production-grade error handling..."
     
     # Source the helpers module
+    # shellcheck source=../lib/helpers.sh
     source "$PROJECT_ROOT/lib/helpers.sh" 2>/dev/null || {
         error_message "Failed to source helpers.sh"
         return 1

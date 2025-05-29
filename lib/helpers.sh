@@ -16,59 +16,127 @@ HELPERS_DEBUG="${HELPERS_DEBUG:-false}"
 # Core Removal Functions - FIXES MISSING FUNCTION ERRORS
 ################################################################################
 
-# Production safe removal function with comprehensive error handling
-production_safe_remove() {
+# Execute commands safely with proper error handling
+execute_safely() {
+    local command="$1"
+    local description="${2:-command execution}"
+    local critical="${3:-false}"
+    
+    if [[ -z "$command" ]]; then
+        log_with_context "ERROR" "No command provided for execution" "EXECUTE_SAFELY"
+        return 1
+    fi
+    
+    log_with_context "DEBUG" "Executing: $description" "EXECUTE_SAFELY"
+    
+    # Execute the command and capture result
+    if eval "$command" >/dev/null 2>&1; then
+        log_with_context "SUCCESS" "Successfully executed: $description" "EXECUTE_SAFELY"
+        return 0
+    else
+        local exit_code=$?
+        log_with_context "ERROR" "Failed to execute: $description" "EXECUTE_SAFELY"
+        
+        # For critical commands, return the error code
+        if [[ "$critical" == "true" ]]; then
+            return $exit_code
+        else
+            # For non-critical commands, return success to continue execution
+            return 0
+        fi
+    fi
+}
+
+# Production removal function with comprehensive error handling
+production_remove() {
     local path="$1"
     
     if [[ -z "$path" ]]; then
-        log_with_context "ERROR" "No path provided for removal" "PROD_SAFE_REMOVE"
+        log_with_context "ERROR" "No path provided for removal" "PROD_REMOVE"
         return 1
     fi
     
     # Safety check - never remove critical system directories
     case "$path" in
         "/" | "/System" | "/Library/System" | "/usr/bin" | "/usr/sbin" | "/bin" | "/sbin")
-            log_with_context "ERROR" "Refusing to remove critical system directory: $path" "PROD_SAFE_REMOVE"
+            log_with_context "ERROR" "Refusing to remove critical system directory: $path" "PROD_REMOVE"
             return 1
             ;;
     esac
     
     # Check if path exists
     if [[ ! -e "$path" ]]; then
-        log_with_context "DEBUG" "Path does not exist, nothing to remove: $path" "PROD_SAFE_REMOVE"
+        log_with_context "DEBUG" "Path does not exist, nothing to remove: $path" "PROD_REMOVE"
         return 0
     fi
     
-    log_with_context "INFO" "Attempting to remove: $path" "PROD_SAFE_REMOVE"
+    log_with_context "INFO" "Attempting to remove: $path" "PROD_REMOVE"
     
     # Try standard removal first
     if rm -rf "$path" 2>/dev/null; then
-        log_with_context "SUCCESS" "Successfully removed: $path" "PROD_SAFE_REMOVE"
+        log_with_context "SUCCESS" "Successfully removed: $path" "PROD_REMOVE"
         return 0
     fi
     
     # If standard removal fails, try with elevated permissions
-    log_with_context "DEBUG" "Standard removal failed, attempting with sudo" "PROD_SAFE_REMOVE"
+    log_with_context "DEBUG" "Standard removal failed, attempting with sudo" "PROD_REMOVE"
     
     # First try to fix permissions
     if sudo chmod -R 755 "$path" 2>/dev/null; then
-        log_with_context "DEBUG" "Fixed permissions for: $path" "PROD_SAFE_REMOVE"
+        log_with_context "DEBUG" "Fixed permissions for: $path" "PROD_REMOVE"
     fi
     
     # Now try removal with sudo
     if sudo rm -rf "$path" 2>/dev/null; then
-        log_with_context "SUCCESS" "Successfully removed with sudo: $path" "PROD_SAFE_REMOVE"
+        log_with_context "SUCCESS" "Successfully removed with sudo: $path" "PROD_REMOVE"
         return 0
     fi
     
-    # If all removal attempts fail, log but don't fail the script
-    log_with_context "WARNING" "Failed to remove: $path" "PROD_SAFE_REMOVE"
+    # If all removal attempts fail, return error
+    log_with_context "ERROR" "Failed to remove: $path" "PROD_REMOVE"
     return 1
 }
 
 ################################################################################
 # Logging and Message Functions
 ################################################################################
+
+# Production-grade logging function
+production_log_message() {
+    local level="${1:-INFO}"
+    local message="${2:-No message provided}"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+    # Always show ERROR and WARNING messages
+    if [[ "$level" == "ERROR" ]] || [[ "$level" == "WARNING" ]]; then
+        echo "[$timestamp] [$level] $message" >&2
+    # Show INFO and DEBUG messages only in verbose mode
+    elif [[ "${VERBOSE:-false}" == "true" ]]; then
+        echo "[$timestamp] [$level] $message" >&2
+    fi
+}
+
+# Production message functions with color coding
+production_error_message() {
+    local message="$1"
+    echo -e "\033[0;31m[ERROR]\033[0m $message" >&2
+}
+
+production_success_message() {
+    local message="$1"
+    echo -e "\033[0;32m[SUCCESS]\033[0m $message" >&2
+}
+
+production_warning_message() {
+    local message="$1"
+    echo -e "\033[1;33m[WARNING]\033[0m $message" >&2
+}
+
+production_info_message() {
+    local message="$1"
+    echo -e "\033[0;36m[INFO]\033[0m $message" >&2
+}
 
 # Enhanced logging with timestamp and context
 log_with_context() {
@@ -618,4 +686,4 @@ validate_system_requirements() {
 export -f validate_file_exists validate_directory_exists validate_application_exists
 export -f apply_sysctl_parameter handle_plist_file terminate_process_safely
 export -f check_system_requirements validate_script_environment
-export -f validate_system_requirements production_safe_remove 
+export -f validate_system_requirements production_remove 

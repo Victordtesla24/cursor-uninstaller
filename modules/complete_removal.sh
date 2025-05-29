@@ -14,6 +14,132 @@ fi
 # Cursor Component Detection and Inventory
 ################################################################################
 
+# Enhanced filtering function to determine if a file is actually Cursor AI Editor related
+is_cursor_ai_editor_related() {
+    local file_path="$1"
+    local file_name
+    file_name="$(basename "$file_path")"
+    local dir_path
+    dir_path="$(dirname "$file_path")"
+    
+    # Exclude system SDK and development tools paths (not related to Cursor AI Editor)
+    if [[ "$file_path" == *"/Library/Developer/CommandLineTools/SDKs/"* ]] || \
+       [[ "$file_path" == *"/System/Library/"* ]] || \
+       [[ "$file_path" == *"/usr/share/man/"* ]] || \
+       [[ "$file_path" == *"/usr/include/"* ]] || \
+       [[ "$file_path" == *"/System/Library/Frameworks/"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude third-party software directories (MongoDB, etc.)
+    if [[ "$file_path" == *"/opt/homebrew/"* ]] || \
+       [[ "$file_path" == *"mongosh"* ]] || \
+       [[ "$file_path" == *"mongodb"* ]] || \
+       [[ "$file_path" == *"mongo"* ]] || \
+       [[ "$file_path" == *"node_modules"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude programming language files that generically use "cursor" (database cursors, etc.)
+    if [[ "$file_name" == "cursor.py" ]] || \
+       [[ "$file_name" == "cursor.js" ]] || \
+       [[ "$file_name" == "cursors.js" ]] || \
+       [[ "$file_name" == "cursor.ts" ]] || \
+       [[ "$file_name" == "cursors.py" ]] || \
+       [[ "$file_name" == "cursors.ts" ]] || \
+       [[ "$file_path" == *"sqlalchemy"* ]] || \
+       [[ "$file_path" == *"caniuse-lite"* ]] || \
+       [[ "$file_path" == *"mongoose"* ]] || \
+       [[ "$file_path" == *"mysql"* ]] || \
+       [[ "$file_path" == *"postgresql"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude browser/system resources (Firefox cursors, etc.)
+    if [[ "$file_path" == *"Firefox.app"* ]] || \
+       [[ "$file_path" == *"Safari.app"* ]] || \
+       [[ "$file_path" == *"Chrome.app"* ]] || \
+       [[ "$file_path" == *"WebKit.framework"* ]] || \
+       [[ "$file_path" == *"/cursors"* && "$file_path" != *"Cursor"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude this uninstaller script and its directory
+    if [[ "$file_path" == *"cursor-uninstaller"* ]] || \
+       [[ "$file_path" == *"cursor_uninstaller"* ]] || \
+       [[ "$file_path" == *"uninstall_cursor"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude diagnostic reports (they're logs, not active components)
+    if [[ "$file_path" == *"/Library/Logs/DiagnosticReports/"* ]] && \
+       [[ "$file_name" == *"Cursor"* ]]; then
+        return 1  # Diagnostic logs, not active components
+    fi
+    
+    # Exclude user documents that just mention cursor in filename (unless in Cursor directories)
+    if [[ "$file_path" == *"/Documents/"* ]] || \
+       [[ "$file_path" == *"/Downloads/"* ]] || \
+       [[ "$file_path" == *"CloudDocs"* ]] || \
+       [[ "$file_path" == *"/Desktop/"* ]]; then
+        # Only consider it Cursor AI Editor related if it's in a Cursor-specific directory
+        if [[ "$dir_path" == *"Cursor"* ]] || [[ "$dir_path" == *".cursor"* ]]; then
+            return 0  # Likely Cursor AI Editor related
+        else
+            return 1  # Just a user file that mentions cursor
+        fi
+    fi
+    
+    # Exclude Python virtual environments and package files
+    if [[ "$file_path" == *"/.venv/"* ]] || \
+       [[ "$file_path" == *"/venv/"* ]] || \
+       [[ "$file_path" == *"/site-packages/"* ]] || \
+       [[ "$file_path" == *"/__pycache__/"* ]]; then
+        return 1  # Not Cursor AI Editor related
+    fi
+    
+    # Exclude specific known false positives from the removal report
+    local false_positives=(
+        "cursorfont.h"
+        "IOMbufMemoryCursor.h"
+        "IOMemoryCursor.h"
+        "NSCursor.h"
+        "JRSCursor.h"
+        "AVSampleCursor.h"
+        "GCDeviceCursor.h"
+        "UITextCursorView.h"
+        "UIStandardTextCursorView.h"
+        "UITextCursorDropPositionAnimator.h"
+    )
+    
+    for false_positive in "${false_positives[@]}"; do
+        if [[ "$file_name" == "$false_positive" ]]; then
+            return 1  # Known false positive
+        fi
+    done
+    
+    # Positive identification: These are definitely Cursor AI Editor related
+    if [[ "$file_path" == *"/Applications/Cursor.app"* ]] || \
+       [[ "$file_path" == *"/Library/Application Support/Cursor"* ]] || \
+       [[ "$file_path" == *"/Library/Preferences/com.todesktop.230313mzl4w4u92"* ]] || \
+       [[ "$file_path" == *"/Library/Caches/Cursor"* ]] || \
+       [[ "$file_path" == *".cursor"* ]] || \
+       [[ "$file_path" == *"/.vscode-cursor"* ]] || \
+       [[ "$file_path" == "/usr/local/bin/cursor" ]] || \
+       [[ "$file_path" == "/opt/homebrew/bin/cursor" ]] || \
+       [[ "$file_path" == "/usr/bin/cursor" ]]; then
+        return 0  # Definitely Cursor AI Editor related
+    fi
+    
+    # If we get here and the file contains "Cursor" (capital C), it's likely related
+    if [[ "$file_name" == *"Cursor"* ]]; then
+        return 0  # Likely Cursor AI Editor related
+    fi
+    
+    # If it's just "cursor" (lowercase) in generic locations, probably not related
+    return 1  # Probably not Cursor AI Editor related
+}
+
 # Comprehensive Cursor file path detection
 detect_all_cursor_components() {
     production_log_message "INFO" "Performing comprehensive Cursor component detection"
@@ -119,7 +245,7 @@ find_additional_cursor_files() {
         if [[ -d "$search_dir" ]]; then
             production_log_message "DEBUG" "Searching user directory: $search_dir"
             while IFS= read -r -d '' file; do
-                if [[ -e "$file" ]]; then
+                if [[ -e "$file" ]] && is_cursor_ai_editor_related "$file"; then
                     additional_files+=("$file")
                 fi
             done < <(find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null)
@@ -141,14 +267,14 @@ find_additional_cursor_files() {
                 local search_timeout=30
                 if command -v timeout >/dev/null 2>&1; then
                     while IFS= read -r -d '' file; do
-                        if [[ -e "$file" ]]; then
+                        if [[ -e "$file" ]] && is_cursor_ai_editor_related "$file"; then
                             additional_files+=("$file")
                         fi
                     done < <(timeout "$search_timeout" sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
                 else
                     # Fallback without timeout
                     while IFS= read -r -d '' file; do
-                        if [[ -e "$file" ]]; then
+                        if [[ -e "$file" ]] && is_cursor_ai_editor_related "$file"; then
                             additional_files+=("$file")
                         fi
                     done < <(sudo find "$search_dir" \( -iname "*cursor*" -o -iname "*.cursor" \) -print0 2>/dev/null || true)
@@ -333,7 +459,7 @@ remove_background_processes() {
             fi
             
             # Remove the plist file
-            if production_safe_remove "$item"; then
+            if production_remove "$item"; then
                 production_success_message "Removed: $item"
             fi
         fi
@@ -351,7 +477,7 @@ remove_cursor_application() {
     local app_path="/Applications/Cursor.app"
     
     if [[ -d "$app_path" ]]; then
-        # Verify it's actually Cursor by checking bundle ID and app name
+        # Verify it's Cursor by checking bundle identifier
         local bundle_id
         bundle_id=$(defaults read "$app_path/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "unknown")
         
@@ -361,7 +487,7 @@ remove_cursor_application() {
         local bundle_display_name
         bundle_display_name=$(defaults read "$app_path/Contents/Info.plist" CFBundleDisplayName 2>/dev/null || echo "unknown")
         
-        # Enhanced verification to handle todesktop bundle IDs used by Cursor
+        # Enhanced verification for Cursor
         if [[ "$bundle_id" == *"cursor"* ]] || [[ "$bundle_id" == *"Cursor"* ]] || \
            [[ "$bundle_id" == *"todesktop"* ]] || \
            [[ "$bundle_name" == *"cursor"* ]] || [[ "$bundle_name" == *"Cursor"* ]] || \
@@ -374,7 +500,7 @@ remove_cursor_application() {
             local app_size
             app_size=$(du -sh "$app_path" 2>/dev/null | cut -f1)
             
-            if production_safe_remove "$app_path"; then
+            if production_remove "$app_path"; then
                 production_success_message "Removed Cursor.app ($app_size)"
                 return 0
             else
@@ -396,7 +522,7 @@ remove_cursor_application() {
                 local app_size
                 app_size=$(du -sh "$app_path" 2>/dev/null | cut -f1)
                 
-                if production_safe_remove "$app_path"; then
+                if production_remove "$app_path"; then
                     production_success_message "Removed Cursor.app ($app_size)"
                     return 0
                 else
@@ -426,7 +552,7 @@ remove_user_data() {
         while IFS=':' read -r type path size; do
             if [[ "$type" == "USER_DATA" ]] && [[ -e "$path" ]]; then
                 production_info_message "Removing: $path ($size)"
-                if production_safe_remove "$path"; then
+                if production_remove "$path"; then
                     production_success_message "Removed: $path"
                     ((removed_count++))
                 else
@@ -451,7 +577,7 @@ remove_user_data() {
     
     for path in "${user_paths[@]}"; do
         if [[ -e "$path" ]]; then
-            if production_safe_remove "$path"; then
+            if production_remove "$path"; then
                 production_success_message "Removed: $path"
                 ((removed_count++))
             else
@@ -485,7 +611,7 @@ remove_cli_tools() {
                 link_target=$(readlink "$path")
                 if [[ "$link_target" == *"Cursor"* ]] || [[ "$link_target" == *"cursor"* ]]; then
                     production_info_message "Removing symlink: $path -> $link_target"
-                    if production_safe_remove "$path"; then
+                    if production_remove "$path"; then
                         production_success_message "Removed symlink: $path"
                         ((removed_count++))
                     fi
@@ -496,7 +622,7 @@ remove_cli_tools() {
                 file_info=$(file "$path" 2>/dev/null || echo "unknown")
                 if [[ "$file_info" == *"cursor"* ]] || [[ "$file_info" == *"Cursor"* ]]; then
                     production_info_message "Removing CLI tool: $path"
-                    if production_safe_remove "$path"; then
+                    if production_remove "$path"; then
                         production_success_message "Removed CLI tool: $path"
                         ((removed_count++))
                     fi
@@ -583,7 +709,7 @@ verify_complete_removal() {
         production_warning_message "Skipping system directory verification: insufficient permissions"
     fi
     
-    # Filter results to exclude false positives
+    # Filter results to exclude false positives with enhanced filtering
     for file in "${search_results[@]}"; do
         # Skip temporary files, build artifacts, and unrelated items
         if [[ "$file" != *"/tmp/"* ]] && \
@@ -591,10 +717,13 @@ verify_complete_removal() {
            [[ "$file" != *"/node_modules/"* ]] && \
            [[ "$file" != *"/build/"* ]] && \
            [[ "$file" != *"/dist/"* ]] && \
-           [[ "$file" != *"/coverage/"* ]] && \
-           [[ "$file" != *"cursor-uninstaller"* ]]; then
-            remaining_items+=("REMAINING_FILE:$file")
-            verification_failed=true
+           [[ "$file" != *"/coverage/"* ]]; then
+            
+            # Use enhanced filtering to check if file is actually Cursor AI Editor related
+            if is_cursor_ai_editor_related "$file"; then
+                remaining_items+=("REMAINING_FILE:$file")
+                verification_failed=true
+            fi
         fi
     done
     
@@ -734,4 +863,4 @@ COMPLETE_REMOVAL_LOADED="true"
 
 # Export functions for use in other modules
 export -f detect_all_cursor_components perform_complete_cursor_removal
-export -f verify_complete_removal generate_removal_report 
+export -f verify_complete_removal generate_removal_report is_cursor_ai_editor_related 
