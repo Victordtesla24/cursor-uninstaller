@@ -106,16 +106,16 @@ run_task() {
 # Enhanced main menu with better formatting
 enhanced_show_menu() {
     clear
-    echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${BLUE}║                  ${WHITE}Cursor AI Editor Manager${BLUE}                     ║${NC}"
-    echo -e "${BOLD}${BLUE}║                     ${CYAN}Enhanced Version ${SCRIPT_VERSION}${BLUE}                      ║${NC}"
-    echo -e "${BOLD}${BLUE}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-
+    echo -e "${BOLD}${BLUE}╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${BLUE}║                                            ${WHITE}Cursor AI Editor Manager${BLUE}                                                                      ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                        ${CYAN}Enhanced Version ${SCRIPT_VERSION}${BLUE}                                                                 ║${NC}"
+    echo -e "${BOLD}${BLUE}╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
     # System information section
-    echo -e "${BOLD}${BLUE}║  ${YELLOW}System Information:${BLUE}                                           ║${NC}"
-    echo -e "${BOLD}${BLUE}║    macOS: ${WHITE}$MACOS_VERSION${BLUE} | Architecture: ${WHITE}$HARDWARE_ARCH${BLUE}$(printf "%*s" $((17 - ${#MACOS_VERSION} - ${#HARDWARE_ARCH})) "")║${NC}"
-
+    echo -e "${BOLD}${BLUE}║  ${YELLOW}System Information:${BLUE}                                                                                                                    ║${NC}"
+    echo -e "${BOLD}${BLUE}║    macOS: ${WHITE}$MACOS_VERSION${BLUE} | Architecture: ${WHITE}$HARDWARE_ARCH${BLUE}$(printf "%*s" $((17 - ${#MACOS_VERSION} - ${#HARDWARE_ARCH})) "") ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
     # Cursor installation status
     local cursor_status
     if detect_cursor_paths >/dev/null 2>&1; then
@@ -123,34 +123,34 @@ enhanced_show_menu() {
     else
         cursor_status="${RED}Not Found${BLUE}"
     fi
-    echo -e "${BOLD}${BLUE}║    Cursor Status: $cursor_status$(printf "%*s" $((39 - 10)) "")║${NC}"
-
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${BLUE}║  ${WHITE}Main Operations:${BLUE}                                              ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}1.${NC} ${WHITE}Complete Uninstall${BLUE}     - Remove all Cursor files           ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}2.${NC} ${WHITE}Install from DMG${BLUE}       - Install Cursor from DMG file      ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}3.${NC} ${WHITE}Optimize Performance${BLUE}   - Enhance system performance         ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}4.${NC} ${WHITE}Reset Performance${BLUE}      - Reset optimization settings       ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}5.${NC} ${WHITE}Check Installation${BLUE}     - Verify Cursor installation         ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${BLUE}║  ${WHITE}Management:${BLUE}                                                   ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}6.${NC} ${WHITE}Backup Management${BLUE}      - Create and manage backups         ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}7.${NC} ${WHITE}Configuration${BLUE}          - View and edit settings            ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}8.${NC} ${WHITE}Logs & Metrics${BLUE}        - View system logs and metrics      ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}9.${NC} ${WHITE}System Health Check${BLUE}   - Comprehensive system analysis     ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${BLUE}║  ${WHITE}Testing & Help:${BLUE}                                               ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}t.${NC} ${WHITE}Run Tests${BLUE}              - Execute comprehensive tests       ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}h.${NC} ${WHITE}Help${BLUE}                   - Show detailed help information    ║${NC}"
-    echo -e "${BOLD}${BLUE}║    ${YELLOW}q.${NC} ${WHITE}Quit${BLUE}                   - Exit the program                  ║${NC}"
-    echo -e "${BOLD}${BLUE}║                                                                  ║${NC}"
-    echo -e "${BOLD}${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${BLUE}║    Cursor Status: $cursor_status$(printf "%*s" $((39 - 10)) "")                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${BLUE}║  ${WHITE}Main Operations:${BLUE}                                                                                                                        ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}1.${NC} ${WHITE}Complete Uninstall${BLUE}     - Remove all Cursor files                                                                     ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}2.${NC} ${WHITE}Install from DMG${BLUE}       - Install Cursor from DMG file                                                                ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}3.${NC} ${WHITE}Optimize Performance${BLUE}   - Enhance system performance                                                                  ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}4.${NC} ${WHITE}Reset Performance${BLUE}      - Reset optimization settings                                                                 ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}5.${NC} ${WHITE}Check Installation${BLUE}     - Verify Cursor installation                                                                  ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${BLUE}║  ${WHITE}Management:${BLUE}                                                                                                                             ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}6.${NC} ${WHITE}Backup Management${BLUE}      - Create and manage backups                                                                   ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}7.${NC} ${WHITE}Configuration${BLUE}          - View and edit settings                                                                      ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}8.${NC} ${WHITE}Logs & Metrics${BLUE}         - View system logs and metrics                                                                ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}9.${NC} ${WHITE}System Health Check${BLUE}    - Comprehensive system analysis                                                               ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${BLUE}║  ${WHITE}Testing & Help:${BLUE}                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}t.${NC} ${WHITE}Run Tests${BLUE}              - Execute comprehensive tests                                                                 ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}h.${NC} ${WHITE}Help${BLUE}                   - Show detailed help information                                                              ║${NC}"
+    echo -e "${BOLD}${BLUE}║    ${YELLOW}q.${NC} ${WHITE}Quit${BLUE}                   - Exit the program                                                                            ║${NC}"
+    echo -e "${BOLD}${BLUE}║                                                                                                                                                         ║${NC}"
+    echo -e "${BOLD}${BLUE}╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     # Get user choice
@@ -219,17 +219,17 @@ enhanced_show_menu() {
 # Backup management menu
 show_backup_menu() {
     clear
-    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║                     ${WHITE}Backup Management${CYAN}                         ║${NC}"
-    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${CYAN}║                                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                     ${WHITE}Backup Management${CYAN}                                          ║${NC}"
+    echo -e "${BOLD}${CYAN}╠═══════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                                                               ║${NC}"
     echo -e "${BOLD}${CYAN}║    ${YELLOW}1.${NC} ${WHITE}Create New Backup${CYAN}      - Create backup of current setup    ║${NC}"
     echo -e "${BOLD}${CYAN}║    ${YELLOW}2.${NC} ${WHITE}Restore from Backup${CYAN}    - Restore from existing backup      ║${NC}"
-    echo -e "${BOLD}${CYAN}║    ${YELLOW}3.${NC} ${WHITE}List Backups${CYAN}           - Show all available backups       ║${NC}"
+    echo -e "${BOLD}${CYAN}║    ${YELLOW}3.${NC} ${WHITE}List Backups${CYAN}           - Show all available backups        ║${NC}"
     echo -e "${BOLD}${CYAN}║    ${YELLOW}4.${NC} ${WHITE}Configure Backup${CYAN}       - Backup settings and retention     ║${NC}"
     echo -e "${BOLD}${CYAN}║    ${YELLOW}5.${NC} ${WHITE}Back to Main Menu${CYAN}      - Return to main menu               ║${NC}"
-    echo -e "${BOLD}${CYAN}║                                                                  ║${NC}"
-    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${CYAN}║                                                                                               ║${NC}"
+    echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     echo -e "${BOLD}${WHITE}Enter your choice: ${NC}"
@@ -262,18 +262,18 @@ show_backup_menu() {
 # Configuration menu
 show_configuration_menu() {
     clear
-    echo -e "${BOLD}${MAGENTA}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${MAGENTA}║                    ${WHITE}Configuration Manager${MAGENTA}                     ║${NC}"
-    echo -e "${BOLD}${MAGENTA}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${MAGENTA}║                                                                  ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}1.${NC} ${WHITE}View Configuration${MAGENTA}     - Display current settings          ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}2.${NC} ${WHITE}Edit Configuration${MAGENTA}     - Modify configuration file        ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}3.${NC} ${WHITE}Reset to Defaults${MAGENTA}     - Restore default settings          ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}4.${NC} ${WHITE}Export Configuration${MAGENTA}  - Save configuration to file        ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}5.${NC} ${WHITE}Import Configuration${MAGENTA}  - Load configuration from file      ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}6.${NC} ${WHITE}Back to Main Menu${MAGENTA}     - Return to main menu               ║${NC}"
-    echo -e "${BOLD}${MAGENTA}║                                                                  ║${NC}"
-    echo -e "${BOLD}${MAGENTA}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${MAGENTA}╔════════════════════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${MAGENTA}║                           ${WHITE}Configuration Manager${MAGENTA}                                  ║${NC}"
+    echo -e "${BOLD}${MAGENTA}╠════════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${MAGENTA}║                                                                                                    ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}1.${NC} ${WHITE}View Configuration${MAGENTA}     - Display current settings            ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}2.${NC} ${WHITE}Edit Configuration${MAGENTA}     - Modify configuration file           ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}3.${NC} ${WHITE}Reset to Defaults${MAGENTA}      - Restore default settings            ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}4.${NC} ${WHITE}Export Configuration${MAGENTA}   - Save configuration to file          ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}5.${NC} ${WHITE}Import Configuration${MAGENTA}   - Load configuration from file        ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║    ${YELLOW}6.${NC} ${WHITE}Back to Main Menu${MAGENTA}      - Return to main menu                 ║${NC}"
+    echo -e "${BOLD}${MAGENTA}║                                                                                                    ║${NC}"
+    echo -e "${BOLD}${MAGENTA}╚════════════════════════════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     echo -e "${BOLD}${WHITE}Enter your choice: ${NC}"
@@ -309,18 +309,18 @@ show_configuration_menu() {
 # Logs and metrics menu
 show_logs_and_metrics() {
     clear
-    echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${GREEN}║                   ${WHITE}Logs & Metrics Viewer${GREEN}                      ║${NC}"
-    echo -e "${BOLD}${GREEN}╠══════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "${BOLD}${GREEN}║                                                                  ║${NC}"
+    echo -e "${BOLD}${GREEN}╔════════════════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${GREEN}║                          ${WHITE}Logs & Metrics Viewer${GREEN}                                 ║${NC}"
+    echo -e "${BOLD}${GREEN}╠════════════════════════════════════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${GREEN}║                                                                                                ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}1.${NC} ${WHITE}View Recent Logs${GREEN}       - Show latest log entries           ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}2.${NC} ${WHITE}View System Metrics${GREEN}    - Display performance metrics       ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}3.${NC} ${WHITE}View Error Log${GREEN}         - Show error log entries            ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}4.${NC} ${WHITE}Clear All Logs${GREEN}         - Remove all log files              ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}5.${NC} ${WHITE}Export Logs${GREEN}            - Save logs to archive              ║${NC}"
     echo -e "${BOLD}${GREEN}║    ${YELLOW}6.${NC} ${WHITE}Back to Main Menu${GREEN}      - Return to main menu               ║${NC}"
-    echo -e "${BOLD}${GREEN}║                                                                  ║${NC}"
-    echo -e "${BOLD}${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${GREEN}║                                                                                                ║${NC}"
+    echo -e "${BOLD}${GREEN}╚════════════════════════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     echo -e "${BOLD}${WHITE}Enter your choice: ${NC}"
@@ -360,7 +360,7 @@ show_logs_and_metrics() {
 # Confirm uninstall action with detailed information
 confirm_uninstall_action() {
     echo -e "\n${YELLOW}${BOLD}⚠️  COMPLETE CURSOR UNINSTALL CONFIRMATION${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    echo -e "${BOLD}═════════════════════════════════════════════════════${NC}\n"
 
     echo -e "${BOLD}This operation will:${NC}"
     echo -e "  ${RED}•${NC} Remove the Cursor application"
@@ -385,7 +385,8 @@ confirm_uninstall_action() {
 
         for path in "${cursor_paths[@]}"; do
             if [[ -e "$path" ]]; then
-                local size=$(get_file_size "$path")
+                local size
+                size=$(get_file_size "$path")
                 echo -e "  ${BLUE}•${NC} $path ${CYAN}($size)${NC}"
             fi
         done
@@ -426,7 +427,7 @@ confirm_uninstall_action() {
 # Confirm installation action
 confirm_installation_action() {
     echo -e "\n${BLUE}${BOLD}📦 CURSOR INSTALLATION CONFIRMATION${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════${NC}\n"
+    echo -e "${BOLD}════════════════════════════════════════════${NC}\n"
 
     echo -e "${BOLD}This operation will:${NC}"
     echo -e "  ${GREEN}•${NC} Mount and verify the DMG file"
@@ -436,7 +437,10 @@ confirm_installation_action() {
     echo -e "  ${GREEN}•${NC} Create project templates"
     echo ""
 
-    return $(get_confirmation "Proceed with installation?")
+    # FIXED SC2046: Quote to prevent word splitting
+    local confirmation_result
+    confirmation_result="$(get_confirmation "Proceed with installation?")"
+    return "$confirmation_result"
 }
 
 ################################################################################
@@ -446,9 +450,9 @@ confirm_installation_action() {
 # Show comprehensive help information
 show_help() {
     clear
-    echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${BLUE}║                     ${WHITE}Cursor Manager Help${BLUE}                        ║${NC}"
-    echo -e "${BOLD}${BLUE}║                      ${CYAN}Version ${SCRIPT_VERSION}${BLUE}                              ║${NC}"
+    echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"  
+    echo -e "${BOLD}${BLUE}║        ${WHITE}Cursor Manager Help${BLUE}                        ║${NC}"
+    echo -e "${BOLD}${BLUE}║        ${CYAN}Version ${SCRIPT_VERSION}${BLUE}                   ║${NC}"
     echo -e "${BOLD}${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 

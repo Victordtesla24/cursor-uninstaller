@@ -134,7 +134,7 @@ perform_pre_uninstall_backup() {
     # Step 4: Get current branch
     local current_branch
     current_branch=$(get_current_branch)
-    if [[ $? -ne 0 ]]; then
+    if ! get_current_branch >/dev/null 2>&1; then
         production_error_message "Failed to determine current branch"
         return 1
     fi
@@ -328,7 +328,7 @@ display_git_repository_info() {
     # Current branch
     local current_branch
     current_branch=$(get_current_branch)
-    if [[ $? -eq 0 ]]; then
+    if get_current_branch >/dev/null 2>&1; then
         echo -e "${BOLD}Current Branch:${NC} $current_branch"
     fi
     
@@ -337,7 +337,9 @@ display_git_repository_info() {
     remote_output=$(git remote -v 2>/dev/null)
     if [[ -n "$remote_output" ]]; then
         echo -e "${BOLD}Remote Origins:${NC}"
-        echo "$remote_output" | sed 's/^/  /'
+        while IFS= read -r line; do
+            echo "  $line"
+        done <<< "$remote_output"
     fi
     
     # Repository status
@@ -345,7 +347,9 @@ display_git_repository_info() {
     status_output=$(git status --porcelain 2>/dev/null)
     if [[ -n "$status_output" ]]; then
         echo -e "${BOLD}Uncommitted Changes:${NC}"
-        echo "$status_output" | sed 's/^/  /'
+        while IFS= read -r line; do
+            echo "  $line"
+        done <<< "$status_output"
     else
         echo -e "${BOLD}Repository Status:${NC} Clean (no uncommitted changes)"
     fi

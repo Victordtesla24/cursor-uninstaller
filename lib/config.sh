@@ -17,56 +17,7 @@ fi
 # Version and metadata
 readonly SCRIPT_VERSION="1.2.0"
 readonly SCRIPT_NAME="Cursor Uninstaller"
-readonly AUTHOR="Enhanced Modular Version"
 
-# Error codes
-readonly ERR_SUCCESS=0
-readonly ERR_GENERAL=1
-readonly ERR_INVALID_ARGS=2
-readonly ERR_USER_CANCEL=3
-readonly ERR_PERMISSION_DENIED=4
-readonly ERR_FILE_NOT_FOUND=5
-readonly ERR_NETWORK_ERROR=6
-readonly ERR_VALIDATION_FAILED=7
-readonly ERR_BACKUP_FAILED=8
-readonly ERR_RESTORE_FAILED=9
-readonly ERR_INSTALLATION_FAILED=10
-readonly ERR_SYSTEM_ERROR=11
-readonly ERR_DEPENDENCIES=12
-readonly ERR_NOT_INSTALLED=13
-
-# Color definitions for output formatting
-readonly YELLOW='\033[1;33m'
-readonly GREEN='\033[0;32m'
-readonly RED='\033[0;31m'
-readonly BLUE='\033[0;34m'
-readonly MAGENTA='\033[0;35m'
-readonly CYAN='\033[0;36m'
-readonly WHITE='\033[1;37m'
-readonly BOLD='\033[1m'
-readonly UNDERLINE='\033[4m'
-readonly NC='\033[0m' # No Color
-
-################################################################################
-# Cursor Application Paths and Directories
-################################################################################
-
-# Set Cursor-related directories and files
-readonly CURSOR_CWD="/Users/Shared/cursor"
-readonly CURSOR_APP="/Applications/Cursor.app"
-readonly CURSOR_SUPPORT="${HOME}/Library/Application Support/Cursor"
-readonly CURSOR_CACHE="${HOME}/Library/Caches/Cursor"
-readonly CURSOR_PREFERENCES="${HOME}/Library/Preferences/com.cursor.Cursor.plist"
-readonly CURSOR_SAVED_STATE="${HOME}/Library/Saved Application State/com.cursor.Cursor.savedState"
-readonly CURSOR_LOGS="${HOME}/Library/Logs/Cursor"
-readonly CURSOR_WEBSTORAGE="${HOME}/Library/WebKit/com.cursor.Cursor"
-readonly CURSOR_USER_DEFAULTS="com.cursor.Cursor"
-
-# Additional system paths
-readonly SYSTEM_LAUNCHD_USER="${HOME}/Library/LaunchAgents"
-readonly SYSTEM_LAUNCHD_SYSTEM="/Library/LaunchDaemons"
-readonly SYSTEM_APPLICATIONS="/Applications"
-readonly SYSTEM_FRAMEWORKS="/Library/Frameworks"
 
 ################################################################################
 # Script Configuration Paths
@@ -90,38 +41,15 @@ readonly BACKUP_LOG="${LOG_DIR}/backup.log"
 # Performance and Optimization Settings
 ################################################################################
 
-# Memory and performance constants
-readonly MIN_MEMORY_GB=8
-readonly RECOMMENDED_MEMORY_GB=16
-readonly MAX_LOG_SIZE_MB=100
-readonly LOG_RETENTION_DAYS=30
-readonly BACKUP_RETENTION_DAYS=90
+# Memory and performance constants - Set defaults first, will be made readonly later
+LOG_RETENTION_DAYS=30
+BACKUP_RETENTION_DAYS=90
 
-# Optimization settings
+# Optimization settings (these remain readonly as they're not configurable)
 readonly ENABLE_METAL_PERFORMANCE="true"
 readonly ENABLE_HARDWARE_ACCELERATION="true"
 readonly ENABLE_GPU_ACCELERATION="true"
 readonly OPTIMAL_THREAD_COUNT=4
-
-################################################################################
-# Network and Download Settings
-################################################################################
-
-# Download and installation settings
-readonly CURSOR_DOWNLOAD_URL="https://downloader.cursor.sh/builds/241219-vdmh2z6/cursor-0.44.9-x64.dmg"
-readonly DOWNLOAD_TIMEOUT=300
-readonly MAX_DOWNLOAD_RETRIES=3
-readonly CHECKSUM_VALIDATION="true"
-
-################################################################################
-# Testing and Validation Settings
-################################################################################
-
-# Test configuration
-readonly TEST_TIMEOUT=30
-readonly ENABLE_EXTENSIVE_TESTS="false"
-readonly ENABLE_PERFORMANCE_TESTS="true"
-readonly ENABLE_INTEGRATION_TESTS="true"
 
 ################################################################################
 # Global Variables (Initialized with defaults)
@@ -132,14 +60,6 @@ VERBOSE="${VERBOSE:-false}"
 QUIET="${QUIET:-false}"
 FORCE="${FORCE:-false}"
 SKIP_CONFIRMATION="${SKIP_CONFIRMATION:-false}"
-
-# Progress tracking
-CURRENT_TASK=""
-CURRENT_PROGRESS=0
-TOTAL_TASKS=0
-
-# Sudo management
-SUDO_REFRESH_PID=""
 
 # Temporary file tracking
 TEMP_FILES=()
@@ -152,7 +72,6 @@ TEMP_FILES=()
 detect_system_info() {
     MACOS_VERSION=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
     MACOS_BUILD=$(sw_vers -buildVersion 2>/dev/null || echo "unknown")
-    HARDWARE_ARCH=$(uname -m 2>/dev/null || echo "unknown")
 
     # Determine if running on Apple Silicon
     if [[ "$HARDWARE_ARCH" == "arm64" ]]; then
@@ -223,17 +142,16 @@ load_configuration() {
         echo "Created default configuration at: $CONFIG_FILE"
     fi
 
-    # Load settings from JSON file if jq is available
+    # Load settings from JSON file if jq is available to override defaults
     if command -v jq >/dev/null 2>&1; then
-        # Override defaults with file settings (only if not readonly)
-        local backup_retention
-        local log_retention
-        backup_retention=$(jq -r '.settings.backup_retention_days // 90' "$CONFIG_FILE" 2>/dev/null || echo "90")
-        log_retention=$(jq -r '.settings.log_retention_days // 30' "$CONFIG_FILE" 2>/dev/null || echo "30")
-
-        # Note: Cannot override readonly variables, using defaults
-        # BACKUP_RETENTION_DAYS and LOG_RETENTION_DAYS are readonly
+        # Load values from config file, falling back to current defaults
+        BACKUP_RETENTION_DAYS=$(jq -r '.settings.backup_retention_days // '"$BACKUP_RETENTION_DAYS" "$CONFIG_FILE" 2>/dev/null || echo "$BACKUP_RETENTION_DAYS")
+        LOG_RETENTION_DAYS=$(jq -r '.settings.log_retention_days // '"$LOG_RETENTION_DAYS" "$CONFIG_FILE" 2>/dev/null || echo "$LOG_RETENTION_DAYS")
     fi
+    
+    # Now make the loaded values readonly to prevent further modification
+    readonly LOG_RETENTION_DAYS
+    readonly BACKUP_RETENTION_DAYS
 }
 
 ################################################################################
@@ -274,7 +192,9 @@ cleanup_temp_files() {
     # Check if TEMP_FILES array exists and has elements
     if [[ -n "${TEMP_FILES:-}" ]] && [[ ${#TEMP_FILES[@]} -gt 0 ]]; then
         for temp_file in "${TEMP_FILES[@]}"; do
-            [[ -f "$temp_file" ]] && rm -f "$temp_file" 2>/dev/null || true
+            if [[ -f "$temp_file" ]]; then
+                rm -f "$temp_file" 2>/dev/null || true
+            fi
         done
     fi
     TEMP_FILES=()

@@ -146,7 +146,16 @@ display_system_specifications() {
         echo -e "${RED}•${NC} High memory usage detected - close unnecessary applications"
     fi
     
-    if [[ $cpu_usage -gt 70 ]]; then
+    # FIXED: Handle decimal CPU usage values - convert to integer for comparison
+    local cpu_usage_int
+    if [[ -n "$cpu_usage" ]]; then
+        # Convert decimal to integer (e.g., "11.0" -> "11")  
+        cpu_usage_int=$(printf "%.0f" "$cpu_usage" 2>/dev/null || echo "0")
+    else
+        cpu_usage_int=0
+    fi
+    
+    if [[ $cpu_usage_int -gt 70 ]]; then
         echo -e "${RED}•${NC} High CPU usage detected - system may be under load"
     fi
     
@@ -926,7 +935,8 @@ EOF
 
 # Generate performance optimization report
 generate_optimization_report() {
-    local report_file="${TEMP_DIR:-/tmp}/cursor_optimization_report_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file
+    report_file="${TEMP_DIR:-/tmp}/cursor_optimization_report_$(date +%Y%m%d_%H%M%S).txt"
     
     production_log_message "INFO" "Generating performance optimization report: $report_file"
     

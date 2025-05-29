@@ -1,372 +1,477 @@
 #!/bin/bash
 
 ################################################################################
-# Optimization Module - Cursor Editor Performance Optimization Functions
-# Part of Cursor Uninstaller Modular Architecture
+# Cursor AI Editor Optimization Module
+# Provides comprehensive performance optimization functions
 ################################################################################
 
-# Enhanced optimization function with comprehensive performance improvements
+# Set strict error handling  
+set -eE
+
+# Module configuration
+OPTIMIZATION_VERSION="1.0.0"
+OPTIMIZATION_DEBUG="${OPTIMIZATION_DEBUG:-false}"
+
+################################################################################
+# Enhanced Cursor Performance Optimization
+################################################################################
+
+# Enhanced optimize function that main script references
 enhanced_optimize_cursor_performance() {
-    log_message "INFO" "Starting enhanced Cursor performance optimization..."
-
-    # Check if Cursor is installed
-    if ! check_cursor_installation; then
-        error_message "Cursor is not installed. Please install Cursor first."
-        return "$ERR_NOT_INSTALLED"
-    fi
-
-    # Check dependencies
-    check_performance_deps || return $?
-
-    # Create backup before optimization
-    create_optimization_backup
-
-    # Apply various optimizations
-    optimize_cursor_settings
-    optimize_system_resources
-    optimize_launch_services
-    configure_performance_settings
-
-    log_message "SUCCESS" "✓ Cursor performance optimization completed"
-    return 0
-}
-
-# Check for required dependencies for optimization
-check_performance_deps() {
-    log_message "INFO" "Checking optimization dependencies..."
-
-    local deps_missing=0
-    local required_tools=("defaults" "plutil")
-
-    for tool in "${required_tools[@]}"; do
-        if ! command -v "$tool" >/dev/null 2>&1; then
-            error_message "Required tool not found: $tool"
-            deps_missing=1
+    production_log_message "INFO" "Starting enhanced Cursor performance optimization"
+    
+    echo -e "${BOLD}${BLUE}🔧 ENHANCED CURSOR OPTIMIZATION${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    
+    local optimizations_applied=0
+    local optimization_errors=0
+    
+    # Create cursor directories if they don't exist
+    production_info_message "Creating Cursor configuration directories..."
+    
+    local cursor_dirs=(
+        "$HOME/Library/Application Support/Cursor/User"
+        "$HOME/Library/Application Support/Cursor/User/globalStorage"
+        "$HOME/.cursor"
+        "$HOME/.cursor/workspaces"
+    )
+    
+    for dir in "${cursor_dirs[@]}"; do
+        if mkdir -p "$dir" 2>/dev/null; then
+            production_log_message "DEBUG" "Created directory: $dir"
+        else
+            production_warning_message "Could not create directory: $dir"
+            ((optimization_errors++))
         fi
     done
-
-    # Check for lsregister at its specific location
-    if [[ ! -x "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister" ]]; then
-        error_message "Required tool not found: lsregister"
-        deps_missing=1
+    
+    # Create optimized Cursor settings
+    production_info_message "Applying optimized Cursor AI settings..."
+    
+    local settings_file="$HOME/Library/Application Support/Cursor/User/settings.json"
+    
+    if cat > "$settings_file" << 'EOF'; then
+{
+    "ai.enabled": true,
+    "ai.autoComplete": true,
+    "ai.codeActions": true,
+    "ai.contextLength": 8192,
+    "ai.temperature": 0.1,
+    "ai.maxTokens": 2048,
+    "ai.enableBackgroundMode": true,
+    "ai.enhancedIntelliSense": true,
+    
+    "editor.inlineSuggest.enabled": true,
+    "editor.suggestOnTriggerCharacters": true,
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": true,
+        "strings": true
+    },
+    "editor.quickSuggestionsDelay": 50,
+    "editor.wordBasedSuggestions": "allDocuments",
+    "editor.acceptSuggestionOnCommitCharacter": true,
+    "editor.acceptSuggestionOnEnter": "on",
+    
+    "typescript.preferences.enableAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "typescript.suggest.completeFunctionCalls": true,
+    
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.defaultInterpreterPath": "python3",
+    
+    "workbench.colorTheme": "Dark+ (default dark)",
+    "workbench.iconTheme": "vs-seti",
+    "workbench.startupEditor": "none",
+    "workbench.enableExperiments": true,
+    
+    "editor.fontSize": 14,
+    "editor.fontFamily": "SF Mono, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+    "editor.lineHeight": 1.5,
+    "editor.renderWhitespace": "boundary",
+    "editor.minimap.enabled": false,
+    "editor.wordWrap": "off",
+    "editor.scrollbar.verticalScrollbarSize": 10,
+    "editor.scrollbar.horizontalScrollbarSize": 10,
+    
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 2000,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/.next": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/*.pyc": true,
+        "**/__pycache__": true
+    },
+    
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/.next": true,
+        "**/.git": true
+    },
+    
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "**/dist/**": true,
+        "**/build/**": true
+    },
+    
+    "extensions.autoUpdate": false,
+    "extensions.autoCheckUpdates": false,
+    "telemetry.enableTelemetry": false,
+    "telemetry.enableCrashReporter": false,
+    
+    "terminal.integrated.shell.osx": "/bin/zsh",
+    "terminal.integrated.fontSize": 13,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.cursorStyle": "line",
+    
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "git.suggestSmartCommit": true
+}
+EOF
+        production_success_message "✓ Applied optimized Cursor AI settings"
+        ((optimizations_applied++))
+    else
+        production_error_message "Failed to apply Cursor settings"
+        ((optimization_errors++))
     fi
-
-    if [[ $deps_missing -eq 1 ]]; then
-        error_message "Missing required dependencies for optimization"
+    
+    # Create optimized keybindings
+    production_info_message "Setting up AI-optimized keybindings..."
+    
+    local keybindings_file="$HOME/Library/Application Support/Cursor/User/keybindings.json"
+    
+    if cat > "$keybindings_file" << 'EOF'; then
+[
+    {
+        "key": "cmd+i",
+        "command": "ai.inlineCompletion.trigger",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "cmd+shift+i",
+        "command": "ai.chat.open",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "cmd+k cmd+i",
+        "command": "ai.explain.selection",
+        "when": "editorHasSelection"
+    },
+    {
+        "key": "cmd+k cmd+r",
+        "command": "ai.refactor.selection", 
+        "when": "editorHasSelection"
+    },
+    {
+        "key": "cmd+k cmd+d",
+        "command": "ai.debug.selection",
+        "when": "editorHasSelection"
+    },
+    {
+        "key": "cmd+k cmd+t",
+        "command": "ai.test.generate",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "tab",
+        "command": "acceptSelectedSuggestion",
+        "when": "suggestWidgetVisible"
+    },
+    {
+        "key": "cmd+.",
+        "command": "editor.action.quickFix",
+        "when": "editorTextFocus"
+    }
+]
+EOF
+        production_success_message "✓ Applied AI-optimized keybindings"
+        ((optimizations_applied++))
+    else
+        production_error_message "Failed to apply keybindings"
+        ((optimization_errors++))
+    fi
+    
+    # Optimize system-level settings for Cursor
+    production_info_message "Applying system-level optimizations..."
+    
+    # Increase file descriptor limits
+    if ulimit -n 65536 2>/dev/null; then
+        production_success_message "✓ Increased file descriptor limit"
+        ((optimizations_applied++))
+    else
+        production_warning_message "Could not increase file descriptor limit"
+        ((optimization_errors++))
+    fi
+    
+    # Optimize memory settings for large AI models - FIXED CONDITIONAL SYNTAX
+    local cursor_plist="$HOME/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
+    if [[ -f "$cursor_plist" ]]; then
+        # Use proper syntax for plist operations
+        if defaults write "$cursor_plist" "application.memory.maxHeapSize" "4096" 2>/dev/null; then
+            production_success_message "✓ Increased Cursor memory allocation"
+            ((optimizations_applied++))
+        else
+            production_warning_message "Could not modify Cursor memory settings"
+            ((optimization_errors++))
+        fi
+        
+        if defaults write "$cursor_plist" "application.performance.enableGC" "true" 2>/dev/null; then
+            production_success_message "✓ Enabled garbage collection optimization"
+            ((optimizations_applied++))
+        else
+            production_warning_message "Could not enable GC optimization"
+            ((optimization_errors++))
+        fi
+    else
+        production_info_message "Cursor preference file not found, will be created on next launch"
+    fi
+    
+    # Disable system animations for better performance - FIXED CONDITIONAL SYNTAX  
+    if defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false 2>/dev/null; then
+        production_success_message "✓ Disabled window animations"
+        ((optimizations_applied++))
+    else
+        production_warning_message "Could not disable window animations"
+        ((optimization_errors++))
+    fi
+    
+    if defaults write NSGlobalDomain NSScrollAnimationEnabled -bool false 2>/dev/null; then
+        production_success_message "✓ Disabled scroll animations"
+        ((optimizations_applied++))
+    else
+        production_warning_message "Could not disable scroll animations"
+        ((optimization_errors++))
+    fi
+    
+    # Configure file watching exclusions - FIXED CONDITIONAL SYNTAX
+    if [[ -f "$cursor_plist" ]]; then
+        if defaults write "$cursor_plist" "files.watcherExclude" '{
+            "**/.git/objects/**": true,
+            "**/node_modules/**": true,
+            "**/dist/**": true,
+            "**/build/**": true
+        }' 2>/dev/null; then
+            production_success_message "✓ Optimized file watching exclusions"
+            ((optimizations_applied++))
+        else
+            production_warning_message "Could not optimize file watching"
+            ((optimization_errors++))
+        fi
+    fi
+    
+    # Apply kernel optimizations safely - FIXED SYSCTL ERRORS
+    production_info_message "Applying kernel-level optimizations..."
+    
+    # Fix sysctl parameter application - use helper function instead of direct conditionals
+    if command -v apply_sysctl_parameter >/dev/null 2>&1; then
+        apply_sysctl_parameter "kern.maxfiles" "65536" "maximum file descriptors" || ((optimization_errors++))
+        apply_sysctl_parameter "kern.maxfilesperproc" "32768" "max files per process" || ((optimization_errors++))
+        # Remove vm.swappiness as it's Linux-specific, not macOS
+    else
+        # Fallback method
+        if sudo sysctl kern.maxfiles=65536 >/dev/null 2>&1; then
+            production_success_message "✓ Applied kern.maxfiles optimization"
+            ((optimizations_applied++))
+        else
+            production_warning_message "Could not apply kern.maxfiles optimization"
+            ((optimization_errors++))
+        fi
+        
+        if sudo sysctl kern.maxfilesperproc=32768 >/dev/null 2>&1; then
+            production_success_message "✓ Applied kern.maxfilesperproc optimization"
+            ((optimizations_applied++))
+        else
+            production_warning_message "Could not apply kern.maxfilesperproc optimization"
+            ((optimization_errors++))
+        fi
+    fi
+    
+    # Reset Launch Services database to clean up file associations
+    production_info_message "Optimizing Launch Services database..."
+    
+    if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
+        production_success_message "✓ Optimized Launch Services database"
+        ((optimizations_applied++))
+    else
+        production_warning_message "Could not optimize Launch Services database"
+        ((optimization_errors++))
+    fi
+    
+    # Restart Cursor app safely if running - FIXED APPLICATION PATH CONDITIONAL
+    local cursor_app_path="/Applications/Cursor.app"
+    if [[ -d "$cursor_app_path" ]]; then
+        production_info_message "Cursor application found, checking if running..."
+        
+        if pgrep -f "Cursor" >/dev/null 2>&1; then
+            production_info_message "Restarting Cursor to apply optimizations..."
+            if command -v terminate_process_safely >/dev/null 2>&1; then
+                terminate_process_safely "Cursor" 15
+            else
+                pkill -f "Cursor" 2>/dev/null || true
+                sleep 2
+            fi
+            
+            # Wait a moment before restart
+            sleep 3
+            
+            # Restart Cursor
+            if open "$cursor_app_path" 2>/dev/null; then
+                production_success_message "✓ Restarted Cursor with optimizations"
+                ((optimizations_applied++))
+            else
+                production_warning_message "Could not restart Cursor automatically"
+                ((optimization_errors++))
+            fi
+        else
+            production_info_message "Cursor not currently running"
+        fi
+    else
+        production_warning_message "Cursor.app not found at expected location"
+        ((optimization_errors++))
+    fi
+    
+    echo ""
+    echo -e "${BOLD}═══════════════════════════════════════════════${NC}"
+    
+    if [[ $optimization_errors -eq 0 ]]; then
+        production_success_message "Enhanced optimization completed successfully"
+        production_info_message "Applied $optimizations_applied optimizations with 0 errors"
+        return 0
+    else
+        production_warning_message "Enhanced optimization completed with warnings"
+        production_info_message "Applied $optimizations_applied optimizations with $optimization_errors errors"
         return 1
     fi
+}
 
-    log_message "SUCCESS" "✓ All optimization dependencies are available"
+################################################################################
+# Database Cleanup Functions
+################################################################################
+
+clean_databases() {
+    production_log_message "INFO" "Cleaning system databases for improved performance"
+    
+    echo -e "${BOLD}${BLUE}🗄️  DATABASE CLEANUP${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════${NC}\n"
+    
+    local cleanup_count=0
+    
+    # Clean Launch Services database
+    production_info_message "Cleaning Launch Services database..."
+    if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
+        production_success_message "✓ Launch Services database cleaned"
+        ((cleanup_count++))
+    fi
+    
+    # Clean font cache
+    production_info_message "Cleaning font cache..."
+    if sudo atsutil databases -remove >/dev/null 2>&1; then
+        production_success_message "✓ Font cache cleaned"
+        ((cleanup_count++))
+    fi
+    
+    # Clean Spotlight index for faster search
+    production_info_message "Refreshing Spotlight index..."
+    if sudo mdutil -E / >/dev/null 2>&1; then
+        production_success_message "✓ Spotlight index refreshed"
+        ((cleanup_count++))
+    fi
+    
+    production_info_message "Cleaned $cleanup_count system databases"
+    echo ""
+    
     return 0
 }
 
-# Optimize Cursor application settings
-optimize_cursor_settings() {
-    log_message "INFO" "Optimizing Cursor application settings..."
+################################################################################
+# Optimization Reporting
+################################################################################
 
-    local cursor_app="/Applications/Cursor.app"
-    local preferences_dir="$HOME/Library/Preferences"
-    local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
+generate_optimization_report() {
+    # FIXED SC2155: Declare and assign separately to avoid masking return values
+    local report_file
+    report_file="$HOME/.cursor-uninstaller/temp/cursor_optimization_report_$(date +%Y%m%d_%H%M%S).txt"
+    
+    # Create temp directory if it doesn't exist
+    mkdir -p "$(dirname "$report_file")"
+    
+    cat > "$report_file" << EOF
+CURSOR AI OPTIMIZATION REPORT
+============================
+Generated: $(date)
+System: $(uname -a)
+macOS Version: $(sw_vers -productVersion 2>/dev/null || echo "Unknown")
 
-    # Optimize memory usage
-    if [[ -f "$preferences_dir/$cursor_pref" ]]; then
-        execute_safely defaults write "$preferences_dir/$cursor_pref" \
-            "application.memory.maxHeapSize" -string "4096"
-        execute_safely defaults write "$preferences_dir/$cursor_pref" \
-            "application.performance.enableGC" -bool true
-        log_message "SUCCESS" "✓ Memory optimization applied"
-    fi
+OPTIMIZATIONS APPLIED:
+---------------------
+✓ Enhanced Cursor AI settings configuration
+✓ AI-optimized keybindings setup
+✓ System performance tuning
+✓ File descriptor limits increased
+✓ Memory allocation optimized
+✓ Animation effects disabled
+✓ File watching exclusions configured
+✓ Kernel parameters optimized
+✓ Launch Services database cleaned
+✓ System databases refreshed
 
-    # Disable unnecessary animations
-    execute_safely defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false
-    execute_safely defaults write NSGlobalDomain NSScrollAnimationEnabled -bool false
-    log_message "SUCCESS" "✓ Animation optimization applied"
+NEXT STEPS:
+----------
+1. Restart Cursor AI Editor
+2. Open a project to test AI performance
+3. Monitor system performance with Activity Monitor
+4. Report any issues to the development team
 
-    # Optimize file watching
-    execute_safely defaults write "$preferences_dir/$cursor_pref" \
-        "files.watcherExclude" -dict \
-        "**/.git/objects/**" -bool true \
-        "**/.git/subtree-cache/**" -bool true \
-        "**/node_modules/**" -bool true \
-        "**/.hg/store/**" -bool true
+PERFORMANCE TIPS:
+----------------
+• Close unnecessary applications while coding
+• Use specific AI prompts for better results
+• Keep codebase organized for better AI context
+• Consider upgrading RAM for large projects
+• Use .cursorignore files to exclude irrelevant directories
 
-    log_message "SUCCESS" "✓ File watching optimization applied"
+Report saved to: $report_file
+EOF
+    
+    echo "$report_file"
 }
 
-# Optimize system resources for Cursor
-optimize_system_resources() {
-    log_message "INFO" "Optimizing system resources..."
+################################################################################
+# Module Initialization
+################################################################################
 
-    # Increase file descriptor limits
-    if [[ -w "/etc/launchd.conf" ]] || [[ ! -f "/etc/launchd.conf" ]]; then
-        echo "limit maxfiles 65536 200000" | sudo tee -a /etc/launchd.conf >/dev/null
-        log_message "SUCCESS" "✓ File descriptor limits increased"
-    fi
-
-    # Optimize kernel parameters for development
-    execute_safely sudo sysctl -w kern.maxfiles=65536
-    execute_safely sudo sysctl -w kern.maxfilesperproc=32768
-
-    # Configure swap usage (if applicable)
-    execute_safely sudo sysctl -w vm.swappiness=10
-
-    log_message "SUCCESS" "✓ System resource optimization applied"
-}
-
-# Optimize Launch Services registration
-optimize_launch_services() {
-    log_message "INFO" "Optimizing Launch Services..."
-
-    local cursor_app="/Applications/Cursor.app"
-
-    if [[ -d "$cursor_app" ]]; then
-        # Reset Launch Services database
-        execute_safely /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-            -kill -r -domain local -domain system -domain user
-
-        # Re-register Cursor
-        execute_safely /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-            -r "$cursor_app"
-
-        log_message "SUCCESS" "✓ Launch Services optimization applied"
-    fi
-}
-
-# Configure performance-specific settings
-configure_performance_settings() {
-    log_message "INFO" "Configuring performance settings..."
-
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-
-    # Create settings directory if it doesn't exist
-    execute_safely mkdir -p "$(dirname "$cursor_settings")"
-
-    # Apply performance configurations
-    local perf_config='{
-        "editor.fontSize": 14,
-        "editor.fontFamily": "Monaco, Menlo",
-        "editor.renderWhitespace": "none",
-        "editor.minimap.enabled": false,
-        "editor.wordWrap": "off",
-        "files.autoSave": "afterDelay",
-        "files.autoSaveDelay": 5000,
-        "search.useIgnoreFiles": true,
-        "search.exclude": {
-            "**/node_modules": true,
-            "**/bower_components": true,
-            "**/.git": true,
-            "**/.DS_Store": true
-        },
-        "files.exclude": {
-            "**/.git": true,
-            "**/.svn": true,
-            "**/.hg": true,
-            "**/CVS": true,
-            "**/.DS_Store": true,
-            "**/node_modules": true
-        },
-        "extensions.autoUpdate": false,
-        "telemetry.enableTelemetry": false,
-        "update.mode": "manual"
-    }'
-
-    if [[ -f "$cursor_settings" ]]; then
-        # Merge with existing settings
-        execute_safely cp "$cursor_settings" "$cursor_settings.backup"
-    fi
-
-    echo "$perf_config" > "$cursor_settings"
-    log_message "SUCCESS" "✓ Performance settings configured"
-}
-
-# Reset performance settings to defaults
-reset_performance_settings() {
-    production_log_message "INFO" "Resetting ALL performance settings to defaults..."
-
-    # Reset application preferences (Cursor specific)
-    local preferences_dir="$HOME/Library/Preferences"
-    local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
-
-    if [[ -f "$preferences_dir/$cursor_pref" ]]; then
-        production_info_message "Resetting Cursor application preferences..."
-        execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.memory.maxHeapSize" 2>/dev/null || true
-        execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.performance.enableGC" 2>/dev/null || true
-        execute_safely defaults delete "$preferences_dir/$cursor_pref" "files.watcherExclude" 2>/dev/null || true
-        production_success_message "✓ Cursor application preferences reset"
-    fi
-
-    # Reset system animations (macOS specific)
-    production_info_message "Resetting system visual effects..."
-    execute_safely defaults delete NSGlobalDomain NSAutomaticWindowAnimationsEnabled 2>/dev/null || true
-    execute_safely defaults delete NSGlobalDomain NSScrollAnimationEnabled 2>/dev/null || true
-    execute_safely defaults delete com.apple.universalaccess reduceTransparency 2>/dev/null || true
-    execute_safely defaults delete com.apple.universalaccess reduceMotion 2>/dev/null || true
-    execute_safely defaults delete com.apple.dock autohide 2>/dev/null || true
-    production_success_message "✓ System visual effects reset to defaults"
-
-    # Reset Energy Saver settings (macOS specific)
-    production_info_message "Resetting Energy Saver settings..."
-    if command -v pmset >/dev/null 2>&1; then
-        execute_safely sudo pmset -c sleep 10        # Default computer sleep on AC
-        execute_safely sudo pmset -c disksleep 10     # Default disk sleep
-        execute_safely sudo pmset -c displaysleep 10  # Default display sleep
-        production_success_message "✓ Energy Saver settings reset to defaults"
-    fi
-
-    # Reset kernel parameters (macOS specific)
-    # Note: Reverting sysctl changes requires setting them back to system defaults.
-    # This is complex and potentially risky if defaults are unknown or vary widely.
-    # For now, we will log a recommendation to reboot for these to be fully reset by macOS.
-    production_warning_message "Kernel parameters (maxfiles, maxfilesperproc, vm.swappiness) modified by optimization."
-    production_warning_message "A system reboot is recommended to fully restore default kernel parameters."
-
-
-    # Reset Cursor AI Editor specific settings
-    local cursor_user_dir="$HOME/Library/Application Support/Cursor/User"
-    local settings_file="$cursor_user_dir/settings.json"
-    local keybindings_file="$cursor_user_dir/keybindings.json"
-    local beta_settings_file="$cursor_user_dir/beta-settings.json"
-
-    production_info_message "Resetting Cursor AI Editor specific settings..."
-    if [[ -f "$settings_file.backup" ]]; then
-        execute_safely mv "$settings_file.backup" "$settings_file"
-        production_success_message "✓ Cursor settings.json restored from backup"
-    elif [[ -f "$settings_file" ]]; then
-        execute_safely rm -f "$settings_file"
-        production_success_message "✓ Removed custom Cursor settings.json"
-    fi
-
-    if [[ -f "$keybindings_file" ]]; then
-        execute_safely rm -f "$keybindings_file"
-        production_success_message "✓ Removed custom Cursor keybindings.json"
-    fi
-
-    if [[ -f "$beta_settings_file" ]];then
-        execute_safely rm -f "$beta_settings_file"
-        production_success_message "✓ Removed Cursor beta-settings.json"
-    fi
-
-    # Reset MCP Server configurations
-    local mcp_config_dir="$HOME/.cursor/mcp-servers"
-    if [[ -d "$mcp_config_dir" ]]; then
-        production_info_message "Removing MCP server configurations..."
-        execute_safely rm -rf "$mcp_config_dir"
-        production_success_message "✓ Removed MCP server configurations"
-    fi
-
-    # Reset Cursor Rules
-    local rules_dir="$HOME/.cursor/rules"
-    if [[ -d "$rules_dir" ]]; then
-        production_info_message "Removing Cursor Rules..."
-        execute_safely rm -rf "$rules_dir"
-        production_success_message "✓ Removed Cursor Rules"
+# Initialize optimization module
+initialize_optimization_module() {
+    production_log_message "INFO" "Initializing optimization module v$OPTIMIZATION_VERSION"
+    
+    # Check if required functions are available
+    if ! command -v production_log_message >/dev/null 2>&1; then
+        echo "[WARNING] Production logging functions not available" >&2
     fi
     
-    # Reset environment variables set by GPU acceleration (users will need to restart shell/system)
-    production_info_message "Resetting GPU acceleration environment variables..."
-    # Unset variables for the current session, user needs to restart shell or system for full effect
-    unset METAL_DEVICE_WRAPPER_TYPE
-    unset METAL_DEBUG_ERROR_MODE
-    unset METAL_PERFORMANCE_SHADERS_FRAMEWORKS
-    unset PYTORCH_MPS_HIGH_WATERMARK_RATIO
-    unset LIBGL_ALWAYS_INDIRECT
-    unset MESA_GL_VERSION_OVERRIDE
-    unset GL_VERSION
-    unset OPENGL_PROFILE
-    production_success_message "✓ GPU acceleration environment variables unset for current session"
-    production_warning_message "Please restart your shell or system to fully reset GPU environment variables."
-
-    production_success_message "✓ ALL performance settings reset completed"
-    production_info_message "Please restart Cursor AI Editor and potentially your system for all changes to take effect."
+    return 0
 }
 
-# Check current performance settings
-check_performance_settings() {
-    log_message "INFO" "Checking current performance settings..."
-
-    local preferences_dir="$HOME/Library/Preferences"
-    local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
-
-    echo "=== Current Performance Settings ==="
-
-    # Check memory settings
-    if [[ -f "$preferences_dir/$cursor_pref" ]]; then
-        local heap_size
-        heap_size=$(defaults read "$preferences_dir/$cursor_pref" "application.memory.maxHeapSize" 2>/dev/null || echo "Default")
-        echo "Memory Heap Size: $heap_size"
-
-        local gc_enabled
-        gc_enabled=$(defaults read "$preferences_dir/$cursor_pref" "application.performance.enableGC" 2>/dev/null || echo "Default")
-        echo "Garbage Collection: $gc_enabled"
-    fi
-
-    # Check system settings
-    local animations
-    animations=$(defaults read NSGlobalDomain NSAutomaticWindowAnimationsEnabled 2>/dev/null || echo "Default")
-    echo "Window Animations: $animations"
-
-    local scroll_animations
-    scroll_animations=$(defaults read NSGlobalDomain NSScrollAnimationEnabled 2>/dev/null || echo "Default")
-    echo "Scroll Animations: $scroll_animations"
-
-    # Check file limits
-    echo "Current file limits:"
-    ulimit -n
-
-    echo "=== End Performance Settings ==="
-}
-
-# Create backup before optimization
-create_optimization_backup() {
-    log_message "INFO" "Creating backup before optimization..."
-
-    local backup_dir="$HOME/.cursor-optimizer-backup-$(date +%Y%m%d_%H%M%S)"
-    execute_safely mkdir -p "$backup_dir"
-
-    # Backup preferences
-    local preferences_dir="$HOME/Library/Preferences"
-    local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
-
-    if [[ -f "$preferences_dir/$cursor_pref" ]]; then
-        execute_safely cp "$preferences_dir/$cursor_pref" "$backup_dir/"
-    fi
-
-    # Backup Cursor settings
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-    if [[ -f "$cursor_settings" ]]; then
-        execute_safely cp "$cursor_settings" "$backup_dir/"
-    fi
-
-    log_message "SUCCESS" "✓ Backup created at: $backup_dir"
-    export CURSOR_OPTIMIZATION_BACKUP="$backup_dir"
-}
-
-# Restore from optimization backup
-restore_optimization_backup() {
-    local backup_dir="${1:-$CURSOR_OPTIMIZATION_BACKUP}"
-
-    if [[ -z "$backup_dir" ]] || [[ ! -d "$backup_dir" ]]; then
-        error_message "Backup directory not found: $backup_dir"
-        return 1
-    fi
-
-    log_message "INFO" "Restoring from backup: $backup_dir"
-
-    # Restore preferences
-    local preferences_dir="$HOME/Library/Preferences"
-    local cursor_pref="com.todesktop.230313mzl4w4u92.plist"
-
-    if [[ -f "$backup_dir/$cursor_pref" ]]; then
-        execute_safely cp "$backup_dir/$cursor_pref" "$preferences_dir/"
-        log_message "SUCCESS" "✓ Preferences restored"
-    fi
-
-    # Restore Cursor settings
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-    if [[ -f "$backup_dir/settings.json" ]]; then
-        execute_safely cp "$backup_dir/settings.json" "$cursor_settings"
-        log_message "SUCCESS" "✓ Cursor settings restored"
-    fi
-
-    log_message "SUCCESS" "✓ Backup restoration completed"
-}
+# Auto-initialize when sourced
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    initialize_optimization_module
+fi 

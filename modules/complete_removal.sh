@@ -19,7 +19,6 @@ detect_all_cursor_components() {
     production_log_message "INFO" "Performing comprehensive Cursor component detection"
     
     local components_found=()
-    local total_size=0
     
     # Main application bundle
     if [[ -d "/Applications/Cursor.app" ]]; then
@@ -240,17 +239,31 @@ remove_background_processes() {
     production_log_message "INFO" "Checking for and removing Cursor background processes"
     
     # Get current script PID to avoid self-termination
-    local current_script_pid=$$
-    local current_script_name="$(basename "$0")"
+    local current_script_pid="$$"
     
     # Check for running Cursor processes with proper filtering
     local cursor_processes
-    cursor_processes=$(ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" | awk '{print $2}' || true)
+    cursor_processes=$(pgrep -f -i cursor 2>/dev/null | grep -v "$$" | grep -v "$current_script_pid" || true)
     
     if [[ -n "$cursor_processes" ]]; then
         production_warning_message "Found running Cursor processes:"
         # Show processes but exclude our own script
-        ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" || true
+        if command -v pgrep >/dev/null 2>&1; then
+            # Use pgrep with ps for detailed output
+            for pid in $(pgrep -f -i cursor 2>/dev/null || true); do
+                if [[ "$pid" != "$$" ]] && [[ "$pid" != "$current_script_pid" ]]; then
+                    ps -p "$pid" 2>/dev/null || true
+                fi
+            done
+        else
+            # Fallback to original method if pgrep not available - FIXED SC2009
+            # Use ps with specific process ID filtering instead of grep
+            while IFS= read -r line; do
+                if [[ "$line" == *"cursor"* ]] || [[ "$line" == *"Cursor"* ]]; then
+                    echo "$line"
+                fi
+            done < <(ps aux 2>/dev/null || true)
+        fi
         
         production_info_message "Terminating Cursor processes..."
         while IFS= read -r pid; do
@@ -276,7 +289,7 @@ remove_background_processes() {
         sleep 2
         
         # Force kill if still running (with same protection)
-        cursor_processes=$(ps aux | grep -i cursor | grep -v grep | grep -v "$current_script_name" | awk '{print $2}' || true)
+        cursor_processes=$(pgrep -f -i cursor 2>/dev/null | grep -v "$$" | grep -v "$current_script_pid" || true)
         if [[ -n "$cursor_processes" ]]; then
             production_warning_message "Force killing remaining processes..."
             while IFS= read -r pid; do
@@ -610,7 +623,8 @@ verify_complete_removal() {
 
 # Generate removal report
 generate_removal_report() {
-    local report_file="${TEMP_DIR}/cursor_removal_report_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file
+    report_file="${TEMP_DIR}/cursor_removal_report_$(date +%Y%m%d_%H%M%S).txt"
     
     production_log_message "INFO" "Generating removal report: $report_file"
     

@@ -203,8 +203,8 @@ clean_launch_services() {
     )
 
     for cache_path in "${cache_paths[@]}"; do
-        if ls $cache_path >/dev/null 2>&1; then
-            execute_safely "sudo rm -rf $cache_path" "remove cache $cache_path"
+        if ls "$cache_path" >/dev/null 2>&1; then
+            execute_safely "sudo rm -rf \"$cache_path\"" "remove cache $cache_path"
         fi
     done
 
@@ -280,8 +280,8 @@ enhanced_clean_up_lingering_files() {
     )
 
     for cleanup_path in "${specific_cleanup[@]}"; do
-        if ls $cleanup_path >/dev/null 2>&1; then
-            enhanced_safe_remove $cleanup_path
+        if ls "$cleanup_path" >/dev/null 2>&1; then
+            enhanced_safe_remove "$cleanup_path"
         fi
     done
 
