@@ -469,9 +469,7 @@ show_help() {
     echo -e "  ${YELLOW}-c, --check${NC}               Check installation status"
     echo -e "  ${YELLOW}-m, --menu${NC}                Show interactive menu"
     echo -e "  ${YELLOW}-b, --backup ACTION${NC}       Backup operations"
-    echo -e "  ${YELLOW}-t, --test${NC}                Run comprehensive tests"
     echo -e "  ${YELLOW}--health${NC}                  Perform system health check"
-    echo -e "  ${YELLOW}--dry-run${NC}                 Simulate operations without changes"
     echo -e "  ${YELLOW}--verbose${NC}                 Enable detailed output"
     echo -e "  ${YELLOW}-h, --help${NC}                Show this help message"
     echo ""
@@ -486,7 +484,7 @@ show_help() {
     echo -e "  ${CYAN}./uninstall_cursor.sh --uninstall${NC}"
     echo -e "  ${CYAN}./uninstall_cursor.sh --install /path/to/cursor.dmg${NC}"
     echo -e "  ${CYAN}./uninstall_cursor.sh --backup create${NC}"
-    echo -e "  ${CYAN}./uninstall_cursor.sh --dry-run --verbose --uninstall${NC}"
+    echo -e "  ${CYAN}./uninstall_cursor.sh --verbose --uninstall${NC}"
     echo ""
 
     echo -e "${BOLD}${WHITE}CONFIGURATION:${NC}"

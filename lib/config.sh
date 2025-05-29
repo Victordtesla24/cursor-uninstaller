@@ -31,6 +31,9 @@ readonly ERR_VALIDATION_FAILED=7
 readonly ERR_BACKUP_FAILED=8
 readonly ERR_RESTORE_FAILED=9
 readonly ERR_INSTALLATION_FAILED=10
+readonly ERR_SYSTEM_ERROR=11
+readonly ERR_DEPENDENCIES=12
+readonly ERR_NOT_INSTALLED=13
 
 # Color definitions for output formatting
 readonly YELLOW='\033[1;33m'
@@ -125,7 +128,6 @@ readonly ENABLE_INTEGRATION_TESTS="true"
 ################################################################################
 
 # Operation mode flags
-DRY_RUN="${DRY_RUN:-false}"
 VERBOSE="${VERBOSE:-false}"
 QUIET="${QUIET:-false}"
 FORCE="${FORCE:-false}"
@@ -312,4 +314,4 @@ fi
 export CONFIG_LOADED SCRIPT_VERSION SCRIPT_NAME
 export CONFIG_DIR BACKUP_DIR LOG_DIR TEMP_DIR METRICS_DIR
 export LOG_FILE ERROR_LOG PERFORMANCE_LOG BACKUP_LOG
-export DRY_RUN VERBOSE QUIET FORCE SKIP_CONFIRMATION
+export VERBOSE QUIET FORCE SKIP_CONFIRMATION

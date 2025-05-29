@@ -248,11 +248,6 @@ confirm_installation_action() {
     warning_message "Please ensure you have the DMG file ready."
     echo
 
-    if [[ "${DRY_RUN:-}" == "true" ]]; then
-        info_message "DRY RUN: Would proceed with installation"
-        return 0
-    fi
-
     read -p "Do you want to proceed with the installation? (y/N): " -n 1 -r
     echo
 

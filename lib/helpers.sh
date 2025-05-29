@@ -103,12 +103,6 @@ execute_safely() {
 
     log_message "DEBUG" "Executing: $description"
 
-    # Handle dry run mode
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_message "INFO" "[DRY RUN] Would execute: $cmd"
-        return 0
-    fi
-
     # Execute the command
     if eval "$cmd" > /dev/null 2>&1; then
         log_message "DEBUG" "Successfully executed: $description"
@@ -143,11 +137,6 @@ safe_remove() {
 
     log_message "INFO" "Removing: $path"
 
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_message "INFO" "[DRY RUN] Would remove: $path"
-        return 0
-    fi
-
     # Make writable before removal
     execute_safely "sudo chmod -R 755 \"$path\" 2>/dev/null || true" "chmod $path"
 
@@ -179,9 +168,7 @@ safe_remove_symlink() {
 
     if [[ -L "$symlink_path" ]]; then
         log_message "INFO" "Removing symlink: $symlink_path"
-        if [[ "$DRY_RUN" != "true" ]]; then
-            rm -f "$symlink_path" 2>/dev/null || true
-        fi
+        rm -f "$symlink_path" 2>/dev/null || true
     fi
 }
 

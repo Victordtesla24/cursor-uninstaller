@@ -9,11 +9,6 @@
 enhanced_uninstall_cursor() {
     log_message "INFO" "Starting enhanced Cursor uninstallation..."
 
-    if [[ "${DRY_RUN:-}" == "true" ]]; then
-        info_message "DRY RUN: Would perform complete Cursor uninstallation"
-        return 0
-    fi
-
     # Detect all Cursor paths and installations
     detect_cursor_paths
 
@@ -363,11 +358,6 @@ confirm_uninstall_action() {
     echo "  • Command line tools"
     echo "  • System integration files"
     echo
-
-    if [[ "${DRY_RUN:-}" == "true" ]]; then
-        info_message "DRY RUN: Would proceed with uninstallation"
-        return 0
-    fi
 
     read -p "Are you sure you want to proceed? (type 'yes' to confirm): " -r
     echo

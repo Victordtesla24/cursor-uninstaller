@@ -9,11 +9,6 @@
 enhanced_optimize_cursor_performance() {
     log_message "INFO" "Starting enhanced Cursor performance optimization..."
 
-    if [[ "${DRY_RUN:-}" == "true" ]]; then
-        info_message "DRY RUN: Would perform Cursor optimization"
-        return 0
-    fi
-
     # Check if Cursor is installed
     if ! check_cursor_installation; then
         error_message "Cursor is not installed. Please install Cursor first."
@@ -41,7 +36,7 @@ check_performance_deps() {
     log_message "INFO" "Checking optimization dependencies..."
 
     local deps_missing=0
-    local required_tools=("defaults" "plutil" "lsregister")
+    local required_tools=("defaults" "plutil")
 
     for tool in "${required_tools[@]}"; do
         if ! command -v "$tool" >/dev/null 2>&1; then
@@ -50,9 +45,15 @@ check_performance_deps() {
         fi
     done
 
+    # Check for lsregister at its specific location
+    if [[ ! -x "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister" ]]; then
+        error_message "Required tool not found: lsregister"
+        deps_missing=1
+    fi
+
     if [[ $deps_missing -eq 1 ]]; then
         error_message "Missing required dependencies for optimization"
-        return "$ERR_DEPENDENCIES"
+        return 1
     fi
 
     log_message "SUCCESS" "✓ All optimization dependencies are available"
@@ -181,11 +182,6 @@ configure_performance_settings() {
 # Reset performance settings to defaults
 reset_performance_settings() {
     log_message "INFO" "Resetting Cursor performance settings to defaults..."
-
-    if [[ "${DRY_RUN:-}" == "true" ]]; then
-        info_message "DRY RUN: Would reset performance settings"
-        return 0
-    fi
 
     # Reset application preferences
     local preferences_dir="$HOME/Library/Preferences"

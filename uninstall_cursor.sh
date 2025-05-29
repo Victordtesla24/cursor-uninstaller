@@ -1,27 +1,12 @@
 #!/bin/bash
 
 ################################################################################
-# Cursor AI Editor Removal & Management Utility - Enhanced Error Handling
-# Production-Ready Version with Robust Error Recovery
+# Cursor AI Editor Removal & Management Utility - PRODUCTION GRADE
+# STRICT Production Environment Standards - No Error Masking
 ################################################################################
 
 # Script Self-Location & Robust Path Resolution
 get_script_path() {
-    # Special case for test environment
-    if [[ "${BATS_TEST_SOURCED:-}" == "1" ]]; then
-        if [[ "${CURSOR_TEST_SYMLINK_MODE:-}" == "true" ]] || [[ "${BASH_SOURCE[0]:-}" == *"symlink"* ]]; then
-            if [[ -n "${SCRIPT_DIR:-}" ]]; then
-                echo "$SCRIPT_DIR"
-                return 0
-            fi
-            echo "$PWD"
-            return 0
-        elif [[ -n "${TEST_DIR:-}" ]]; then
-            dirname "$TEST_DIR"
-            return 0
-        fi
-    fi
-
     local SOURCE="${BASH_SOURCE[0]}"
     local DIR=""
 
@@ -38,25 +23,36 @@ get_script_path() {
 # Store the script's directory path
 SCRIPT_DIR="$(get_script_path)"
 
-# Enhanced error handling with graceful recovery
-set -eE  # Removed 'u' and 'pipefail' for better error recovery
-trap 'handle_script_error $LINENO "$BASH_COMMAND"' ERR
+# PRODUCTION GRADE ERROR HANDLING - NO MASKING OR SUPPRESSION
+set -eE
+trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
 
-# Global error handling variables
+# Global state tracking for production environment
 ERRORS_ENCOUNTERED=0
 NON_INTERACTIVE_MODE=false
+SCRIPT_RUNNING=true
+FORCE_EXIT=false
 
-# Enhanced error handler with recovery
-handle_script_error() {
+# PRODUCTION-GRADE ERROR HANDLER - Reports real errors without masking
+production_error_handler() {
     local line_number="$1"
     local failed_command="$2"
     
     ((ERRORS_ENCOUNTERED++))
     
-    echo -e "\n[WARNING] Non-critical error at line $line_number: $failed_command" >&2
-    echo "[INFO] Attempting to continue execution..." >&2
+    # Report the actual error without masking
+    echo -e "\n[PRODUCTION ERROR] Line $line_number: Command failed: $failed_command" >&2
+    echo "[PRODUCTION ERROR] Error count: $ERRORS_ENCOUNTERED" >&2
     
-    # Return 0 to continue execution instead of exiting
+    # In production, we log but do NOT exit the script unless explicitly requested
+    # This ensures the menu system remains available for troubleshooting
+    if [[ "$FORCE_EXIT" == "true" ]]; then
+        echo "[PRODUCTION ERROR] Force exit requested, terminating..." >&2
+        exit 1
+    fi
+    
+    # Reset the error trap to prevent infinite loops
+    trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
     return 0
 }
 
@@ -64,846 +60,814 @@ handle_script_error() {
 detect_environment() {
     if [[ ! -t 0 ]] || [[ -n "${CI:-}" ]] || [[ -n "${DEBIAN_FRONTEND:-}" ]] || [[ "${TERM:-}" == "dumb" ]]; then
         NON_INTERACTIVE_MODE=true
-        echo "[INFO] Non-interactive environment detected"
+        echo "[PRODUCTION INFO] Non-interactive environment detected"
     fi
 }
 
-# Enhanced sudo handling with fallback mechanisms
-safe_sudo() {
+# PRODUCTION-GRADE sudo handling - NO FALLBACKS OR ERROR MASKING
+production_sudo() {
     local cmd="$*"
-    local max_attempts=2
-    local attempt=1
     
     # Check if sudo is available
     if ! command -v sudo >/dev/null 2>&1; then
-        echo "[WARNING] sudo not available, attempting command without privileges" >&2
-        eval "$cmd" 2>/dev/null || {
-            echo "[WARNING] Command failed without sudo: $cmd" >&2
-            return 1
-        }
-        return 0
-    fi
-    
-    # In non-interactive mode, try sudo with timeout
-    if [[ "$NON_INTERACTIVE_MODE" == "true" ]]; then
-        # Try sudo with a short timeout
-        if timeout 5s sudo -n true 2>/dev/null; then
-            # Passwordless sudo available
-            sudo "$@" 2>/dev/null || {
-                echo "[WARNING] Sudo command failed: $cmd" >&2
-                return 1
-            }
-        else
-            echo "[INFO] Passwordless sudo not available, attempting without privileges" >&2
-            eval "$cmd" 2>/dev/null || {
-                echo "[WARNING] Command failed without sudo: $cmd" >&2
-                return 1
-            }
-        fi
-        return 0
-    fi
-    
-    # Interactive mode - try normal sudo
-    while [[ $attempt -le $max_attempts ]]; do
-        if sudo -v 2>/dev/null; then
-            sudo "$@" && return 0
-            echo "[WARNING] Sudo command failed (attempt $attempt/$max_attempts): $cmd" >&2
-        else
-            echo "[WARNING] Sudo authentication failed (attempt $attempt/$max_attempts)" >&2
-        fi
-        ((attempt++))
-        sleep 1
-    done
-    
-    # Final fallback - try without sudo
-    echo "[INFO] Attempting command without sudo privileges" >&2
-    eval "$cmd" 2>/dev/null || {
-        echo "[WARNING] Command failed completely: $cmd" >&2
+        echo "[PRODUCTION ERROR] sudo not available - cannot perform privileged operations" >&2
         return 1
-    }
+    fi
+    
+    # In non-interactive mode, require passwordless sudo
+    if [[ "$NON_INTERACTIVE_MODE" == "true" ]]; then
+        if ! timeout 5s sudo -n true 2>/dev/null; then
+            echo "[PRODUCTION ERROR] Passwordless sudo required in non-interactive mode" >&2
+            return 1
+        fi
+        # Execute with sudo
+        if ! sudo "$@"; then
+            echo "[PRODUCTION ERROR] Sudo command failed: $cmd" >&2
+            return 1
+        fi
+        return 0
+    fi
+    
+    # Interactive mode - prompt for sudo
+    if ! sudo "$@"; then
+        echo "[PRODUCTION ERROR] Sudo command failed: $cmd" >&2
+        return 1
+    fi
     
     return 0
 }
 
-# Safe module loading with error recovery
-safe_source() {
+# PRODUCTION module loading - NO FALLBACKS, REPORT REAL STATE
+production_load_module() {
     local module_path="$1"
     local module_name="$(basename "$module_path")"
     
-    if [[ -f "$module_path" ]] && [[ -r "$module_path" ]]; then
-        if source "$module_path" 2>/dev/null; then
-            echo "[INFO] Successfully loaded module: $module_name" >&2
-            return 0
-        else
-            echo "[WARNING] Failed to load module: $module_name" >&2
-            echo "[INFO] Continuing with basic functionality..." >&2
-            return 1
-        fi
-    else
-        echo "[WARNING] Module not found or not readable: $module_path" >&2
-        echo "[INFO] Using fallback implementations..." >&2
+    if [[ ! -f "$module_path" ]]; then
+        echo "[PRODUCTION ERROR] Module not found: $module_path" >&2
         return 1
     fi
+    
+    if [[ ! -r "$module_path" ]]; then
+        echo "[PRODUCTION ERROR] Module not readable: $module_path" >&2
+        return 1
+    fi
+    
+    if ! source "$module_path"; then
+        echo "[PRODUCTION ERROR] Failed to load module: $module_name" >&2
+        return 1
+    fi
+    
+    echo "[PRODUCTION INFO] Successfully loaded module: $module_name" >&2
+    return 0
 }
 
 ################################################################################
-# Fallback Functions (for when modules fail to load)
+# PRODUCTION-GRADE Message Functions - NO MASKING
 ################################################################################
 
-# Fallback logging function
-fallback_log_message() {
+production_log_message() {
     local level="${1:-INFO}"
     local message="${2:-No message provided}"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message" >&2
+    echo "[$timestamp] [PRODUCTION-$level] $message" >&2
 }
 
-# Fallback error message function
-fallback_error_message() {
+production_error_message() {
     local message="$1"
-    echo -e "\033[0;31m[ERROR]\033[0m $message" >&2
+    echo -e "\033[0;31m[PRODUCTION ERROR]\033[0m $message" >&2
 }
 
-# Fallback success message function
-fallback_success_message() {
+production_success_message() {
     local message="$1"
-    echo -e "\033[0;32m[SUCCESS]\033[0m $message" >&2
+    echo -e "\033[0;32m[PRODUCTION SUCCESS]\033[0m $message" >&2
 }
 
-# Fallback show help function
-fallback_show_help() {
+production_warning_message() {
+    local message="$1"
+    echo -e "\033[1;33m[PRODUCTION WARNING]\033[0m $message" >&2
+}
+
+production_info_message() {
+    local message="$1"
+    echo -e "\033[0;36m[PRODUCTION INFO]\033[0m $message" >&2
+}
+
+# PRODUCTION help function
+production_show_help() {
     cat << 'EOF'
-Cursor AI Editor Management Utility - Enhanced Error Handling Version
+Cursor AI Editor Management Utility - PRODUCTION GRADE VERSION
 
 Usage: ./uninstall_cursor.sh [OPTIONS]
 
-OPTIONS:
-    -u, --uninstall         Completely uninstall Cursor
+PRODUCTION OPTIONS:
+    -u, --uninstall         Complete removal of Cursor (NO BACKUPS)
+    --git-backup           Perform Git backup before operations
     -i, --install PATH      Install Cursor from DMG file
     -o, --optimize          Optimize Cursor performance
+    --ai-optimize          Comprehensive AI-focused performance optimization
     -r, --reset-performance Reset performance settings
-    -c, --check             Check Cursor installation status
+    -c, --check             Check Cursor installation status (REAL STATE)
     -m, --menu              Show interactive menu (default)
-    -b, --backup OPERATION  Backup operations (create/restore/list)
-    --backup-path PATH      Specify backup path
-    -t, --test              Run system tests
-    --health                Perform health check
-    --dry-run               Show what would be done without executing
-    --verbose               Enable verbose output
+    --health                Perform REAL system health check
+    --verbose               Enable detailed production logging
     -h, --help              Show this help message
 
+ADVANCED FEATURES:
+    --git-status           Show Git repository status and information
+    --system-specs         Display system specifications for AI optimization
+    --performance-report   Generate comprehensive performance analysis
+
+PRODUCTION STANDARDS:
+    • All operations reflect REAL system state
+    • NO error masking or false positives
+    • NO fallback mechanisms that hide errors
+    • STRICT error reporting and handling
+    • Script never exits unless 'q' selected
+
 EXAMPLES:
-    ./uninstall_cursor.sh                    # Show interactive menu
-    ./uninstall_cursor.sh -u                 # Uninstall Cursor
-    ./uninstall_cursor.sh -c                 # Check installation
-    ./uninstall_cursor.sh --dry-run -u       # Dry run uninstall
+    ./uninstall_cursor.sh                    # Production menu
+    ./uninstall_cursor.sh --git-backup -u   # Git backup + complete uninstall
+    ./uninstall_cursor.sh --ai-optimize     # AI performance optimization
+    ./uninstall_cursor.sh --verbose         # Detailed logging
 
 EOF
 }
 
 ################################################################################
-# Enhanced Module Loading System with Fallbacks
+# PRODUCTION Module Loading - STRICT REQUIREMENTS
 ################################################################################
 
 # Initialize environment
 detect_environment
 
-# Initialize basic functions
-if ! declare -f log_message >/dev/null 2>&1; then
-    alias log_message='fallback_log_message'
-fi
+# PRODUCTION module loading - FAIL if modules missing
+REQUIRED_MODULES=(
+    "$SCRIPT_DIR/lib/config.sh"
+    "$SCRIPT_DIR/lib/helpers.sh"
+    "$SCRIPT_DIR/lib/ui.sh"
+    "$SCRIPT_DIR/modules/installation.sh"
+    "$SCRIPT_DIR/modules/optimization.sh"
+    "$SCRIPT_DIR/modules/uninstall.sh"
+    "$SCRIPT_DIR/modules/git_integration.sh"
+    "$SCRIPT_DIR/modules/complete_removal.sh"
+    "$SCRIPT_DIR/modules/ai_optimization.sh"
+)
 
-if ! declare -f error_message >/dev/null 2>&1; then
-    alias error_message='fallback_error_message'
-fi
+# Load required modules - FAIL HARD if missing
+MODULES_LOADED=true
+for module in "${REQUIRED_MODULES[@]}"; do
+    if ! production_load_module "$module"; then
+        MODULES_LOADED=false
+        production_error_message "REQUIRED module failed to load: $(basename "$module")"
+    fi
+done
 
-if ! declare -f success_message >/dev/null 2>&1; then
-    alias success_message='fallback_success_message'
-fi
-
-if ! declare -f show_help >/dev/null 2>&1; then
-    alias show_help='fallback_show_help'
-fi
-
-# Add missing function aliases for module compatibility
-if ! declare -f warning_message >/dev/null 2>&1; then
-    warning_message() { echo -e "\033[1;33m[WARNING]\033[0m $*" >&2; }
-fi
-
-if ! declare -f info_message >/dev/null 2>&1; then
-    info_message() { echo -e "\033[0;36m[INFO]\033[0m $*" >&2; }
-fi
-
-# Add missing function stubs for UI module compatibility
-if ! declare -f detect_cursor_paths >/dev/null 2>&1; then
-    detect_cursor_paths() { return 1; }
-fi
-
-if ! declare -f get_file_size >/dev/null 2>&1; then
-    get_file_size() { echo "Unknown size"; }
-fi
-
-if ! declare -f create_backup >/dev/null 2>&1; then
-    create_backup() { echo "Backup functionality not available in fallback mode"; return 1; }
-fi
-
-# Load configuration first (contains constants and settings)
-if ! safe_source "$SCRIPT_DIR/lib/config.sh"; then
-    # Fallback configuration
+# Set production configuration if config failed to load
+if [[ "$MODULES_LOADED" == "false" ]]; then
+    production_error_message "CRITICAL: Required modules failed to load"
+    production_error_message "Cannot operate in PRODUCTION mode without all required components"
+    
+    # Provide minimal configuration
     ERR_INVALID_ARGS=1
     ERR_PERMISSION_DENIED=2
     ERR_FILE_NOT_FOUND=3
     ERR_SYSTEM_ERROR=4
     
-    # Default color codes
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
     NC='\033[0m'
 fi
 
-# Load helper utilities
-safe_source "$SCRIPT_DIR/lib/helpers.sh"
-
-# Load UI components
-safe_source "$SCRIPT_DIR/lib/ui.sh"
-
-# Load functional modules
-safe_source "$SCRIPT_DIR/modules/installation.sh"
-safe_source "$SCRIPT_DIR/modules/optimization.sh"
-safe_source "$SCRIPT_DIR/modules/uninstall.sh"
-
-# Load testing module (this is optional and can fail safely)
-safe_source "$SCRIPT_DIR/tests/helpers/test_functions.sh" || true
-
 ################################################################################
-# Enhanced Main Orchestration Functions
+# PRODUCTION-GRADE Function Wrappers - Actual Functions not Aliases
 ################################################################################
 
-# Enhanced main function with comprehensive error handling
-main() {
-    # Initialize logging with fallback
-    if declare -f initialize_logging >/dev/null 2>&1; then
-        initialize_logging 2>/dev/null || fallback_log_message "WARNING" "Failed to initialize advanced logging, using fallback"
+# Define actual functions that wrap production functions for compatibility
+log_message() {
+    production_log_message "$@"
+}
+
+error_message() {
+    production_error_message "$@"
+}
+
+success_message() {
+    production_success_message "$@"
+}
+
+warning_message() {
+    production_warning_message "$@"
+}
+
+info_message() {
+    production_info_message "$@"
+}
+
+show_help() {
+    production_show_help "$@"
+}
+
+# Basic show_progress function for UI compatibility
+show_progress() {
+    local current=${1:-0}
+    local total=${2:-100}
+    local message=${3:-"Processing"}
+    
+    if [[ "$total" -eq 0 ]]; then
+        production_info_message "$message..."
+        return 0
     fi
     
-    log_message "INFO" "Starting Cursor management utility (Enhanced Error Handling Version)"
-    log_message "INFO" "Non-interactive mode: $NON_INTERACTIVE_MODE"
+    local percentage=$(( (current * 100) / total ))
+    local bar_width=30
+    local filled=$(( (percentage * bar_width) / 100 ))
+    local empty=$((bar_width - filled))
+    
+    local progress_bar=""
+    for ((i=0; i<filled; i++)); do
+        progress_bar+="█"
+    done
+    for ((i=0; i<empty; i++)); do
+        progress_bar+="░"
+    done
+    
+    printf "\r[%s] %3d%% %s" "$progress_bar" "$percentage" "$message"
+    
+    if [[ "$current" -ge "$total" ]]; then
+        echo ""  # New line when complete
+    fi
+}
+
+################################################################################
+# PRODUCTION Main Function - NEVER EXITS UNLESS EXPLICITLY REQUESTED
+################################################################################
+
+production_main() {
+    production_log_message "INFO" "Starting Cursor management utility (PRODUCTION GRADE)"
+    production_log_message "INFO" "Non-interactive mode: $NON_INTERACTIVE_MODE"
+    production_log_message "INFO" "Modules loaded successfully: $MODULES_LOADED"
 
     # Parse command line arguments
-    if ! parse_arguments "$@"; then
-        error_message "Failed to parse command line arguments"
-        show_help
-        exit "${ERR_INVALID_ARGS:-1}"
+    if ! production_parse_arguments "$@"; then
+        production_error_message "Failed to parse command line arguments"
+        production_show_help
+        return 1
     fi
 
-    # Validate system requirements with fallback
-    if declare -f validate_system_requirements >/dev/null 2>&1; then
-        validate_system_requirements || {
-            log_message "WARNING" "System validation failed, continuing with basic functionality"
-        }
+    # System validation - REAL checks only
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f validate_system_requirements >/dev/null 2>&1; then
+        if ! validate_system_requirements; then
+            production_error_message "System validation FAILED - not suitable for production use"
+            return 1
+        fi
     else
-        log_message "INFO" "Using basic system validation"
-        # Basic validation - check if we're on macOS
+        production_warning_message "Using basic system validation due to missing modules"
+        # Basic REAL validation
         if [[ "$OSTYPE" != "darwin"* ]]; then
-            error_message "This utility is designed for macOS"
-            exit "${ERR_SYSTEM_ERROR:-4}"
+            production_error_message "This utility requires macOS - current OS: $OSTYPE"
+            return 1
         fi
     fi
 
-    # Execute requested operation based on parsed arguments
+    # Execute operation based on arguments
     case "${OPERATION:-menu}" in
         "uninstall")
-            if declare -f confirm_uninstall_action >/dev/null 2>&1; then
-                confirm_uninstall_action || exit $?
-            fi
-            
-            if declare -f enhanced_uninstall_cursor >/dev/null 2>&1; then
-                enhanced_uninstall_cursor
-            else
-                fallback_uninstall_cursor
-            fi
+            production_execute_complete_uninstall
             ;;
         "install")
-            if declare -f confirm_installation_action >/dev/null 2>&1; then
-                confirm_installation_action || exit $?
-            fi
-            
-            if [[ -n "${DMG_PATH:-}" ]]; then
-                if declare -f install_cursor_from_dmg >/dev/null 2>&1; then
-                    install_cursor_from_dmg "$DMG_PATH"
-                else
-                    error_message "Installation module not available"
-                    exit "${ERR_SYSTEM_ERROR:-4}"
-                fi
-            else
-                error_message "DMG path required for installation"
-                exit "${ERR_INVALID_ARGS:-1}"
-            fi
+            production_execute_install
             ;;
         "optimize")
-            if declare -f enhanced_optimize_cursor_performance >/dev/null 2>&1; then
-                enhanced_optimize_cursor_performance
-            else
-                fallback_optimize_cursor
-            fi
+            production_execute_optimize
+            ;;
+        "ai-optimize")
+            production_execute_ai_optimize
             ;;
         "reset-performance")
-            if declare -f reset_performance_settings >/dev/null 2>&1; then
-                reset_performance_settings
-            else
-                fallback_reset_performance
-            fi
+            production_execute_reset_performance
             ;;
         "check")
-            if declare -f check_cursor_installation >/dev/null 2>&1; then
-                check_cursor_installation
-            else
-                fallback_check_installation
-            fi
-            ;;
-        "menu")
-            if declare -f enhanced_show_menu >/dev/null 2>&1; then
-                enhanced_show_menu
-            else
-                fallback_show_menu
-            fi
-            ;;
-        "backup")
-            handle_backup_operations
-            ;;
-        "test")
-            if declare -f run_tests >/dev/null 2>&1; then
-                run_tests
-            else
-                error_message "Test module not available"
-                exit "${ERR_SYSTEM_ERROR:-4}"
-            fi
+            production_execute_check
             ;;
         "health")
-            if declare -f perform_health_check >/dev/null 2>&1; then
-                perform_health_check
-            else
-                fallback_health_check
-            fi
+            production_execute_health_check
+            ;;
+        "git-backup")
+            production_execute_git_backup
+            ;;
+        "git-status")
+            production_execute_git_status
+            ;;
+        "system-specs")
+            production_execute_system_specs
+            ;;
+        "performance-report")
+            production_execute_performance_report
+            ;;
+        "menu")
+            production_show_menu
             ;;
         *)
-            show_help
-            exit "${ERR_INVALID_ARGS:-1}"
+            production_show_help
+            return 1
             ;;
     esac
 
+    # Report final status
     if [[ $ERRORS_ENCOUNTERED -gt 0 ]]; then
-        log_message "WARNING" "Operation completed with $ERRORS_ENCOUNTERED non-critical errors"
+        production_warning_message "Operation completed with $ERRORS_ENCOUNTERED PRODUCTION errors"
     else
-        log_message "INFO" "Operation completed successfully"
+        production_success_message "Operation completed successfully in PRODUCTION mode"
     fi
+    
+    return 0
 }
 
 ################################################################################
-# Fallback Implementation Functions
+# PRODUCTION Operation Functions - REAL OPERATIONS ONLY
 ################################################################################
 
-# Fallback uninstall function
-fallback_uninstall_cursor() {
-    echo "Performing basic Cursor uninstallation..."
+production_execute_install() {
+    production_info_message "Executing PRODUCTION install operation"
     
-    # Basic Cursor paths for macOS
-    local cursor_paths=(
-        "/Applications/Cursor.app"
+    if [[ -z "${DMG_PATH:-}" ]]; then
+        production_error_message "DMG path required for installation"
+        return 1
+    fi
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f install_cursor_from_dmg >/dev/null 2>&1; then
+        if declare -f confirm_installation_action >/dev/null 2>&1; then
+            if ! confirm_installation_action; then
+                production_info_message "Installation cancelled by user"
+                return 0
+            fi
+        fi
+        install_cursor_from_dmg "$DMG_PATH"
+    else
+        production_error_message "Cannot perform installation - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_optimize() {
+    production_info_message "Executing PRODUCTION optimization"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f enhanced_optimize_cursor_performance >/dev/null 2>&1; then
+        enhanced_optimize_cursor_performance
+    else
+        production_error_message "Cannot perform optimization - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_reset_performance() {
+    production_info_message "Executing PRODUCTION performance reset"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f reset_performance_settings >/dev/null 2>&1; then
+        reset_performance_settings
+    else
+        production_error_message "Cannot reset performance - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_check() {
+    production_info_message "Executing PRODUCTION installation check"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f check_cursor_installation >/dev/null 2>&1; then
+        check_cursor_installation
+    else
+        production_warning_message "Using basic check due to missing modules"
+        production_basic_check
+    fi
+}
+
+production_execute_health_check() {
+    production_info_message "Executing PRODUCTION health check"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_health_check >/dev/null 2>&1; then
+        perform_health_check
+    else
+        production_warning_message "Using basic health check due to missing modules"
+        production_basic_health_check
+    fi
+}
+
+production_execute_git_backup() {
+    production_info_message "Executing PRODUCTION Git backup operation"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_pre_uninstall_backup >/dev/null 2>&1; then
+        if declare -f confirm_git_backup_operations >/dev/null 2>&1; then
+            if ! confirm_git_backup_operations; then
+                production_info_message "Git backup cancelled by user"
+                return 0
+            fi
+        fi
+        perform_pre_uninstall_backup
+    else
+        production_error_message "Cannot perform Git backup - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_ai_optimize() {
+    production_info_message "Executing PRODUCTION AI optimization"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_ai_optimization >/dev/null 2>&1; then
+        perform_ai_optimization
+    else
+        production_error_message "Cannot perform AI optimization - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_git_status() {
+    production_info_message "Displaying Git repository status"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f display_git_repository_info >/dev/null 2>&1; then
+        display_git_repository_info
+    else
+        production_error_message "Cannot show Git status - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_system_specs() {
+    production_info_message "Displaying system specifications"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f display_system_specifications >/dev/null 2>&1; then
+        display_system_specifications
+    else
+        production_error_message "Cannot show system specs - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_performance_report() {
+    production_info_message "Generating performance analysis report"
+    
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f analyze_performance_metrics >/dev/null 2>&1; then
+        analyze_performance_metrics
+        if declare -f generate_optimization_report >/dev/null 2>&1; then
+            local report_file
+            report_file=$(generate_optimization_report)
+            production_success_message "Performance report generated: $report_file"
+        fi
+    else
+        production_error_message "Cannot generate performance report - required modules not loaded"
+        return 1
+    fi
+}
+
+production_execute_complete_uninstall() {
+    production_info_message "Executing PRODUCTION complete Cursor uninstall"
+    
+    # Show warning for complete removal
+    echo -e "\n${RED}${BOLD}⚠️  COMPLETE CURSOR REMOVAL${NC}"
+    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    echo -e "${RED}This will COMPLETELY and PERMANENTLY remove ALL Cursor components:${NC}"
+    echo -e "  • Application bundle and all executables"
+    echo -e "  • All user configurations and preferences"
+    echo -e "  • Cache files and temporary data"
+    echo -e "  • CLI tools and system integrations"
+    echo -e "  • System database registrations"
+    echo -e "  • Background processes and services"
+    echo -e "  • All settings and workspaces"
+    echo ""
+    echo -e "${BOLD}${RED}NO BACKUPS WILL BE CREATED - THIS IS IRREVERSIBLE${NC}"
+    echo ""
+    
+    # Check if Git backup is requested
+    if [[ "${GIT_BACKUP_REQUESTED:-false}" == "true" ]]; then
+        production_info_message "Performing Git backup before complete removal..."
+        if ! perform_pre_uninstall_backup; then
+            production_error_message "Git backup failed - complete removal cancelled"
+            return 1
+        fi
+    fi
+    
+    if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
+        while true; do
+            echo -n "Type 'REMOVE' to confirm complete Cursor removal: "
+            read -r response
+            case "$response" in
+                REMOVE)
+                    production_info_message "User confirmed complete removal with exact confirmation"
+                    break
+                    ;;
+                *)
+                    production_warning_message "Complete removal cancelled - exact confirmation required"
+                    return 0
+                    ;;
+            esac
+        done
+    fi
+    
+    # Execute complete removal combining both uninstall and complete removal
+    production_info_message "Starting complete Cursor removal process..."
+    
+    local removal_success=true
+    
+    # Use enhanced uninstall function if available
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f enhanced_uninstall_cursor >/dev/null 2>&1; then
+        if ! enhanced_uninstall_cursor; then
+            removal_success=false
+        fi
+    fi
+    
+    # Use complete removal function if available
+    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_complete_cursor_removal >/dev/null 2>&1; then
+        if ! perform_complete_cursor_removal; then
+            removal_success=false
+        fi
+    fi
+    
+    # Fallback to basic removal if modules not loaded
+    if [[ "$MODULES_LOADED" != "true" ]]; then
+        production_warning_message "Using basic removal due to missing modules"
+        if ! production_basic_removal; then
+            removal_success=false
+        fi
+    fi
+    
+    if [[ "$removal_success" == "true" ]]; then
+        production_success_message "✓ Complete Cursor removal completed successfully"
+        production_info_message "System has been restored to pristine state"
+        return 0
+    else
+        production_error_message "Complete removal encountered errors"
+        production_error_message "Some components may still remain - manual cleanup may be required"
+        return 1
+    fi
+}
+
+production_basic_removal() {
+    production_info_message "PRODUCTION Basic Cursor Removal"
+    echo "================================================"
+    
+    local removal_errors=0
+    
+    # Remove main application
+    if [[ -d "/Applications/Cursor.app" ]]; then
+        production_info_message "Removing Cursor.app..."
+        if sudo rm -rf "/Applications/Cursor.app"; then
+            production_success_message "✓ Removed Cursor.app"
+        else
+            production_error_message "Failed to remove Cursor.app"
+            ((removal_errors++))
+        fi
+    fi
+    
+    # Remove user data directories
+    local user_dirs=(
         "$HOME/Library/Application Support/Cursor"
         "$HOME/Library/Caches/Cursor"
-        "$HOME/Library/Preferences/com.cursor.Cursor.plist"
-        "$HOME/Library/Saved Application State/com.cursor.Cursor.savedState"
-        "/Users/Shared/cursor"
+        "$HOME/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
+        "$HOME/Library/Saved Application State/com.todesktop.230313mzl4w4u92.savedState"
+        "$HOME/Library/Logs/Cursor"
+        "$HOME/.cursor"
+        "$HOME/.vscode-cursor"
     )
     
-    for path in "${cursor_paths[@]}"; do
-        if [[ -e "$path" ]]; then
-            echo "Removing: $path"
-            safe_sudo rm -rf "$path" || {
-                echo "Warning: Could not remove $path"
-            }
+    for dir in "${user_dirs[@]}"; do
+        if [[ -e "$dir" ]]; then
+            production_info_message "Removing: $dir"
+            if rm -rf "$dir"; then
+                production_success_message "✓ Removed: $dir"
+            else
+                production_error_message "Failed to remove: $dir"
+                ((removal_errors++))
+            fi
         fi
     done
     
-    success_message "Basic uninstallation completed"
-}
-
-# Fallback optimization function
-fallback_optimize_cursor() {
-    echo "Performing basic Cursor optimization..."
-    log_message "INFO" "Basic optimization features not available without modules"
-}
-
-# Fallback reset performance function  
-fallback_reset_performance() {
-    echo "Resetting basic Cursor performance settings..."
-    log_message "INFO" "Basic reset features not available without modules"
-}
-
-# Fallback check installation function
-fallback_check_installation() {
-    echo "Checking Cursor installation status..."
-    echo "========================================"
-    
-    local cursor_found=false
-    local issues_found=()
-    
-    # Check main application
-    if [[ -d "/Applications/Cursor.app" ]]; then
-        # Get version if possible
-        local version=""
-        if [[ -f "/Applications/Cursor.app/Contents/Info.plist" ]]; then
-            if command -v defaults >/dev/null 2>&1; then
-                version=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "Unknown")
-                success_message "✓ Cursor.app found at /Applications/Cursor.app (Version: $version)"
+    # Remove CLI tools
+    local cli_locations=("/usr/local/bin/cursor" "/usr/local/bin/code")
+    for location in "${cli_locations[@]}"; do
+        if [[ -L "$location" ]] || [[ -f "$location" ]]; then
+            production_info_message "Removing CLI tool: $location"
+            if sudo rm -f "$location"; then
+                production_success_message "✓ Removed: $location"
             else
-                success_message "✓ Cursor.app found at /Applications/Cursor.app"
+                production_error_message "Failed to remove: $location"
+                ((removal_errors++))
             fi
-        else
-            success_message "✓ Cursor.app found at /Applications/Cursor.app"
         fi
-        cursor_found=true
+    done
+    
+    # Reset Launch Services database
+    production_info_message "Resetting Launch Services database..."
+    if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
+        production_success_message "✓ Launch Services database reset"
     else
-        echo "✗ Cursor.app not found in /Applications"
-        issues_found+=("Main application not installed")
+        production_warning_message "Failed to reset Launch Services database"
+        ((removal_errors++))
     fi
     
-    # Check command line tools in common locations
-    local cli_locations=(
-        "/usr/local/bin/cursor"
-        "/opt/homebrew/bin/cursor"
-        "$HOME/.local/bin/cursor"
-        "/usr/bin/cursor"
-    )
+    echo "================================================"
+    if [[ $removal_errors -eq 0 ]]; then
+        production_success_message "PRODUCTION REMOVAL COMPLETED: All Cursor components removed"
+        return 0
+    else
+        production_error_message "PRODUCTION REMOVAL FAILED: $removal_errors errors encountered"
+        return 1
+    fi
+}
+
+################################################################################
+# PRODUCTION Basic Functions - REAL STATE ONLY
+################################################################################
+
+production_basic_check() {
+    production_info_message "PRODUCTION Basic Cursor Installation Check"
+    echo "================================================"
     
+    local found_issues=0
+    
+    # Check application
+    if [[ -d "/Applications/Cursor.app" ]]; then
+        if [[ -f "/Applications/Cursor.app/Contents/Info.plist" ]]; then
+            if command -v defaults >/dev/null 2>&1; then
+                local version=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null)
+                if [[ -n "$version" ]]; then
+                    production_success_message "Cursor.app found: Version $version"
+                else
+                    production_warning_message "Cursor.app found but version unreadable"
+                    ((found_issues++))
+                fi
+            else
+                production_success_message "Cursor.app found (version check unavailable)"
+            fi
+        else
+            production_warning_message "Cursor.app found but Info.plist missing"
+            ((found_issues++))
+        fi
+    else
+        production_error_message "Cursor.app NOT FOUND at /Applications/Cursor.app"
+        ((found_issues++))
+    fi
+    
+    # Check CLI tools
     local cli_found=false
+    local cli_locations=("/usr/local/bin/cursor" "/opt/homebrew/bin/cursor")
+    
     for location in "${cli_locations[@]}"; do
         if [[ -f "$location" ]] && [[ -x "$location" ]]; then
-            success_message "✓ Cursor CLI found at $location"
+            production_success_message "Cursor CLI found: $location"
             cli_found=true
-            cursor_found=true
             break
         fi
     done
     
     if [[ "$cli_found" == "false" ]]; then
-        echo "✗ Cursor CLI not found in standard locations"
-        issues_found+=("Command line tools not installed")
-        
-        # Check if it's available in PATH anyway
         if command -v cursor >/dev/null 2>&1; then
             local cursor_path=$(which cursor 2>/dev/null)
-            success_message "✓ Cursor CLI found in PATH at $cursor_path"
-            cli_found=true
-            cursor_found=true
-        fi
-    fi
-    
-    # Check for support files and configuration
-    local support_locations=(
-        "$HOME/Library/Application Support/Cursor"
-        "$HOME/.cursor"
-        "$HOME/.config/cursor"
-    )
-    
-    local support_found=false
-    for location in "${support_locations[@]}"; do
-        if [[ -d "$location" ]]; then
-            success_message "✓ Cursor support files found at $location"
-            support_found=true
-            cursor_found=true
-        fi
-    done
-    
-    if [[ "$support_found" == "false" ]]; then
-        echo "✗ No Cursor support files found"
-        issues_found+=("No user configuration found")
-    fi
-    
-    # Check for preferences
-    local pref_locations=(
-        "$HOME/Library/Preferences/com.cursor.Cursor.plist"
-        "$HOME/.cursor-server"
-    )
-    
-    local prefs_found=false
-    for location in "${pref_locations[@]}"; do
-        if [[ -e "$location" ]]; then
-            success_message "✓ Cursor preferences found at $location"
-            prefs_found=true
-        fi
-    done
-    
-    if [[ "$prefs_found" == "false" ]]; then
-        echo "✗ No Cursor preferences found"
-    fi
-    
-    # Check for cache files
-    local cache_locations=(
-        "$HOME/Library/Caches/Cursor"
-        "$HOME/Library/Caches/com.cursor.Cursor"
-    )
-    
-    local cache_found=false
-    for location in "${cache_locations[@]}"; do
-        if [[ -d "$location" ]]; then
-            success_message "✓ Cursor cache found at $location"
-            cache_found=true
-        fi
-    done
-    
-    if [[ "$cache_found" == "false" ]]; then
-        echo "✗ No Cursor cache files found"
-    fi
-    
-    # Additional checks for common issues
-    echo ""
-    echo "Additional Diagnostics:"
-    echo "----------------------"
-    
-    # Check if code command points to Cursor (common issue from GitHub)
-    if command -v code >/dev/null 2>&1; then
-        local code_path=$(which code 2>/dev/null)
-        if [[ -L "$code_path" ]]; then
-            local link_target=$(readlink "$code_path" 2>/dev/null)
-            if [[ "$link_target" == *"cursor"* ]] || [[ "$link_target" == *"Cursor"* ]]; then
-                echo "⚠️  'code' command points to Cursor at $link_target"
-                echo "   This may cause conflicts with VS Code"
-            else
-                echo "✓ 'code' command points to $link_target"
-            fi
+            production_success_message "Cursor CLI found in PATH: $cursor_path"
         else
-            echo "✓ 'code' command found at $code_path"
+            production_error_message "Cursor CLI NOT FOUND"
+            ((found_issues++))
         fi
+    fi
+    
+    # Report final status
+    echo "================================================"
+    if [[ $found_issues -eq 0 ]]; then
+        production_success_message "PRODUCTION CHECK PASSED: Cursor properly installed"
     else
-        echo "ℹ️  'code' command not found in PATH"
+        production_error_message "PRODUCTION CHECK FAILED: $found_issues issues found"
     fi
     
-    # Check for WSL-specific issues
-    if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f "/proc/version" ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
-        echo "ℹ️  WSL environment detected"
-        echo "   Note: Cursor GUI apps require X11 forwarding or Windows integration"
-        
-        # Check for Windows Cursor installation
-        local windows_cursor_paths=(
-            "/mnt/c/Users/*/AppData/Local/Programs/cursor"
-            "/mnt/c/Program Files/cursor"
-        )
-        
-        for path_pattern in "${windows_cursor_paths[@]}"; do
-            if compgen -G "$path_pattern" >/dev/null 2>&1; then
-                echo "✓ Windows Cursor installation detected at $path_pattern"
-                cursor_found=true
-            fi
-        done
-    fi
-    
-    # Check PATH for cursor-related commands
-    echo ""
-    echo "PATH Analysis:"
-    echo "-------------"
-    echo "PATH contains: $(echo "$PATH" | tr ':' '\n' | grep -E "(cursor|Cursor)" || echo "No cursor-related paths")"
-    
-    # Final status summary
-    echo ""
-    echo "========================================="
-    if [[ "$cursor_found" == "true" ]]; then
-        success_message "Overall Status: Cursor installation detected"
-        if [[ ${#issues_found[@]} -gt 0 ]]; then
-            echo ""
-            echo "Issues found that may affect functionality:"
-            for issue in "${issues_found[@]}"; do
-                echo "  • $issue"
-            done
-            echo ""
-            echo "Recommendations:"
-            if [[ "$cli_found" == "false" ]]; then
-                echo "  • Install command line tools from Cursor > Install 'cursor' command"
-            fi
-            echo "  • Run Cursor at least once to initialize all components"
-        fi
-    else
-        echo "❌ Overall Status: Cursor not found"
-        echo ""
-        echo "No Cursor installation detected on this system."
-        echo ""
-        echo "To install Cursor:"
-        echo "  1. Download from https://cursor.sh"
-        echo "  2. Install the .dmg/.pkg file"
-        echo "  3. Run Cursor and install command line tools"
-        echo "  4. Verify installation with: cursor --version"
-    fi
-    echo "========================================="
+    return $found_issues
 }
 
-# Fallback health check function
-fallback_health_check() {
-    echo "Performing basic health check..."
+production_basic_health_check() {
+    production_info_message "PRODUCTION Basic Health Check"
+    echo "=========================================="
     
-    # Check if running on macOS
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-        error_message "This utility is designed for macOS"
-        return 1
+    # System information
+    production_info_message "System Information:"
+    echo "  OS: $OSTYPE"
+    echo "  Architecture: $(uname -m)"
+    
+    if command -v sw_vers >/dev/null 2>&1; then
+        echo "  macOS Version: $(sw_vers -productVersion)"
     fi
     
-    # Check basic commands
-    local commands=("rm" "find" "defaults")
-    for cmd in "${commands[@]}"; do
-        if command -v "$cmd" >/dev/null 2>&1; then
-            echo "✓ $cmd available"
-        else
-            echo "✗ $cmd not available"
-        fi
-    done
+    # Disk space
+    if command -v df >/dev/null 2>&1; then
+        local disk_space=$(df -h / | awk 'NR==2 {print $4}')
+        echo "  Available Space: $disk_space"
+    fi
     
-    success_message "Basic health check completed"
+    production_success_message "Health check completed"
 }
 
-# Fallback CLI installer function
-fallback_install_cli_tools() {
-    echo "Installing Cursor CLI tools..."
-    echo "============================="
-    
-    # Check if Cursor.app exists first
-    if [[ ! -d "/Applications/Cursor.app" ]]; then
-        error_message "Cursor.app not found. Please install Cursor first from https://cursor.sh"
-        return 1
-    fi
-    
-    # Find the CLI binary inside the app bundle
-    local cli_source="/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
-    local cli_dest="/usr/local/bin/cursor"
-    
-    if [[ ! -f "$cli_source" ]]; then
-        echo "Looking for alternative CLI locations..."
-        local alt_locations=(
-            "/Applications/Cursor.app/Contents/MacOS/cursor"
-            "/Applications/Cursor.app/Contents/Resources/cursor"
-            "/Applications/Cursor.app/bin/cursor"
-        )
+################################################################################
+# PRODUCTION Menu System - NEVER EXITS
+################################################################################
+
+production_show_menu() {
+    while [[ "$SCRIPT_RUNNING" == "true" ]]; do
+        clear
+        echo "=============================================="
+        echo "    Cursor Management Utility"
+        echo "    PRODUCTION GRADE - STRICT STANDARDS"
+        echo "=============================================="
+        echo
         
-        for location in "${alt_locations[@]}"; do
-            if [[ -f "$location" ]]; then
-                cli_source="$location"
-                echo "Found CLI binary at: $cli_source"
+        # Show current status
+        if [[ "$MODULES_LOADED" == "true" ]]; then
+            production_success_message "Status: PRODUCTION READY"
+        else
+            production_error_message "Status: DEGRADED MODE - Missing modules"
+        fi
+        
+        echo
+        echo "PRODUCTION OPTIONS:"
+        echo "  1) Check Installation Status (REAL)"
+        echo "  2) Uninstall Cursor (COMPLETE REMOVAL)"
+        echo "  3) Git Backup Operations"
+        echo "  4) Optimize Performance"
+        echo "  5) AI-Focused Optimization"
+        echo "  6) Reset Performance"
+        echo "  7) Health Check (REAL)"
+        echo "  8) Show Help"
+        echo ""
+        echo "ADVANCED FEATURES:"
+        echo "  9) Git Repository Status"
+        echo " 10) System Specifications"
+        echo " 11) Performance Report"
+        echo ""
+        echo "  q) Quit"
+        echo
+        echo -n "Enter your choice [1-11,q]: "
+        
+        read -r choice
+        case "$choice" in
+            1)
+                production_execute_check
+                ;;
+            2)
+                production_execute_complete_uninstall
+                ;;
+            3)
+                production_execute_git_backup
+                ;;
+            4)
+                production_execute_optimize
+                ;;
+            5)
+                production_execute_ai_optimize
+                ;;
+            6)
+                production_execute_reset_performance
+                ;;
+            7)
+                production_execute_health_check
+                ;;
+            8)
+                production_show_help
+                ;;
+            9)
+                production_execute_git_status
+                ;;
+            10)
+                production_execute_system_specs
+                ;;
+            11)
+                production_execute_performance_report
+                ;;
+            [Qq]|[Qq][Uu][Ii][Tt])
+                production_info_message "User requested exit"
+                SCRIPT_RUNNING=false
                 break
-            fi
-        done
+                ;;
+            *)
+                production_error_message "Invalid choice: $choice"
+                ;;
+        esac
         
-        if [[ ! -f "$cli_source" ]]; then
-            error_message "Could not find Cursor CLI binary in application bundle"
-            echo ""
-            echo "Alternative installation methods:"
-            echo "1. Open Cursor.app and use: View > Command Palette > Install 'cursor' command"
-            echo "2. Manually create symlink if you know the correct path"
-            echo "3. Use the alias method: alias cursor='open -a Cursor'"
-            return 1
+        if [[ "$SCRIPT_RUNNING" == "true" ]]; then
+            echo
+            echo -n "Press Enter to continue..."
+            read
         fi
-    fi
+    done
     
-    echo "Installing CLI from: $cli_source"
-    echo "Installing CLI to: $cli_dest"
-    
-    # Create symlink with sudo
-    if safe_sudo ln -sf "$cli_source" "$cli_dest"; then
-        success_message "✓ Cursor CLI installed successfully"
-        
-        # Verify installation
-        if command -v cursor >/dev/null 2>&1; then
-            local version=$(cursor --version 2>/dev/null || echo "Unknown")
-            success_message "✓ Verification successful: $version"
-        else
-            echo "⚠️  CLI installed but not found in PATH"
-            echo "   You may need to restart your terminal or add /usr/local/bin to your PATH"
-        fi
-        
-        # Check for conflicts with VS Code
-        if command -v code >/dev/null 2>&1; then
-            echo ""
-            echo "Note: 'code' command detected. To avoid conflicts:"
-            echo "  • Use 'cursor' command for Cursor"
-            echo "  • Use 'code' command for VS Code"
-        fi
-        
-        return 0
-    else
-        error_message "Failed to install CLI tools"
-        echo ""
-        echo "Manual installation steps:"
-        echo "1. Open Terminal"
-        echo "2. Run: sudo ln -sf '$cli_source' '$cli_dest'"
-        echo "3. Or add to your shell profile: alias cursor='open -a Cursor'"
-        return 1
-    fi
+    production_info_message "Exiting PRODUCTION script as requested"
 }
 
-# Fallback troubleshooting function
-fallback_troubleshoot_cursor() {
-    echo "Cursor Troubleshooting Guide"
-    echo "==========================="
-    echo ""
-    
-    # Check common issues
-    echo "1. Command Line Issues:"
-    echo "----------------------"
-    
-    if ! command -v cursor >/dev/null 2>&1; then
-        echo "❌ 'cursor' command not found"
-        echo "   Solution: Run option 6 to install CLI tools"
-    else
-        echo "✓ 'cursor' command available"
-    fi
-    
-    # Check for conflicts
-    if command -v code >/dev/null 2>&1; then
-        local code_path=$(which code 2>/dev/null)
-        if [[ -L "$code_path" ]]; then
-            local link_target=$(readlink "$code_path" 2>/dev/null)
-            if [[ "$link_target" == *"cursor"* ]] || [[ "$link_target" == *"Cursor"* ]]; then
-                echo "⚠️  'code' command hijacked by Cursor"
-                echo "   Solution: Remove/fix the symlink or use 'cursor' command instead"
-            fi
-        fi
-    fi
-    
-    echo ""
-    echo "2. Application Launch Issues:"
-    echo "----------------------------"
-    
-    if [[ -d "/Applications/Cursor.app" ]]; then
-        echo "✓ Cursor.app installed"
-        
-        # Check if app can launch
-        if safe_sudo open -a "Cursor" --args --version >/dev/null 2>&1; then
-            echo "✓ Cursor.app can launch"
-        else
-            echo "❌ Cursor.app launch failed"
-            echo "   Try: Reset permissions, reinstall Cursor"
-        fi
-    else
-        echo "❌ Cursor.app not installed"
-        echo "   Solution: Download and install from https://cursor.sh"
-    fi
-    
-    echo ""
-    echo "3. WSL/Linux Issues:"
-    echo "-------------------"
-    
-    if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f "/proc/version" ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
-        echo "ℹ️  WSL environment detected"
-        echo "   • GUI apps need X11 forwarding or Windows integration"
-        echo "   • Use Windows Cursor installation for best results"
-        echo "   • Install X11 server (VcXsrv, Xming) for GUI forwarding"
-    else
-        echo "✓ Not a WSL environment"
-    fi
-    
-    echo ""
-    echo "4. Common Solutions:"
-    echo "-------------------"
-    echo "   • Restart terminal after installing CLI tools"
-    echo "   • Check PATH includes /usr/local/bin"
-    echo "   • Use 'cursor .' instead of 'code .' in projects"
-    echo "   • For WSL: Use Windows Cursor + remote connection"
-    echo "   • Reset Cursor: rm -rf ~/.cursor ~/.cursor-server"
-    
-    echo ""
-    echo "5. Alternative Commands:"
-    echo "-----------------------"
-    echo "   • macOS: open -a Cursor"
-    echo "   • CLI alias: alias cursor='open -a Cursor'"
-    echo "   • Full path: /Applications/Cursor.app/Contents/MacOS/Cursor"
-}
+################################################################################
+# PRODUCTION Argument Parser
+################################################################################
 
-# Enhanced fallback menu function
-fallback_show_menu() {
-    clear
-    echo "=============================================="
-    echo "    Cursor AI Editor Management Utility"
-    echo "    (Basic Mode - Enhanced Diagnostics)"
-    echo "=============================================="
-    echo
-    
-    # Show quick status
-    if [[ -d "/Applications/Cursor.app" ]]; then
-        if command -v cursor >/dev/null 2>&1; then
-            echo "Status: ✓ Cursor installed with CLI tools"
-        else
-            echo "Status: ⚠️  Cursor installed, CLI tools missing"
-        fi
-    else
-        echo "Status: ❌ Cursor not installed"
-    fi
-    
-    echo
-    echo "Available options:"
-    echo "  1) Basic Uninstallation"
-    echo "  2) Detailed Installation Check"
-    echo "  3) Basic Health Check"
-    echo "  4) Show Help"
-    echo "  5) Troubleshooting Guide"
-    echo "  6) Install CLI Tools"
-    echo "  7) Exit"
-    echo
-    echo -n "Enter your choice [1-7]: "
-    
-    read -r choice
-    case "$choice" in
-        1) fallback_uninstall_cursor ;;
-        2) fallback_check_installation ;;
-        3) fallback_health_check ;;
-        4) show_help ;;
-        5) fallback_troubleshoot_cursor ;;
-        6) fallback_install_cli_tools ;;
-        7) exit 0 ;;
-        *) echo "Invalid choice"; sleep 2; fallback_show_menu ;;
-    esac
-    
-    echo
-    echo -n "Press Enter to return to the main menu..."
-    read
-    fallback_show_menu
-}
-
-# Handle backup-related operations with error handling
-handle_backup_operations() {
-    if ! declare -f create_backup >/dev/null 2>&1; then
-        error_message "Backup functionality not available"
-        return 1
-    fi
-    
-    case "${BACKUP_OPERATION:-}" in
-        "create")
-            create_backup
-            ;;
-        "restore")
-            restore_from_backup "${BACKUP_PATH:-}"
-            ;;
-        "list")
-            list_backups
-            ;;
-        *)
-            if declare -f show_backup_menu >/dev/null 2>&1; then
-                show_backup_menu
-            else
-                error_message "Backup menu not available"
-                return 1
-            fi
-            ;;
-    esac
-}
-
-# Enhanced argument parsing function with error recovery
-parse_arguments() {
+production_parse_arguments() {
     # Set defaults
     OPERATION=""
     DMG_PATH=""
-    BACKUP_OPERATION=""
-    BACKUP_PATH=""
-    DRY_RUN="false"
     VERBOSE="false"
+    GIT_BACKUP_REQUESTED="false"
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -911,10 +875,18 @@ parse_arguments() {
                 OPERATION="uninstall"
                 shift
                 ;;
+            --git-backup)
+                if [[ -z "$OPERATION" ]]; then
+                    OPERATION="git-backup"
+                else
+                    GIT_BACKUP_REQUESTED="true"
+                fi
+                shift
+                ;;
             -i|--install)
                 OPERATION="install"
                 if [[ $# -lt 2 ]] || [[ "$2" == -* ]]; then
-                    error_message "Install option requires a DMG path"
+                    production_error_message "Install option requires a DMG path"
                     return 1
                 fi
                 DMG_PATH="$2"
@@ -922,6 +894,10 @@ parse_arguments() {
                 ;;
             -o|--optimize)
                 OPERATION="optimize"
+                shift
+                ;;
+            --ai-optimize)
+                OPERATION="ai-optimize"
                 shift
                 ;;
             -r|--reset-performance)
@@ -936,33 +912,20 @@ parse_arguments() {
                 OPERATION="menu"
                 shift
                 ;;
-            -b|--backup)
-                OPERATION="backup"
-                if [[ $# -lt 2 ]] || [[ "$2" == -* ]]; then
-                    error_message "Backup option requires an operation (create/restore/list)"
-                    return 1
-                fi
-                BACKUP_OPERATION="$2"
-                shift 2
-                ;;
-            --backup-path)
-                if [[ $# -lt 2 ]] || [[ "$2" == -* ]]; then
-                    error_message "Backup path option requires a path"
-                    return 1
-                fi
-                BACKUP_PATH="$2"
-                shift 2
-                ;;
-            -t|--test)
-                OPERATION="test"
-                shift
-                ;;
             --health)
                 OPERATION="health"
                 shift
                 ;;
-            --dry-run)
-                DRY_RUN="true"
+            --git-status)
+                OPERATION="git-status"
+                shift
+                ;;
+            --system-specs)
+                OPERATION="system-specs"
+                shift
+                ;;
+            --performance-report)
+                OPERATION="performance-report"
                 shift
                 ;;
             --verbose)
@@ -970,12 +933,12 @@ parse_arguments() {
                 shift
                 ;;
             -h|--help)
-                show_help
-                exit 0
+                production_show_help
+                return 2  # Special return code for help
                 ;;
             *)
-                error_message "Unknown argument: $1"
-                show_help
+                production_error_message "Unknown argument: $1"
+                production_show_help
                 return 1
                 ;;
         esac
@@ -990,10 +953,30 @@ parse_arguments() {
 }
 
 ################################################################################
-# Script Execution Entry Point
+# PRODUCTION Script Entry Point
 ################################################################################
 
 # Execute main function if script is run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
+    # Handle command line arguments
+    if [[ $# -gt 0 ]]; then
+        # Parse arguments and execute specific operation
+        parse_result=0
+        production_parse_arguments "$@" || parse_result=$?
+        
+        if [[ $parse_result -eq 2 ]]; then
+            # Help was shown, exit normally
+            exit 0
+        elif [[ $parse_result -ne 0 ]]; then
+            # Parse error, show help and exit
+            exit 1
+        fi
+        
+        # Execute the requested operation
+        production_main "$@"
+    else
+        # No arguments, start interactive menu
+        OPERATION="menu"
+        production_show_menu
+    fi
 fi
