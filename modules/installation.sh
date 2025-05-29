@@ -16,15 +16,15 @@ check_cursor_installation() {
     if [[ -d "$cursor_app" ]]; then
         local version
         version=$(defaults read "$cursor_app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null)
-        success_message "✓ Cursor.app found at $cursor_app (Version: ${version:-Unknown})"
+        log_message "SUCCESS" "✓ Cursor.app found at $cursor_app (Version: ${version:-Unknown})"
 
         # Check for binary symlinks
         if [[ -L "$cursor_binary" ]] || [[ -f "$cursor_binary" ]]; then
-            success_message "✓ Cursor binary found at $cursor_binary"
+            log_message "SUCCESS" "✓ Cursor binary found at $cursor_binary"
         fi
 
         if [[ -L "$cursor_symlink" ]] && [[ "$(readlink "$cursor_symlink")" == *"Cursor"* ]]; then
-            success_message "✓ Cursor 'code' symlink found at $cursor_symlink"
+            log_message "SUCCESS" "✓ Cursor 'code' symlink found at $cursor_symlink"
         fi
 
         return 0
@@ -60,7 +60,7 @@ install_cursor_from_dmg() {
         return "$ERR_MOUNT_FAILED"
     fi
 
-    success_message "DMG mounted at: $mount_point"
+    log_message "SUCCESS" "DMG mounted at: $mount_point"
 
     # Find the .app bundle in the mounted DMG
     local app_bundle
@@ -75,7 +75,7 @@ install_cursor_from_dmg() {
     # Copy the app to Applications
     info_message "Installing Cursor.app to /Applications..."
     if execute_safely cp -R "$app_bundle" "/Applications/"; then
-        success_message "✓ Cursor.app installed successfully"
+        log_message "SUCCESS" "✓ Cursor.app installed successfully"
     else
         error_message "Failed to copy Cursor.app to /Applications"
         hdiutil unmount "$mount_point" >/dev/null 2>&1
@@ -85,7 +85,7 @@ install_cursor_from_dmg() {
     # Unmount the DMG
     info_message "Unmounting DMG..."
     if hdiutil unmount "$mount_point" >/dev/null 2>&1; then
-        success_message "✓ DMG unmounted successfully"
+        log_message "SUCCESS" "✓ DMG unmounted successfully"
     else
         warning_message "Warning: Failed to unmount DMG automatically"
     fi
@@ -95,7 +95,7 @@ install_cursor_from_dmg() {
 
     # Verify installation
     if verify_cursor_installation; then
-        success_message "✓ Cursor installation completed and verified"
+        log_message "SUCCESS" "✓ Cursor installation completed and verified"
         return 0
     else
         error_message "Installation verification failed"
@@ -135,14 +135,14 @@ verify_cursor_installation() {
     bundle_id=$(defaults read "$info_plist" CFBundleIdentifier 2>/dev/null)
 
     if [[ -n "$version" ]]; then
-        success_message "✓ Cursor version: $version"
+        log_message "SUCCESS" "✓ Cursor version: $version"
     fi
 
     if [[ -n "$bundle_id" ]]; then
-        success_message "✓ Bundle ID: $bundle_id"
+        log_message "SUCCESS" "✓ Bundle ID: $bundle_id"
     fi
 
-    success_message "✓ Cursor installation verified successfully"
+    log_message "SUCCESS" "✓ Cursor installation verified successfully"
     return 0
 }
 
@@ -164,7 +164,7 @@ install_shell_integration() {
     # Create target directory if it doesn't exist
     if [[ ! -d "$target_dir" ]]; then
         if execute_safely sudo mkdir -p "$target_dir"; then
-            success_message "Created directory: $target_dir"
+            log_message "SUCCESS" "Created directory: $target_dir"
         else
             error_message "Failed to create directory: $target_dir"
             return 1
@@ -173,7 +173,7 @@ install_shell_integration() {
 
     # Create symlink to cursor binary
     if execute_safely sudo ln -sf "$cursor_binary" "$target_binary"; then
-        success_message "✓ Cursor command line tool installed at $target_binary"
+        log_message "SUCCESS" "✓ Cursor command line tool installed at $target_binary"
     else
         error_message "Failed to install cursor command line tool"
         return 1
@@ -183,7 +183,7 @@ install_shell_integration() {
     local code_symlink="$target_dir/code"
     if [[ ! -e "$code_symlink" ]]; then
         if execute_safely sudo ln -sf "$target_binary" "$code_symlink"; then
-            success_message "✓ Created 'code' symlink for VS Code compatibility"
+            log_message "SUCCESS" "✓ Created 'code' symlink for VS Code compatibility"
         else
             warning_message "Failed to create 'code' symlink (may already exist)"
         fi
@@ -207,7 +207,7 @@ setup_default_project() {
     # Create project directory
     if [[ ! -d "$project_path" ]]; then
         if execute_safely mkdir -p "$project_path"; then
-            success_message "Created project directory: $project_path"
+            log_message "SUCCESS" "Created project directory: $project_path"
         else
             error_message "Failed to create project directory: $project_path"
             return "$ERR_CREATE_FAILED"
@@ -238,7 +238,7 @@ setup_default_project() {
         initialize_git_repository
     fi
 
-    success_message "✓ Default project setup completed"
+    log_message "SUCCESS" "✓ Default project setup completed"
     return 0
 }
 

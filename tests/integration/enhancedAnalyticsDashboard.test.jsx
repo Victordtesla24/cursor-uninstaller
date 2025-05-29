@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import EnhancedAnalyticsDashboard from '../components/features/EnhancedAnalyticsDashboard';
 
 // Mock UI components
-jest.mock('../components/ui', () => ({
+jest.mock('../../src/components/ui', () => ({
   Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
   CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
   CardDescription: ({ children }) => <div data-testid="card-description">{children}</div>,

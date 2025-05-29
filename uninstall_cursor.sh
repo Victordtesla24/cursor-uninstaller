@@ -61,7 +61,7 @@ source "$SCRIPT_DIR/modules/optimization.sh"
 source "$SCRIPT_DIR/modules/uninstall.sh"
 
 # Load testing module
-source "$SCRIPT_DIR/tests/test_functions.sh"
+source "$SCRIPT_DIR/tests/helpers/test_functions.sh"
 
 ################################################################################
 # Main Orchestration Functions

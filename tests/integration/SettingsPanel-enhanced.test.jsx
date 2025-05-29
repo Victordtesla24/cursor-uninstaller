@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import SettingsPanel from '../components/SettingsPanel';
 
 // Mock the UI components
-jest.mock('../components/ui', () => ({
+jest.mock('../../src/components/ui', () => ({
   Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
   CardHeader: ({ children }) => <div data-testid="card-header">{children}</div>,
   CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,

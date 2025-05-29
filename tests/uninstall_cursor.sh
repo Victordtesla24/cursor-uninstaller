@@ -1,1 +1,0 @@
-../uninstall_cursor.sh

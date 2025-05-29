@@ -28,7 +28,7 @@ import {
   TooltipProvider,
   Badge,
   Switch
-} from './components/ui/index.js';
+} from '../components/ui/index.js';
 import * as enhancedDashboardApi from './lib/enhancedDashboardApi';
 import { dashboardConfig } from "./lib/config.js";
 import { cn } from "./lib/utils.js";

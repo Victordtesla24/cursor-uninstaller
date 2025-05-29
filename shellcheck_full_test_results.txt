@@ -1,2 +1,0 @@
-(.venv) vicd@Vics-MacBook-Air cursor-uninstaller % shellcheck uninstall_cursor.sh
-(.venv) vicd@Vics-MacBook-Air cursor-uninstaller % 

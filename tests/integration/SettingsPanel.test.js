@@ -5,17 +5,17 @@ import '@testing-library/jest-dom';
 import { MockSettingsPanel as SettingsPanel } from './mocks/mockComponents';
 
 // Mock the components imported by SettingsPanel
-jest.mock('../../../components/ui/card', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/tooltip', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/progress', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/badge', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/separator', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/button', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/switch', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/input', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/label', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/collapsible', () => require('../tests/mocks/componentMocks'));
-jest.mock('../../../components/ui/accordion', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/card', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/tooltip', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/progress', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/badge', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/separator', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/button', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/switch', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/input', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/label', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/collapsible', () => require('../tests/mocks/componentMocks'));
+jest.mock('../../src/components/ui/accordion', () => require('../tests/mocks/componentMocks'));
 
 describe('SettingsPanel Component', () => {
   const settings = {

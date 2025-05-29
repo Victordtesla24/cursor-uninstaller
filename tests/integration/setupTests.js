@@ -70,7 +70,7 @@ jest.mock("react-dom", () => {
 });
 
 // Mock UI components from @/components/ui/...
-jest.mock("../../../components/ui/card", () => {
+jest.mock("../../src/components/ui/card", () => {
   const Card = ({ className, children, ...props }) => (
     <div className={`mock-card ${className || ''}`} {...props}>{children}</div>
   );
@@ -92,7 +92,7 @@ jest.mock("../../../components/ui/card", () => {
   return { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
 });
 
-jest.mock("../../../components/ui/tooltip", () => {
+jest.mock("../../src/components/ui/tooltip", () => {
   const TooltipProvider = ({ children }) => <>{children}</>;
   const Tooltip = ({ children }) => <>{children}</>;
   const TooltipTrigger = ({ className, children, ...props }) => <span className={`mock-tooltip-trigger ${className || ''}`} {...props}>{children}</span>;
@@ -100,35 +100,35 @@ jest.mock("../../../components/ui/tooltip", () => {
   return { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent };
 });
 
-jest.mock("../../../components/ui/badge", () => ({
+jest.mock("../../src/components/ui/badge", () => ({
   Badge: ({ className, children, ...props }) => <div className={`mock-badge ${className || ''}`} {...props}>{children}</div>
 }));
 
-jest.mock("../../../components/ui/separator", () => ({
+jest.mock("../../src/components/ui/separator", () => ({
   Separator: ({ className, ...props }) => <hr className={`mock-separator ${className || ''}`} {...props} />
 }));
 
-jest.mock("../../../components/ui/button", () => ({
+jest.mock("../../src/components/ui/button", () => ({
   Button: ({ className, children, ...props }) => <button className={`mock-button ${className || ''}`} {...props}>{children}</button>
 }));
 
-jest.mock("../../../components/ui/progress", () => ({
+jest.mock("../../src/components/ui/progress", () => ({
   Progress: ({ className, value, ...props }) => <div className={`mock-progress ${className || ''}`} role="progressbar" aria-valuenow={value} {...props}>Progress: {value}%</div>
 }));
 
-jest.mock("../../../components/ui/switch", () => ({
+jest.mock("../../src/components/ui/switch", () => ({
   Switch: ({ className, checked, ...props }) => <input type="checkbox" className={`mock-switch ${className || ''}`} defaultChecked={checked} {...props} />
 }));
 
-jest.mock("../../../components/ui/input", () => ({
+jest.mock("../../src/components/ui/input", () => ({
   Input: ({ className, ...props }) => <input className={`mock-input ${className || ''}`} {...props} />
 }));
 
-jest.mock("../../../components/ui/label", () => ({
+jest.mock("../../src/components/ui/label", () => ({
   Label: ({ className, children, ...props }) => <label className={`mock-label ${className || ''}`} {...props}>{children}</label>
 }));
 
-jest.mock("../../../components/ui/collapsible", () => {
+jest.mock("../../src/components/ui/collapsible", () => {
   const Collapsible = ({ className, children, open, ...props }) => (
     <div
       className={`mock-collapsible ${className || ''}`}
@@ -144,7 +144,7 @@ jest.mock("../../../components/ui/collapsible", () => {
   return { Collapsible, CollapsibleTrigger, CollapsibleContent };
 });
 
-jest.mock("../../../components/ui/accordion", () => {
+jest.mock("../../src/components/ui/accordion", () => {
    const Accordion = ({ className, children, ...props }) => <div className={`mock-accordion ${className || ''}`} {...props}>{children}</div>;
    const AccordionItem = ({ className, children, ...props }) => <div className={`mock-accordion-item ${className || ''}`} {...props}>{children}</div>;
    const AccordionTrigger = ({ className, children, ...props }) => <button className={`mock-accordion-trigger ${className || ''}`} {...props}>{children}</button>;

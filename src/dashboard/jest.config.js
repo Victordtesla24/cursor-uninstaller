@@ -12,8 +12,8 @@ module.exports = {
     '^./ui/index.jsx$': '<rootDir>/tests/mocks/ui/index.js',
     '^./ui$': '<rootDir>/tests/mocks/ui/index.js',
     '^./ui/(.*)$': '<rootDir>/tests/mocks/ui/index.js',
-    '^components/ui/(.*)$': '<rootDir>/tests/mocks/ui/index.js',
-    '^components/ui$': '<rootDir>/tests/mocks/ui/index.js'
+    '^components/ui/(.*)$': '<rootDir>/../components/ui/$1',
+    '^components/ui$': '<rootDir>/../components/ui/index.js'
   },
   setupFilesAfterEnv: [
     '@testing-library/jest-dom',

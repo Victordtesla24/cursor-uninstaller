@@ -32,7 +32,7 @@ enhanced_optimize_cursor_performance() {
     optimize_launch_services
     configure_performance_settings
 
-    success_message "✓ Cursor performance optimization completed"
+    log_message "SUCCESS" "✓ Cursor performance optimization completed"
     return 0
 }
 
@@ -55,7 +55,7 @@ check_performance_deps() {
         return "$ERR_DEPENDENCIES"
     fi
 
-    success_message "✓ All optimization dependencies are available"
+    log_message "SUCCESS" "✓ All optimization dependencies are available"
     return 0
 }
 
@@ -73,13 +73,13 @@ optimize_cursor_settings() {
             "application.memory.maxHeapSize" -string "4096"
         execute_safely defaults write "$preferences_dir/$cursor_pref" \
             "application.performance.enableGC" -bool true
-        success_message "✓ Memory optimization applied"
+        log_message "SUCCESS" "✓ Memory optimization applied"
     fi
 
     # Disable unnecessary animations
     execute_safely defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false
     execute_safely defaults write NSGlobalDomain NSScrollAnimationEnabled -bool false
-    success_message "✓ Animation optimization applied"
+    log_message "SUCCESS" "✓ Animation optimization applied"
 
     # Optimize file watching
     execute_safely defaults write "$preferences_dir/$cursor_pref" \
@@ -89,7 +89,7 @@ optimize_cursor_settings() {
         "**/node_modules/**" -bool true \
         "**/.hg/store/**" -bool true
 
-    success_message "✓ File watching optimization applied"
+    log_message "SUCCESS" "✓ File watching optimization applied"
 }
 
 # Optimize system resources for Cursor
@@ -99,7 +99,7 @@ optimize_system_resources() {
     # Increase file descriptor limits
     if [[ -w "/etc/launchd.conf" ]] || [[ ! -f "/etc/launchd.conf" ]]; then
         echo "limit maxfiles 65536 200000" | sudo tee -a /etc/launchd.conf >/dev/null
-        success_message "✓ File descriptor limits increased"
+        log_message "SUCCESS" "✓ File descriptor limits increased"
     fi
 
     # Optimize kernel parameters for development
@@ -109,7 +109,7 @@ optimize_system_resources() {
     # Configure swap usage (if applicable)
     execute_safely sudo sysctl -w vm.swappiness=10
 
-    success_message "✓ System resource optimization applied"
+    log_message "SUCCESS" "✓ System resource optimization applied"
 }
 
 # Optimize Launch Services registration
@@ -127,7 +127,7 @@ optimize_launch_services() {
         execute_safely /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
             -r "$cursor_app"
 
-        success_message "✓ Launch Services optimization applied"
+        log_message "SUCCESS" "✓ Launch Services optimization applied"
     fi
 }
 
@@ -175,7 +175,7 @@ configure_performance_settings() {
     fi
 
     echo "$perf_config" > "$cursor_settings"
-    success_message "✓ Performance settings configured"
+    log_message "SUCCESS" "✓ Performance settings configured"
 }
 
 # Reset performance settings to defaults
@@ -195,22 +195,22 @@ reset_performance_settings() {
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.memory.maxHeapSize" 2>/dev/null || true
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "application.performance.enableGC" 2>/dev/null || true
         execute_safely defaults delete "$preferences_dir/$cursor_pref" "files.watcherExclude" 2>/dev/null || true
-        success_message "✓ Application preferences reset"
+        log_message "SUCCESS" "✓ Application preferences reset"
     fi
 
     # Reset system animations
     execute_safely defaults delete NSGlobalDomain NSAutomaticWindowAnimationsEnabled 2>/dev/null || true
     execute_safely defaults delete NSGlobalDomain NSScrollAnimationEnabled 2>/dev/null || true
-    success_message "✓ System animations reset"
+    log_message "SUCCESS" "✓ System animations reset"
 
     # Restore settings backup if available
     local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
     if [[ -f "$cursor_settings.backup" ]]; then
         execute_safely mv "$cursor_settings.backup" "$cursor_settings"
-        success_message "✓ Cursor settings restored from backup"
+        log_message "SUCCESS" "✓ Cursor settings restored from backup"
     fi
 
-    success_message "✓ Performance settings reset completed"
+    log_message "SUCCESS" "✓ Performance settings reset completed"
 }
 
 # Check current performance settings
@@ -270,7 +270,7 @@ create_optimization_backup() {
         execute_safely cp "$cursor_settings" "$backup_dir/"
     fi
 
-    success_message "✓ Backup created at: $backup_dir"
+    log_message "SUCCESS" "✓ Backup created at: $backup_dir"
     export CURSOR_OPTIMIZATION_BACKUP="$backup_dir"
 }
 
@@ -291,15 +291,15 @@ restore_optimization_backup() {
 
     if [[ -f "$backup_dir/$cursor_pref" ]]; then
         execute_safely cp "$backup_dir/$cursor_pref" "$preferences_dir/"
-        success_message "✓ Preferences restored"
+        log_message "SUCCESS" "✓ Preferences restored"
     fi
 
     # Restore Cursor settings
     local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
     if [[ -f "$backup_dir/settings.json" ]]; then
         execute_safely cp "$backup_dir/settings.json" "$cursor_settings"
-        success_message "✓ Cursor settings restored"
+        log_message "SUCCESS" "✓ Cursor settings restored"
     fi
 
-    success_message "✓ Backup restoration completed"
+    log_message "SUCCESS" "✓ Backup restoration completed"
 }

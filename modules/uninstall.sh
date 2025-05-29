@@ -40,7 +40,7 @@ enhanced_uninstall_cursor() {
 
     # Verify complete removal
     if enhanced_verify_complete_removal; then
-        success_message "✓ Cursor has been completely uninstalled"
+        log_message "SUCCESS" "✓ Cursor has been completely uninstalled"
         return 0
     else
         warning_message "Some Cursor components may still remain"
@@ -135,7 +135,7 @@ stop_cursor_processes() {
         fi
     done
 
-    success_message "✓ Cursor processes stopped"
+    log_message "SUCCESS" "✓ Cursor processes stopped"
 }
 
 # Remove main application bundle
@@ -149,7 +149,7 @@ remove_cursor_application() {
         fi
     done
 
-    success_message "✓ Cursor application removed"
+    log_message "SUCCESS" "✓ Cursor application removed"
 }
 
 # Remove user data and preferences
@@ -178,7 +178,7 @@ remove_cursor_user_data() {
         fi
     done
 
-    success_message "✓ User data and preferences removed"
+    log_message "SUCCESS" "✓ User data and preferences removed"
 }
 
 # Remove system-wide configurations
@@ -192,7 +192,7 @@ remove_cursor_system_configs() {
         fi
     done
 
-    success_message "✓ System configurations removed"
+    log_message "SUCCESS" "✓ System configurations removed"
 }
 
 # Clean up launch services and caches
@@ -215,7 +215,7 @@ clean_launch_services() {
         fi
     done
 
-    success_message "✓ Launch Services and caches cleaned"
+    log_message "SUCCESS" "✓ Launch Services and caches cleaned"
 }
 
 # Remove Cursor binaries and symlinks
@@ -240,7 +240,7 @@ remove_cursor_binaries() {
         fi
     done
 
-    success_message "✓ Cursor binaries and symlinks removed"
+    log_message "SUCCESS" "✓ Cursor binaries and symlinks removed"
 }
 
 # Enhanced cleanup of lingering files
@@ -292,7 +292,7 @@ enhanced_clean_up_lingering_files() {
         fi
     done
 
-    success_message "✓ Lingering files cleaned up"
+    log_message "SUCCESS" "✓ Lingering files cleaned up"
 }
 
 # Enhanced verification of complete removal
@@ -343,7 +343,7 @@ enhanced_verify_complete_removal() {
     done
 
     if [[ $remaining_items -eq 0 ]]; then
-        success_message "✓ Complete removal verified - no Cursor components found"
+        log_message "SUCCESS" "✓ Complete removal verified - no Cursor components found"
         return 0
     else
         warning_message "⚠ $remaining_items Cursor components still remain"
