@@ -271,7 +271,8 @@ check_cursor_installation() {
         echo -e "  • Install the application to /Applications/"
         echo -e "  • Set up CLI tools if needed"
         echo -e "  • Launch Cursor to complete setup"
-        return 1
+        log_message "INFO" "Installation check completed: Cursor not installed ($found_issues of $total_checks checks failed)"
+        return 0
     else
         log_message "WARNING" "⚠ PARTIAL INSTALLATION DETECTED - $found_issues ISSUES FOUND"
         echo -e "\n${YELLOW}${BOLD}RECOMMENDED ACTIONS:${NC}"
@@ -279,7 +280,8 @@ check_cursor_installation() {
         echo -e "  • Set up CLI tools from within the Cursor app"
         echo -e "  • Check system permissions if needed"
         echo -e "  • Try launching Cursor to complete registration"
-        return 1
+        log_message "INFO" "Installation check completed: Partial installation detected ($found_issues of $total_checks checks failed)"
+        return 0
     fi
 }
 

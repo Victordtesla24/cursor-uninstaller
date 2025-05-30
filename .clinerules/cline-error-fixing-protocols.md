@@ -1,3 +1,9 @@
+---
+description: coding-protocols that are necessary to increase precision and reduce costs (per token)
+globs: true
+alwaysApply: true
+---
+
 ## Error Fixing Protocol
 
 **Objective:** To systematically identify, analyze, and resolve errors within the codebase efficiently and robustly, ensuring minimal disruption and maintaining code quality.

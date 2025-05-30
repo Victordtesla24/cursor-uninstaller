@@ -1,5 +1,5 @@
 ---
-description: `token-optimisation-protocols` to `significantly` reduce costs
+description: coding-protocols that are necessary to increase precision and reduce costs (per token)
 globs: true
 alwaysApply: true
 ---

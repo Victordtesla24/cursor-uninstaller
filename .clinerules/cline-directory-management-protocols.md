@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description: coding-protocols that are necessary to increase precision and reduce costs (per token)
+globs: true
 alwaysApply: true
 ---
+
 ### Directory Management Protocol
 
 **Objective:** To organize, consolidate, and maintain the project's directory structure according to established conventions, ensuring code clarity, eliminating redundancy, and preserving functionality.
@@ -25,6 +26,7 @@ alwaysApply: true
 2.  **Comprehensive File Scan & Inventory:**
     *   Recursively scan the entire repository to build an inventory of files, modules, scripts, and configurations.
     *   **Exclude:** `node_modules/`, `.venv/`, `.git/`, `.cursor/`, `.vscode/`, `build/`, `dist/`, `coverage/`, and any paths listed in `.gitignore`.
+
 3.  **Duplicate/Overlap Detection & Consolidation:**
     *   **Strict Prohibition:** ***Never*** create a new file, script, or module if an existing one serves the same or a significantly overlapping purpose. This includes files with different names but similar functionality.
     *   **Detection Heuristics:** Identify potential duplicates/overlaps by analyzing:

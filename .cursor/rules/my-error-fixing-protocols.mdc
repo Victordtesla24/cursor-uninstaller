@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: true
 ---
 ## Error Fixing Protocol
@@ -242,7 +242,6 @@ def handle_error(error_context, attempt=1, max_internal_attempts=2):
 
 #### **Import Error Resolution Algorithm**
 **Purpose:** To resolve ***ModuleNotFoundError***, ***ImportError***, or ***incorrect path issues***, often occurring after directory restructuring or due to incorrect initial setup. This combines directory validation with error handling.
-
 ```ascii
 +--------------------------------------------+
 | START: Detect & Contextualize Import Error |

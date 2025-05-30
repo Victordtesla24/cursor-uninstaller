@@ -927,12 +927,34 @@ production_execute_optimize() {
 production_execute_check() {
     production_info_message "EXECUTING POST-INSTALLATION CHECK"
 
+    # Temporarily disable error trap for check operations to allow legitimate non-zero returns
+    local previous_set_state="$-"
+    set +e
+    
+    local check_result=0
     if [[ "$MODULES_LOADED" == "true" ]] && declare -f check_cursor_installation >/dev/null 2>&1; then
         check_cursor_installation
+        check_result=$?
     else
         production_warning_message "USING BASIC CHECK DUE TO MISSING MODULES"
         production_basic_check
+        check_result=$?
     fi
+    
+    # Restore previous error handling state
+    if [[ "$previous_set_state" == *e* ]]; then
+        set -e
+    fi
+    
+    # Log the check result without treating it as an error
+    if [[ $check_result -eq 0 ]]; then
+        production_log_message "INFO" "Installation check completed successfully"
+    else
+        production_log_message "INFO" "Installation check completed with findings (return code: $check_result)"
+    fi
+    
+    # Always return success to prevent menu exit - the check result is informational
+    return 0
 }
 
 production_execute_health_check() {
@@ -1525,9 +1547,12 @@ production_basic_check() {
         echo -e "  • Reinstall Cursor to fix missing components"
         echo -e "  • Set up CLI tools from within the app"
         echo -e "  • Check system permissions if needed"
+        echo -e "  • Try launching Cursor to complete registration"
     fi
 
-    return $found_issues
+    # Return 0 to prevent triggering error handler while logging findings
+    production_log_message "INFO" "Installation check completed with $found_issues findings out of $total_checks checks"
+    return 0
 }
 
 production_basic_health_check() {
@@ -1768,7 +1793,16 @@ production_show_menu() {
         echo
         echo -n "ENTER YOUR CHOICE [1-8,Q]: "
 
-        read -r choice
+        # Handle read command with error checking for non-interactive environments
+        if read -r choice 2>/dev/null; then
+            # Read successful, proceed normally
+            :
+        else
+            # Read failed (EOF or non-interactive), default to quit
+            choice="Q"
+            production_info_message "Non-interactive mode detected, exiting..."
+        fi
+        
         case "$choice" in
             1)
                 production_execute_check
@@ -1810,7 +1844,12 @@ production_show_menu() {
         if [[ "$SCRIPT_RUNNING" == "true" ]]; then
             echo
             echo -n "Press Enter to continue..."
-            read -r
+            # Handle read command with error checking for non-interactive environments
+            if ! read -r 2>/dev/null; then
+                # Read failed (EOF or non-interactive), add small delay and continue
+                production_log_message "DEBUG" "Non-interactive environment detected, skipping user input"
+                sleep 1
+            fi
         fi
     done
 
