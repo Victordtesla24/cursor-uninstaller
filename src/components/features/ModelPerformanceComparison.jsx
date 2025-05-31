@@ -198,35 +198,33 @@ const ModelPerformanceComparison = ({
         ...model,
         // Enhanced model data
         provider: model.provider || 'Unknown',
-        category: model.category || 'AI Model',
-        pricing: model.pricing || { input: 0, output: 0, unit: 'per 1K tokens' },
-        capabilities: model.capabilities || [],
-        contextLength: model.contextLength || 4096,
+        category: model.category || 'Unknown',
+        contextLength: model.contextLength || 0,
         launched: model.launched || 'Unknown',
+        capabilities: model.capabilities || [],
         
-        // Performance metrics
+        // Pricing - handle both old and new structure
+        pricing: model.pricing?.input || model.pricing || 0,
+        
+        // Performance metrics with proper defaults
         performance: {
-          avgResponseTime: performance.avgResponseTime || Math.random() * 2 + 0.5,
-          reliability: performance.reliability || (Math.random() * 5 + 95),
-          throughput: performance.throughput || Math.floor(Math.random() * 100 + 20),
-          qualityScore: performance.qualityScore || (Math.random() * 2 + 8),
-          errorRate: performance.errorRate || (Math.random() * 1),
-          costPerToken: performance.costPerToken || model.pricing?.input || 0.001,
-          benchmarks: performance.benchmarks || {
-            reasoning: Math.floor(Math.random() * 20 + 80),
-            coding: Math.floor(Math.random() * 20 + 75),
-            creative: Math.floor(Math.random() * 20 + 80),
-            factual: Math.floor(Math.random() * 20 + 85)
-          }
+          avgResponseTime: performance.avgResponseTime || 0,
+          reliability: performance.reliability || 0,
+          throughput: performance.throughput || 0,
+          errorRate: performance.errorRate || 0,
+          qualityScore: performance.qualityScore || 0,
+          costPerToken: performance.costPerToken || 0,
+          benchmarks: performance.benchmarks || {},
+          usageStats: performance.usageStats || {}
         },
         
-        // Usage statistics
+        // Usage data
         usage: {
-          totalRequests: usage.totalRequests || performance.usageStats?.totalRequests || Math.floor(Math.random() * 50000),
-          totalTokens: usage.totalTokens || performance.usageStats?.totalTokens || Math.floor(Math.random() * 5000000),
-          totalCost: usage.totalCost || performance.usageStats?.totalCost || Math.random() * 200,
-          percentage: usage.percentage || Math.floor(Math.random() * 60 + 10),
-          trend: usage.trend || ['stable', 'increasing', 'decreasing'][Math.floor(Math.random() * 3)]
+          requests: usage.requests || 0,
+          tokens: usage.tokens || 0,
+          cost: usage.cost || 0,
+          percentage: usage.percentage || 0,
+          trend: usage.trend || 'stable'
         }
       };
     });
@@ -281,13 +279,13 @@ const ModelPerformanceComparison = ({
   const getModelMetricValue = (model, metricId) => {
     switch (metricId) {
       case 'pricing':
-        return model.pricing?.input || 0;
+        return model.pricing || 0;
       case 'totalCost':
-        return model.usage?.totalCost || 0;
+        return model.usage?.cost || 0;
       case 'totalRequests':
-        return model.usage?.totalRequests || 0;
+        return model.usage?.requests || 0;
       case 'totalTokens':
-        return model.usage?.totalTokens || 0;
+        return model.usage?.tokens || 0;
       case 'costEfficiency':
         // Calculate cost efficiency as quality/cost ratio
         const quality = model.performance?.qualityScore || 8;
@@ -658,54 +656,55 @@ const ModelPerformanceComparison = ({
           </div>
         </div>
 
-        {/* Model Selection Section */}
+        {/* Model Selection Grid */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-medium">Select Models to Compare ({selectedModels.length}/4)</h3>
+            <h3 className="text-sm font-medium">
+              Select Models to Compare ({selectedModels.length}/4)
+            </h3>
           </div>
-          
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {filteredModels.map((model) => (
+            {filteredModels.map(model => (
               <div
                 key={model.id}
-                onClick={() => toggleModelSelection(model.id)}
                 className={`border rounded-lg p-3 cursor-pointer transition-all duration-200
-                  ${selectedModels.includes(model.id)
-                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                  ${selectedModels.includes(model.id) 
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
                     : 'border-border hover:border-primary/60'}`}
+                onClick={() => toggleModelSelection(model.id)}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">{model.name}</div>
-                  {selectedModels.includes(model.id) && (
-                    <Badge variant="outline" className="bg-primary text-primary-foreground">
-                      Selected
+                  {isValueBest(model.id, 'qualityScore') && (
+                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-xs">
+                      Best
+                    </Badge>
+                  )}
+                  {isValueBest(model.id, 'avgResponseTime') && (
+                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400 text-xs">
+                      Fastest
+                    </Badge>
+                  )}
+                  {isValueBest(model.id, 'pricing') && (
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400 text-xs">
+                      Most Cost-Effective
                     </Badge>
                   )}
                 </div>
-                
-                {/* Provider and Category */}
                 <div className="text-xs text-muted-foreground mb-1">
                   <span className="font-medium">{model.provider}</span>
                 </div>
                 <div className="text-xs mb-2">
-                  <Badge variant="outline" className="text-xs">
-                    {model.category}
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">{model.category}</Badge>
                 </div>
-                
-                {/* Key metrics preview */}
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>Context: {model.contextLength.toLocaleString()} tokens</div>
-                  <div>Quality: {model.performance.qualityScore.toFixed(1)}</div>
-                  <div>Cost: ${model.pricing.input.toFixed(4)}/1K tokens</div>
+                  <div>Quality: {model.performance.qualityScore}</div>
+                  <div>Cost: ${model.pricing.toFixed(4)}/1K tokens</div>
                 </div>
-                
-                {/* Capabilities */}
                 <div className="mt-2 flex flex-wrap gap-1">
                   {model.capabilities.slice(0, 3).map(cap => (
-                    <span key={cap} className="text-xs px-1 py-0.5 bg-muted rounded">
-                      {cap}
-                    </span>
+                    <span key={cap} className="text-xs px-1 py-0.5 bg-muted rounded">{cap}</span>
                   ))}
                   {model.capabilities.length > 3 && (
                     <span className="text-xs text-muted-foreground">+{model.capabilities.length - 3}</span>
@@ -716,14 +715,14 @@ const ModelPerformanceComparison = ({
           </div>
         </div>
 
-        {/* Main Comparison Content */}
+        {/* Comparison Display */}
         {selectedModels.length > 0 ? (
-          <div className="space-y-6">
-            {/* Side-by-Side Comparison */}
-            <div>
+          <div>
+            {/* Side-by-Side Comparison Heading */}
+            <div className="mb-6">
               <h3 className="text-lg font-medium mb-4">Side-by-Side Comparison</h3>
               
-              {/* Performance Metrics */}
+              {/* Performance Metrics Table */}
               <div className="mb-6">
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
@@ -736,11 +735,11 @@ const ModelPerformanceComparison = ({
                         <th className="text-left p-2 font-medium text-muted-foreground">Metric</th>
                         {sortedModels.map(model => (
                           <th key={model.id} className="text-center p-2 font-medium">
-                            <div className="flex flex-col items-center">
+                            <div className="flex flex-col items-center gap-1">
                               <span>{model.name}</span>
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                {model.provider}
-                              </Badge>
+                              {sortedModels.findIndex(m => m.id === model.id) === 0 && (
+                                <ArrowUp data-testid="arrow-up-icon" className="h-3 w-3 text-green-500" />
+                              )}
                             </div>
                           </th>
                         ))}
@@ -752,33 +751,7 @@ const ModelPerformanceComparison = ({
                           <td className="p-2">
                             <div className="flex items-center gap-2">
                               {metric.icon}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 cursor-pointer">
-                                      <span>{metric.name}</span>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-4 w-4 p-0"
-                                        onClick={() => handleSort(metric.id)}
-                                      >
-                                        {sortBy === metric.id && (
-                                          sortOrder === 'desc' ? 
-                                            <ArrowDown className="h-3 w-3" /> : 
-                                            <ArrowUp className="h-3 w-3" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{metric.description}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {metric.higherIsBetter ? 'Higher is better' : 'Lower is better'}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <span>{metric.name}</span>
                             </div>
                           </td>
                           {sortedModels.map(model => {
@@ -787,28 +760,15 @@ const ModelPerformanceComparison = ({
 
                             return (
                               <td key={`${model.id}-${metric.id}`} className="text-center p-2">
-                                <div className="flex items-center justify-center gap-1">
-                                  {isBest && metric.id === 'avgResponseTime' && (
-                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-xs">
-                                      Fastest
-                                    </Badge>
-                                  )}
-                                  {isBest && metric.id === 'qualityScore' && (
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className={`${isBest ? 'font-bold text-primary' : ''}`}>
+                                    {formatMetricValue(value, metric.id)}
+                                  </span>
+                                  {isBest && (
                                     <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-xs">
                                       Best
                                     </Badge>
                                   )}
-                                  {isBest && (metric.id === 'pricing' || metric.id === 'costPerToken') && (
-                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-xs">
-                                      Most Cost-Effective
-                                    </Badge>
-                                  )}
-                                  {isBest && !['avgResponseTime', 'qualityScore', 'pricing', 'costPerToken'].includes(metric.id) && (
-                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-xs">
-                                      Best
-                                    </Badge>
-                                  )}
-                                  <span>{formatMetricValue(value, metric.id)}</span>
                                 </div>
                               </td>
                             );
