@@ -669,9 +669,9 @@ const EnhancedAnalyticsDashboard = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => document.getElementById('model-filter').classList.toggle('hidden')}
+                    onClick={() => document.getElementById('model-filter')?.classList?.toggle('hidden')}
                   >
-                    <Filter className="h-4 w-4 mr-1" />
+                    <Filter className="h-4 w-4 mr-1" data-testid="filter-icon" />
                     All Models
                   </Button>
                 </TooltipTrigger>
@@ -688,9 +688,9 @@ const EnhancedAnalyticsDashboard = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => document.getElementById('category-filter').classList.toggle('hidden')}
+                    onClick={() => document.getElementById('category-filter')?.classList?.toggle('hidden')}
                   >
-                    <Filter className="h-4 w-4 mr-1" />
+                    <Filter className="h-4 w-4 mr-1" data-testid="category-filter-icon" />
                     All Categories
                   </Button>
                 </TooltipTrigger>
@@ -707,9 +707,9 @@ const EnhancedAnalyticsDashboard = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => document.getElementById('filters-panel').classList.toggle('hidden')}
+                    onClick={() => document.getElementById('filters-panel')?.classList?.toggle('hidden')}
                   >
-                    <Filter className="h-4 w-4 mr-1" />
+                    <Filter className="h-4 w-4 mr-1" data-testid="advanced-filter-icon" />
                     Filters
                   </Button>
                 </TooltipTrigger>
@@ -1179,11 +1179,11 @@ const EnhancedAnalyticsDashboard = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <Button variant="outline" size="sm" onClick={() => handleExportData('pdf')} disabled={exportInProgress}>
-                        <FileText className="h-4 w-4 mr-2" />
+                        <FileText className="h-4 w-4 mr-2" data-testid="pdf-export-reports-icon" />
                         PDF Report
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleExportData('csv')} disabled={exportInProgress}>
-                        <FileDown className="h-4 w-4 mr-2" />
+                        <FileDown className="h-4 w-4 mr-2" data-testid="csv-export-reports-icon" />
                         CSV Export
                       </Button>
                     </div>

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // Jest Setup File
 
 // This addresses the "Unknown option 'maxWidth'" error

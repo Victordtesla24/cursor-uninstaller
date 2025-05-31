@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Badge,
-  Progress
+  Progress,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
 } from '../ui/index.js';
 import MetricCard from './MetricCard.jsx';
 import {
@@ -16,7 +21,10 @@ import {
   BarChart3,
   Gauge,
   Cpu,
-  Database
+  Database,
+  Settings,
+  RefreshCw,
+  Shield
 } from 'lucide-react';
 
 // Performance Status Indicator
@@ -71,17 +79,18 @@ const MetricsPanel = ({ metricsData = {}, darkMode, className = '' }) => { // Ad
     return () => clearTimeout(timer);
   }, []);
 
-  // Safely extract metrics with defaults
+  // Safely extract metrics with defaults - handle both old and new data structures
   const safeMetrics = {
-    totalRequests: 0,
-    avgResponseTime: 0,
-    cacheHitRate: 0,
-    systemLoad: 0,
-    memoryUsage: 0,
-    errorRate: 0,
-    throughput: 0,
-    activeConnections: 0,
-    ...metricsData
+    totalRequests: metricsData?.totalRequests || 0,
+    avgResponseTime: metricsData?.avgResponseTime || metricsData?.responseTime?.current || 0,
+    cacheHitRate: metricsData?.cacheHitRate || metricsData?.cacheHitRate?.current || 0,
+    systemLoad: metricsData?.systemLoad || 0,
+    memoryUsage: metricsData?.memoryUsage || 0,
+    errorRate: metricsData?.errorRate?.current || metricsData?.errorRate || 0,
+    throughput: metricsData?.throughput?.current || metricsData?.throughput || 0,
+    activeConnections: metricsData?.activeConnections || 0,
+    reliability: metricsData?.reliability?.current || 0,
+    costMetrics: metricsData?.costMetrics || {}
   };
 
   // Calculate system health status
@@ -144,47 +153,110 @@ const MetricsPanel = ({ metricsData = {}, darkMode, className = '' }) => { // Ad
             </div>
             <div>
               <h3 className={`text-md font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                System Performance Snapshot
+                System Metrics
               </h3>
               <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 Key real-time indicators
               </p>
             </div>
           </div>
-          <PerformanceStatus status={systemHealth} />
+          <div className="flex items-center space-x-2">
+            <PerformanceStatus status={systemHealth} />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    data-testid="button"
+                  >
+                    <Settings className="h-4 w-4" data-testid="settings-icon" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Settings</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    data-testid="button"
+                  >
+                    <RefreshCw className="h-4 w-4" data-testid="refresh-cw-icon" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Refresh</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
 
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <MetricCard
-          title="Total Requests"
-          value={formatMetricValue(safeMetrics.totalRequests)}
-          change={`+${getTrend(safeMetrics.totalRequests, 1000).percentage}%`}
-          trend={getTrend(safeMetrics.totalRequests, 1000).direction}
-          icon={BarChart3}
-          color="blue"
-          description="API requests processed"
-        />
-        <MetricCard
-          title="Avg Response Time"
-          value={formatMetricValue(safeMetrics.avgResponseTime, 'time')}
+          title="Response Time"
+          value={`${safeMetrics.avgResponseTime}ms`}
           change={`${getTrend(safeMetrics.avgResponseTime, 2000).direction === 'up' ? '+' : '-'}${getTrend(safeMetrics.avgResponseTime, 2000).percentage}%`}
           trend={getTrend(safeMetrics.avgResponseTime, 2000).direction === 'up' ? 'down' : 'up'} // Inverted
           icon={Clock}
           color="green"
-          description="Average API latency"
+          description="Average response time"
           target={1000}
+          data-testid="card"
         />
         <MetricCard
+          title="Reliability"
+          value={`${safeMetrics.reliability}%`}
+          change={`+${getTrend(safeMetrics.reliability, 99).percentage}%`}
+          trend={getTrend(safeMetrics.reliability, 99).direction}
+          icon={Shield}
+          color="blue"
+          description="System reliability"
+          data-testid="card"
+        />
+        <MetricCard
+          title="Throughput"
+          value={safeMetrics.throughput?.toLocaleString() || '0'}
+          change={`+${getTrend(safeMetrics.throughput, 500).percentage}%`}
+          trend={getTrend(safeMetrics.throughput, 500).direction}
+          icon={Activity}
+          color="green"
+          description="req/min"
+          data-testid="card"
+        />
+        <MetricCard
+          title="Error Rate"
+          value={`${safeMetrics.errorRate}%`}
+          change={`${getTrend(safeMetrics.errorRate, 1).direction === 'up' ? '+' : '-'}${getTrend(safeMetrics.errorRate, 1).percentage}%`}
+          trend={getTrend(safeMetrics.errorRate, 1).direction === 'up' ? 'down' : 'up'} // Inverted
+          icon={AlertTriangle}
+          color="amber"
+          description="System error percentage"
+          data-testid="card"
+        />
+      </div>
+
+      {/* Secondary Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <MetricCard
           title="Cache Hit Rate"
-          value={formatMetricValue(safeMetrics.cacheHitRate, 'percentage')}
+          value={`${safeMetrics.cacheHitRate}%`}
           change={`+${getTrend(safeMetrics.cacheHitRate, 85).percentage}%`}
           trend={getTrend(safeMetrics.cacheHitRate, 85).direction}
-          icon={Zap}
-          color="amber"
-          description="Requests from cache"
+          icon={Database}
+          color="purple"
+          description="Cache efficiency"
           target={90}
+          data-testid="card"
         />
         <MetricCard
           title="System Load"
@@ -195,11 +267,8 @@ const MetricsPanel = ({ metricsData = {}, darkMode, className = '' }) => { // Ad
           color="purple"
           description="Current CPU utilization"
           target={80}
+          data-testid="card"
         />
-      </div>
-
-      {/* Secondary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <MetricCard
           title="Memory Usage"
           value={formatMetricValue(safeMetrics.memoryUsage, 'percentage')}
@@ -208,23 +277,7 @@ const MetricsPanel = ({ metricsData = {}, darkMode, className = '' }) => { // Ad
           color="blue"
           description="RAM utilization"
           target={75}
-        />
-        <MetricCard
-          title="Error Rate"
-          value={formatMetricValue(safeMetrics.errorRate, 'percentage')}
-          trend={getTrend(safeMetrics.errorRate, 1).direction === 'up' ? 'down' : 'up'} // Inverted
-          icon={AlertTriangle}
-          color="green" // Consider red/amber if error rate is high
-          description="Failed requests"
-        />
-        <MetricCard
-          title="Throughput"
-          value={formatMetricValue(safeMetrics.throughput, 'rate')}
-          change={`+${getTrend(safeMetrics.throughput, 500).percentage}%`}
-          trend={getTrend(safeMetrics.throughput, 500).direction}
-          icon={Activity}
-          color="amber"
-          description="Requests per second"
+          data-testid="card"
         />
         <MetricCard
           title="Active Connections"

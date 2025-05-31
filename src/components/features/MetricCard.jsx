@@ -46,18 +46,33 @@ const MetricCard = ({
 
   // Use enhanced styling if color is provided (MetricsPanel usage)
   if (color && colorClasses[color]) {
+    // Generate test ID based on title
+    const getIconTestId = (title) => {
+      const iconMap = {
+        'Response Time': 'clock-icon',
+        'Reliability': 'shield-icon', 
+        'Throughput': 'activity-icon',
+        'Error Rate': 'alert-triangle-icon',
+        'Cache Hit Rate': 'database-icon',
+        'System Load': 'cpu-icon',
+        'Memory Usage': 'database-icon',
+        'Active Connections': 'target-icon'
+      };
+      return iconMap[title] || 'icon';
+    };
+
     return (
       <div className={`bg-gradient-to-br ${classes.bg} p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/50 dark:border-slate-700/50 ${className}`} {...props}>
         <div className="flex items-start justify-between mb-3">
           <div className={`p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 ${classes.icon}`}>
-            {Icon && <Icon className="w-4 h-4" />}
+            {Icon && <Icon className="w-4 h-4" data-testid={getIconTestId(title)} />}
           </div>
           {change && (
-            <Badge variant={trend === 'up' ? 'success' : trend === 'down' ? 'destructive' : 'secondary'} className="text-xs">
+            <Badge variant={trend === 'up' ? 'success' : trend === 'down' ? 'destructive' : 'secondary'} className="text-xs" data-testid="badge">
               {trend === 'up' ? (
-                <TrendingUp className="w-3 h-3 mr-1" />
+                <TrendingUp className="w-3 h-3 mr-1" data-testid="trending-up-icon" />
               ) : trend === 'down' ? (
-                <TrendingDown className="w-3 h-3 mr-1" />
+                <TrendingDown className="w-3 h-3 mr-1" data-testid="trending-down-icon" />
               ) : null}
               {change}
             </Badge>
@@ -72,7 +87,7 @@ const MetricCard = ({
           )}
           {progress !== null && (
             <div className="mt-2">
-              <Progress value={progress} className="h-1.5" />
+              <Progress value={progress} className="h-1.5" data-testid="progress" />
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {progress.toFixed(1)}% of target
               </div>

@@ -3139,10 +3139,10 @@ const EnhancedAnalyticsDashboard = ({
         &lt;CardHeader&gt;
           &lt;CardTitle className="flex items-center gap-2"&gt;
             &lt;BarChart3 className="h-5 w-5 text-primary" aria-hidden="true" /&gt;
-            Enhanced Analytics
+            Enhanced Analytics Dashboard
           &lt;/CardTitle&gt;
           &lt;CardDescription&gt;
-            Advanced analytics and reporting tools
+            Advanced analytics and insights for token usage
           &lt;/CardDescription&gt;
         &lt;/CardHeader&gt;
         &lt;CardContent className="flex flex-col items-center justify-center py-12 space-y-4"&gt;
@@ -3154,16 +3154,16 @@ const EnhancedAnalyticsDashboard = ({
   }
 &nbsp;
   return (
-    &lt;Card className={`shadow-sm hover:shadow-md transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}&gt;
+    &lt;Card className={`w-full shadow-sm hover:shadow-md transition-shadow duration-200 ${darkMode ? 'bg-card/95' : ''}`}&gt;
       &lt;CardHeader&gt;
         &lt;div className="flex justify-between items-start"&gt;
           &lt;div&gt;
             &lt;CardTitle className="flex items-center gap-2"&gt;
               &lt;BarChart3 className="h-5 w-5 text-primary" aria-hidden="true" /&gt;
-              Enhanced Analytics
+              Enhanced Analytics Dashboard
             &lt;/CardTitle&gt;
             &lt;CardDescription&gt;
-              Advanced analytics and reporting tools
+              Advanced analytics and insights for token usage
             &lt;/CardDescription&gt;
           &lt;/div&gt;
 &nbsp;
@@ -3211,7 +3211,7 @@ const EnhancedAnalyticsDashboard = ({
                     onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleTimeRangeChange('day')}</span>
                     className={timeRange === 'day' ? <span class="branch-0 cbranch-no" title="branch not covered" >'bg-primary text-primary-foreground hover:bg-primary/90' </span>: ''}
                   &gt;
-                    Day
+                    Today
                   &lt;/Button&gt;
                 &lt;/TooltipTrigger&gt;
                 &lt;TooltipContent&gt;
@@ -3265,7 +3265,7 @@ const EnhancedAnalyticsDashboard = ({
                     onClick={() =&gt; handleTimeRangeChange('custom')}
                     className={timeRange === 'custom' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
                   &gt;
-                    &lt;Calendar className="h-4 w-4 mr-1" /&gt;
+                    &lt;Calendar className="h-4 w-4 mr-1" data-testid="custom-date-calendar-icon" /&gt;
                     Custom
                   &lt;/Button&gt;
                 &lt;/TooltipTrigger&gt;
@@ -3282,9 +3282,9 @@ const EnhancedAnalyticsDashboard = ({
                   &lt;Button
                     variant="outline"
                     size="sm"
-                    onClick={() =&gt; document.getElementById('model-filter').classList.toggle('hidden')}
+                    onClick={() =&gt; document.getElementById('model-filter')?.classList?.toggle('hidden')}
                   &gt;
-                    &lt;Filter className="h-4 w-4 mr-1" /&gt;
+                    &lt;Filter className="h-4 w-4 mr-1" data-testid="filter-icon" /&gt;
                     All Models
                   &lt;/Button&gt;
                 &lt;/TooltipTrigger&gt;
@@ -3301,9 +3301,9 @@ const EnhancedAnalyticsDashboard = ({
                   &lt;Button
                     variant="outline"
                     size="sm"
-                    onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >document.getElementById('category-filter').classList.toggle('hidden')}</span>
+                    onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >document.getElementById('category-filter')?.classList?.toggle('hidden')}</span>
                   &gt;
-                    &lt;Filter className="h-4 w-4 mr-1" /&gt;
+                    &lt;Filter className="h-4 w-4 mr-1" data-testid="category-filter-icon" /&gt;
                     All Categories
                   &lt;/Button&gt;
                 &lt;/TooltipTrigger&gt;
@@ -3320,9 +3320,9 @@ const EnhancedAnalyticsDashboard = ({
                   &lt;Button
                     variant="outline"
                     size="sm"
-                    onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >document.getElementById('filters-panel').classList.toggle('hidden')}</span>
+                    onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >document.getElementById('filters-panel')?.classList?.toggle('hidden')}</span>
                   &gt;
-                    &lt;Filter className="h-4 w-4 mr-1" /&gt;
+                    &lt;Filter className="h-4 w-4 mr-1" data-testid="advanced-filter-icon" /&gt;
                     Filters
                   &lt;/Button&gt;
                 &lt;/TooltipTrigger&gt;
@@ -3583,12 +3583,12 @@ const EnhancedAnalyticsDashboard = ({
             {/* Usage Trends */}
             &lt;div className="bg-background p-4 rounded-lg border"&gt;
               &lt;h3 className="font-medium mb-4 flex items-center gap-2"&gt;
-                &lt;LineChart className="h-5 w-5" /&gt;
+                &lt;LineChart className="h-5 w-5" data-testid="usage-trends-line-chart-icon" /&gt;
                 Usage Trends
               &lt;/h3&gt;
               &lt;div className="h-64 flex items-center justify-center"&gt;
                 &lt;div className="text-center text-muted-foreground"&gt;
-                  &lt;BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-50" /&gt;
+                  &lt;BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-50" data-testid="usage-trends-chart-placeholder" /&gt;
                   &lt;p&gt;Time Series Chart would be rendered here&lt;/p&gt;
                 &lt;/div&gt;
               &lt;/div&gt;
@@ -3598,12 +3598,12 @@ const EnhancedAnalyticsDashboard = ({
             &lt;div className="grid grid-cols-1 md:grid-cols-2 gap-4"&gt;
               &lt;div className="bg-background p-4 rounded-lg border"&gt;
                 &lt;h3 className="font-medium mb-4 flex items-center gap-2"&gt;
-                  &lt;BarChart3 className="h-5 w-5" /&gt;
+                  &lt;BarChart3 className="h-5 w-5" data-testid="model-comparison-bar-chart-icon" /&gt;
                   Model Comparison
                 &lt;/h3&gt;
                 &lt;div className="h-48 flex items-center justify-center"&gt;
                   &lt;div className="text-center text-muted-foreground"&gt;
-                    &lt;BarChart2 className="h-10 w-10 mx-auto mb-3 opacity-50" /&gt;
+                    &lt;BarChart2 className="h-10 w-10 mx-auto mb-3 opacity-50" data-testid="model-comparison-chart-placeholder" /&gt;
                     &lt;p&gt;Model Comparison Chart&lt;/p&gt;
                   &lt;/div&gt;
                 &lt;/div&gt;
@@ -3611,12 +3611,12 @@ const EnhancedAnalyticsDashboard = ({
 &nbsp;
               &lt;div className="bg-background p-4 rounded-lg border"&gt;
                 &lt;h3 className="font-medium mb-4 flex items-center gap-2"&gt;
-                  &lt;PieChart className="h-5 w-5" /&gt;
+                  &lt;PieChart className="h-5 w-5" data-testid="cost-breakdown-pie-chart-icon" /&gt;
                   Cost Breakdown
                 &lt;/h3&gt;
                 &lt;div className="h-48 flex items-center justify-center"&gt;
                   &lt;div className="text-center text-muted-foreground"&gt;
-                    &lt;PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" /&gt;
+                    &lt;PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" data-testid="cost-breakdown-chart-placeholder" /&gt;
                     &lt;p&gt;Cost Distribution Chart&lt;/p&gt;
                   &lt;/div&gt;
                 &lt;/div&gt;
@@ -3673,15 +3673,15 @@ const EnhancedAnalyticsDashboard = ({
               &lt;h3 className="font-medium mb-4"&gt;Export &amp; Reports&lt;/h3&gt;
               &lt;div className="grid grid-cols-1 md:grid-cols-3 gap-3"&gt;
                 &lt;Button variant="outline" onClick={() =&gt; handleExportData('pdf')}&gt;
-                  &lt;FileText className="h-4 w-4 mr-2" /&gt;
+                  &lt;FileText className="h-4 w-4 mr-2" data-testid="pdf-export-icon" /&gt;
                   PDF Report
                 &lt;/Button&gt;
                 &lt;Button variant="outline" onClick={() =&gt; handleExportData('csv')}&gt;
-                  &lt;FileDown className="h-4 w-4 mr-2" /&gt;
+                  &lt;FileDown className="h-4 w-4 mr-2" data-testid="csv-export-icon" /&gt;
                   CSV Data
                 &lt;/Button&gt;
                 &lt;Button variant="outline" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleExportData('excel')}</span>&gt;
-                  &lt;FileDown className="h-4 w-4 mr-2" /&gt;
+                  &lt;FileDown className="h-4 w-4 mr-2" data-testid="excel-export-icon" /&gt;
                   Excel Export
                 &lt;/Button&gt;
               &lt;/div&gt;
@@ -3696,11 +3696,11 @@ const EnhancedAnalyticsDashboard = ({
                   Daily
                 &lt;/Button&gt;
                 &lt;Button variant="outline" onClick={() =&gt; handleScheduleExport('weekly')}&gt;
-                  &lt;Calendar className="h-4 w-4 mr-2" /&gt;
+                  &lt;Calendar className="h-4 w-4 mr-2" data-testid="weekly-calendar-icon" /&gt;
                   Weekly
                 &lt;/Button&gt;
                 &lt;Button variant="outline" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleScheduleExport('monthly')}</span>&gt;
-                  &lt;Calendar className="h-4 w-4 mr-2" /&gt;
+                  &lt;Calendar className="h-4 w-4 mr-2" data-testid="monthly-calendar-icon" /&gt;
                   Monthly
                 &lt;/Button&gt;
               &lt;/div&gt;
@@ -3712,7 +3712,7 @@ const EnhancedAnalyticsDashboard = ({
               &lt;div className="grid grid-cols-1 md:grid-cols-2 gap-4"&gt;
                 &lt;div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center h-48"&gt;
                   &lt;div className="text-center text-muted-foreground"&gt;
-                    &lt;PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" /&gt;
+                    &lt;PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" data-testid="category-distribution-pie-chart-placeholder" /&gt;
                     &lt;p&gt;Category Distribution Chart&lt;/p&gt;
                   &lt;/div&gt;
                 &lt;/div&gt;
@@ -3792,11 +3792,11 @@ const EnhancedAnalyticsDashboard = ({
                   &lt;div className="space-y-2"&gt;
                     &lt;div className="flex items-center gap-3"&gt;
                       &lt;Button variant="outline" size="sm" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleExportData('pdf')}</span> disabled={exportInProgress}&gt;
-                        &lt;FileText className="h-4 w-4 mr-2" /&gt;
+                        &lt;FileText className="h-4 w-4 mr-2" data-testid="pdf-export-reports-icon" /&gt;
                         PDF Report
                       &lt;/Button&gt;
                       &lt;Button variant="outline" size="sm" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleExportData('csv')}</span> disabled={exportInProgress}&gt;
-                        &lt;FileDown className="h-4 w-4 mr-2" /&gt;
+                        &lt;FileDown className="h-4 w-4 mr-2" data-testid="csv-export-reports-icon" /&gt;
                         CSV Export
                       &lt;/Button&gt;
                     &lt;/div&gt;
@@ -3815,11 +3815,11 @@ const EnhancedAnalyticsDashboard = ({
                         Daily
                       &lt;/Button&gt;
                       &lt;Button variant="outline" size="sm" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleScheduleExport('weekly')}</span>&gt;
-                        &lt;Calendar className="h-4 w-4 mr-2" /&gt;
+                        &lt;Calendar className="h-4 w-4 mr-2" data-testid="weekly-calendar-icon-reports" /&gt;
                         Weekly
                       &lt;/Button&gt;
                       &lt;Button variant="outline" size="sm" onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleScheduleExport('monthly')}</span>&gt;
-                        &lt;Calendar className="h-4 w-4 mr-2" /&gt;
+                        &lt;Calendar className="h-4 w-4 mr-2" data-testid="monthly-calendar-icon-reports" /&gt;
                         Monthly
                       &lt;/Button&gt;
                     &lt;/div&gt;
@@ -3855,7 +3855,7 @@ const EnhancedAnalyticsDashboard = ({
                   &lt;/div&gt;
                 ) : (
                   &lt;div className="text-center text-muted-foreground py-6"&gt;
-                    &lt;Calendar className="h-10 w-10 mx-auto mb-3 opacity-50" /&gt;
+                    &lt;Calendar className="h-10 w-10 mx-auto mb-3 opacity-50" data-testid="empty-calendar-icon" /&gt;
                     &lt;p&gt;No scheduled reports yet&lt;/p&gt;
                     &lt;p className="text-xs mt-1"&gt;Schedule your first report using the options above&lt;/p&gt;
                   &lt;/div&gt;
@@ -3892,7 +3892,7 @@ export default EnhancedAnalyticsDashboard;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-05-31T10:48:53.799Z
+                at 2025-05-31T11:33:55.381Z
             </div>
         <script src="prettify.js"></script>
         <script>
