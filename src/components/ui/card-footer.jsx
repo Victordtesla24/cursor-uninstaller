@@ -1,14 +1,9 @@
 import React from 'react';
 
-/**
- * CardFooter Component
- *
- * Footer section of a card component.
- */
-const CardFooter = ({ children, className = '', ...props }) => {
+const CardFooter = ({ className, children, ...props }) => {
   return (
     <div
-      className={`flex items-center p-6 pt-0 ${className}`}
+      className={`card-footer flex items-center p-6 pt-0 ${className || ''}`}
       {...props}
     >
       {children}

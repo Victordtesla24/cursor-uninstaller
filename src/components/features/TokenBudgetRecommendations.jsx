@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
   Button,
-  Separator,
   Badge,
   Tooltip,
   TooltipContent,
@@ -14,7 +13,6 @@ import {
   TooltipTrigger,
 } from "../ui";
 import {
-  BarChart3,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
@@ -22,7 +20,6 @@ import {
   Sparkles,
   Lightbulb,
   ArrowRight,
-  BarChart4,
   RotateCcw
 } from "lucide-react";
 

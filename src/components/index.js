@@ -31,18 +31,18 @@ export {
   Label
 } from './ui/index.js';
 
-// Dashboard components
-export { default as TokenUtilization } from './TokenUtilization.jsx';
-export { default as CostTracker } from './CostTracker.jsx';
-export { default as UsageChart } from './UsageChart.jsx';
-export { default as SettingsPanel } from './SettingsPanel.jsx';
-export { default as ModelSelector } from './ModelSelector.jsx';
-export { default as MetricsPanel } from './MetricsPanel.jsx';
-export { default as UsageStats } from './UsageStats.jsx';
-export { default as Header } from './Header.jsx';
-export { default as EnhancedHeader } from './EnhancedHeader.jsx';
+// Feature components (all dashboard components are in the features directory)
+export { default as TokenUtilization } from './features/TokenUtilization.jsx';
+export { default as CostTracker } from './features/CostTracker.jsx';
+export { default as UsageChart } from './features/UsageChart.jsx';
+export { default as SettingsPanel } from './features/SettingsPanel.jsx';
+export { default as ModelSelector } from './features/ModelSelector.jsx';
+export { default as MetricsPanel } from './features/MetricsPanel.jsx';
+export { default as UsageStats } from './features/UsageStats.jsx';
+export { default as Header } from './features/Header.jsx';
+export { default as EnhancedHeader } from './features/EnhancedHeader.jsx';
 
-// Feature components
+// Additional feature components
 export { default as TokenBudgetRecommendations } from './features/TokenBudgetRecommendations.jsx';
 export { default as EnhancedAnalyticsDashboard } from './features/EnhancedAnalyticsDashboard.jsx';
 export { default as ModelPerformanceComparison } from './features/ModelPerformanceComparison.jsx';

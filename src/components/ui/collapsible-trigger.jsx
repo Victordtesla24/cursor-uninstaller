@@ -1,24 +1,21 @@
 import React from 'react';
-import { useCollapsible } from './collapsible';
 
-/**
- * CollapsibleTrigger Component
- *
- * A trigger button that controls a collapsible component.
- */
-const CollapsibleTrigger = ({ children, className = '', asChild, ...props }) => {
-  const { toggle } = useCollapsible();
-
+const CollapsibleTrigger = ({ onClick, children, className, ...props }) => {
   return (
-    <button
-      type="button"
-      className={`${className}`}
-      onClick={toggle}
-      aria-expanded={true}
+    <div
+      role="button"
+      tabIndex={0}
+      className={`collapsible-trigger cursor-pointer ${className || ''}`}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick?.(e);
+        }
+      }}
       {...props}
     >
       {children}
-    </button>
+    </div>
   );
 };
 

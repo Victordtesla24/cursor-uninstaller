@@ -3,14 +3,14 @@ import * as FeatureComponents from '../../src/components/features/index.js';
 describe('Features Index Exports', () => {
   test('exports all expected components', () => {
     const expectedExports = [
-      'Header',
+      // 'Header', // Removed
       'CostTracker',
       'ModelSelector',
       'SettingsPanel',
       'TokenUtilization',
       'UsageChart',
       'UsageStats',
-      'EnhancedHeader',
+      // 'EnhancedHeader', // Removed
       'MetricsPanel',
       'TokenBudgetRecommendations',
       'EnhancedAnalyticsDashboard',
@@ -30,9 +30,9 @@ describe('Features Index Exports', () => {
     });
   });
 
-  test('Header component is importable', () => {
-    expect(typeof FeatureComponents.Header).toBe('function');
-  });
+  // test('Header component is importable', () => { // Removed
+  //   expect(typeof FeatureComponents.Header).toBe('function');
+  // });
 
   test('ModelSelector component is importable', () => {
     expect(typeof FeatureComponents.ModelSelector).toBe('function');
@@ -44,6 +44,6 @@ describe('Features Index Exports', () => {
 
   test('index file exports correct number of components', () => {
     const exportCount = Object.keys(FeatureComponents).length;
-    expect(exportCount).toBe(12); // We expect 12 components based on the index file
+    expect(exportCount).toBe(28); // Updated to reflect all components including newly added ones
   });
 }); 

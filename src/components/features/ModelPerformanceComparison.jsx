@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -20,20 +20,12 @@ import {
   ArrowUp,
   LayoutGrid,
   List,
-  Plus,
-  ZoomIn,
-  Copy,
   BadgeCheck,
-  BarChart,
-  BarChart2,
   Clock,
   DollarSign,
   Cpu,
   Scale,
-  Sparkles,
   CheckCircle,
-  SlidersHorizontal,
-  ExternalLink,
   RefreshCw
 } from "lucide-react";
 
@@ -51,13 +43,10 @@ import {
  */
 const ModelPerformanceComparison = ({
   modelsData = {},
-  usageData = {},
-  onModelSelect,
   darkMode = false
 }) => {
   // State for selected models to compare
   const [selectedModels, setSelectedModels] = useState([]);
-  const [comparisonMetric, setComparisonMetric] = useState('latency');
   const [viewType, setViewType] = useState('grid');
   const [showAllMetrics, setShowAllMetrics] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
@@ -677,7 +666,6 @@ const ModelPerformanceComparison = ({
                             : parseFloat(data.difference) < 0;
 
                           // Calculate which model performed better for this metric
-                          const betterModel = diffIsPositive ? 'B' : 'A';
 
                           return (
                             <tr key={metricId} className="border-b hover:bg-muted/30">

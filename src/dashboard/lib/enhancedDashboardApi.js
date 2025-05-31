@@ -16,7 +16,7 @@
  * @module enhancedDashboardApi
  */
 
-import mockApiDefault from '../mockApi.js';
+import mockApi from '../mockApi.js';
 
 // Max retry attempts for MCP operations
 const MAX_RETRIES = 3;
@@ -317,11 +317,11 @@ export async function refreshData(forceMockData = false) {
       } catch (mcpError) {
         console.error("Error fetching data from MCP, falling back to mock data:", mcpError);
         // Fall back to mock data
-        data = await mockApiDefault.fetchDashboardData();
+        data = await mockApi.fetchDashboardData();
       }
     } else {
       console.log("MCP not available or mock data forced, using mock API...");
-      data = await mockApiDefault.fetchDashboardData();
+      data = await mockApi.fetchDashboardData();
     }
 
     // Cache the data
@@ -412,11 +412,11 @@ export async function updateSelectedModel(modelId) {
       } catch (mcpError) {
         console.error("Error updating model via MCP, falling back to mock API:", mcpError);
         // Fall back to mock API
-        await mockApiDefault.updateSelectedModel(modelId);
+        await mockApi.updateSelectedModel(modelId);
       }
     } else {
       // Use mock API directly
-      await mockApiDefault.updateSelectedModel(modelId);
+      await mockApi.updateSelectedModel(modelId);
     }
 
     // Refresh cached data if available
@@ -456,11 +456,11 @@ export async function updateSetting(key, value) {
       } catch (mcpError) {
         console.error("Error updating setting via MCP, falling back to mock API:", mcpError);
         // Fall back to mock API
-        await mockApiDefault.updateSetting(key, value);
+        await mockApi.updateSetting(key, value);
       }
     } else {
       // Use mock API directly
-      await mockApiDefault.updateSetting(key, value);
+      await mockApi.updateSetting(key, value);
     }
 
     // Update cached data if available
@@ -500,11 +500,11 @@ export async function updateTokenBudget(budgetType, value) {
       } catch (mcpError) {
         console.error("Error updating token budget via MCP, falling back to mock API:", mcpError);
         // Fall back to mock API
-        await mockApiDefault.updateTokenBudget(budgetType, value);
+        await mockApi.updateTokenBudget(budgetType, value);
       }
     } else {
       // Use mock API directly
-      await mockApiDefault.updateTokenBudget(budgetType, value);
+      await mockApi.updateTokenBudget(budgetType, value);
     }
 
     // Update cached data if available

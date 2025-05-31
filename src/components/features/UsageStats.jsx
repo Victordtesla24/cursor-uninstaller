@@ -1,4 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Progress,
+  Button,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "../ui";
+import {
+  BarChart3,
+  Calendar,
+  Clock,
+  Database,
+  DollarSign,
+  Download,
+  Filter,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Activity,
+  Target,
+  Zap,
+  FileText,
+  RefreshCw,
+  Settings,
+  Share2
+} from "lucide-react";
 
 /**
  * Usage Stats Component
@@ -7,566 +42,444 @@ import React, { useState } from 'react';
  * Shows historical data, usage breakdowns, and usage patterns
  * Implements interactive charts and data visualizations
  */
-export default function UsageStats({ usageData = {}, className = '' }) {
-  const [viewMode, setViewMode] = useState('daily');
+export default function UsageStats({ 
+  usageData = {}, 
+  comparisons = {}, 
+  timeRange = 'daily',
+  darkMode = false,
+  onTimeRangeChange = () => {},
+  onExport = () => {},
+  onRefresh = () => {},
+  className = '' 
+}) {
+  const [currentTimeRange, setCurrentTimeRange] = useState(timeRange);
+  const [selectedMetric, setSelectedMetric] = useState('tokens');
 
   // Format large numbers with comma separators
   const formatNumber = (num) => {
-    if (!num) return '0';
+    if (!num && num !== 0) return '0';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  // Calculate percentage for distribution charts
-  const calculatePercentage = (value, total) => {
-    if (!total) return 0;
-    return Math.round((value / total) * 100);
+  // Format currency
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return '$0.00';
+    return `$${Number(amount).toFixed(2)}`;
   };
 
-  // Get appropriate color for chart segments
-  const getChartColor = (index) => {
-    const colors = [
-      '#3b82f6', // Blue
-      '#10b981', // Green
-      '#f59e0b', // Orange
-      '#ef4444', // Red
-      '#8b5cf6', // Purple
-      '#06b6d4', // Cyan
-      '#ec4899'  // Pink
-    ];
-
-    return colors[index % colors.length];
+  // Format percentage
+  const formatPercent = (value) => {
+    if (!value && value !== 0) return '0%';
+    return `${value}%`;
   };
 
-  // Render daily usage chart
-  const renderDailyUsage = () => {
-    const { daily } = usageData;
-    if (!daily || daily.length === 0) return null;
+  // Safe data access with fallbacks
+  const safeUsageData = useMemo(() => {
+    return {
+      daily: usageData.daily || {},
+      weekly: usageData.weekly || {},
+      monthly: usageData.monthly || {},
+      byModel: usageData.byModel || {},
+      byCategory: usageData.byCategory || {},
+      topUsagePatterns: usageData.topUsagePatterns || [],
+      efficiency: usageData.efficiency || {}
+    };
+  }, [usageData]);
 
-    // Get max value for scaling
-    const maxValue = Math.max(...daily);
+  const safeComparisons = useMemo(() => {
+    return {
+      previousPeriod: comparisons.previousPeriod || {},
+      targets: comparisons.targets || {},
+      benchmarks: comparisons.benchmarks || {}
+    };
+  }, [comparisons]);
 
+  // Handle time range change
+  const handleTimeRangeChange = (newRange) => {
+    setCurrentTimeRange(newRange);
+    onTimeRangeChange(newRange);
+  };
+
+  // Get current period data based on selected time range
+  const getCurrentPeriodData = () => {
+    const data = safeUsageData[currentTimeRange] || {};
+    return {
+      tokens: data.tokens || 0,
+      requests: data.requests || 0,
+      cost: data.cost || 0,
+      avgResponseTime: data.avgResponseTime || 0,
+      uniqueUsers: data.uniqueUsers || 0,
+      trend: data.trend || 'up',
+      growth: data.growth || 0
+    };
+  };
+
+  const currentData = getCurrentPeriodData();
+
+  // Early return for loading state
+  if (Object.keys(usageData).length === 0) {
     return (
-      <div className="chart-section">
-        <h3>Daily Token Usage (Last 30 Days)</h3>
-        <div className="daily-chart">
-          {daily.map((value, index) => {
-            const height = maxValue ? (value / maxValue) * 100 : 0;
-            const isCurrent = index === daily.length - 1;
-
-            return (
-              <div key={index} className="day-column">
-                <div
-                  className={`day-bar ${isCurrent ? 'current-day' : ''}`}
-                  style={{
-                    height: `${height}%`,
-                    backgroundColor: isCurrent ? '#3b82f6' : '#64748b'
-                  }}
-                  title={`Day ${daily.length - index}: ${formatNumber(value)} tokens`}
-                ></div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="chart-legend">
-          <div className="legend-item">
-            <div className="legend-color" style={{ backgroundColor: '#3b82f6' }}></div>
-            <div className="legend-label">Current Day</div>
-          </div>
-          <div className="legend-item">
-            <div className="legend-color" style={{ backgroundColor: '#64748b' }}></div>
-            <div className="legend-label">Previous Days</div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Render model usage breakdown
-  const renderModelBreakdown = () => {
-    const { byModel } = usageData;
-    if (!byModel || Object.keys(byModel).length === 0) return null;
-
-    // Calculate total for percentages
-    const total = Object.values(byModel).reduce((sum, value) => sum + value, 0);
-
-    return (
-      <div className="breakdown-section">
-        <h3>Usage by Model</h3>
-        <div className="breakdown-chart">
-          {Object.entries(byModel).map(([model, value], index) => {
-            const percentage = calculatePercentage(value, total);
-
-            return (
-              <div key={model} className="breakdown-item">
-                <div className="breakdown-header">
-                  <div className="breakdown-name">
-                    <div
-                      className="color-indicator"
-                      style={{ backgroundColor: getChartColor(index) }}
-                    ></div>
-                    <span>{model}</span>
-                  </div>
-                  <div className="breakdown-value">{formatNumber(value)}</div>
-                </div>
-                <div className="breakdown-bar-container">
-                  <div
-                    className="breakdown-bar"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: getChartColor(index)
-                    }}
-                  ></div>
-                </div>
-                <div className="breakdown-percentage">{percentage}%</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Render function usage breakdown
-  const renderFunctionBreakdown = () => {
-    const { byFunction } = usageData;
-    if (!byFunction || Object.keys(byFunction).length === 0) return null;
-
-    // Calculate total for percentages
-    const total = Object.values(byFunction).reduce((sum, value) => sum + value, 0);
-
-    return (
-      <div className="breakdown-section">
-        <h3>Usage by Function</h3>
-        <div className="breakdown-chart">
-          {Object.entries(byFunction).map(([func, value], index) => {
-            const percentage = calculatePercentage(value, total);
-            const displayName = func.charAt(0).toUpperCase() + func.slice(1);
-
-            return (
-              <div key={func} className="breakdown-item">
-                <div className="breakdown-header">
-                  <div className="breakdown-name">
-                    <div
-                      className="color-indicator"
-                      style={{ backgroundColor: getChartColor(index) }}
-                    ></div>
-                    <span>{displayName}</span>
-                  </div>
-                  <div className="breakdown-value">{formatNumber(value)}</div>
-                </div>
-                <div className="breakdown-bar-container">
-                  <div
-                    className="breakdown-bar"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: getChartColor(index)
-                    }}
-                  ></div>
-                </div>
-                <div className="breakdown-percentage">{percentage}%</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Render file type usage breakdown
-  const renderFileTypeBreakdown = () => {
-    const { byFile } = usageData;
-    if (!byFile || Object.keys(byFile).length === 0) return null;
-
-    // Calculate total for percentages
-    const total = Object.values(byFile).reduce((sum, value) => sum + value, 0);
-
-    return (
-      <div className="breakdown-section">
-        <h3>Usage by File Type</h3>
-        <div className="breakdown-chart">
-          {Object.entries(byFile).map(([fileType, value], index) => {
-            const percentage = calculatePercentage(value, total);
-
-            return (
-              <div key={fileType} className="breakdown-item">
-                <div className="breakdown-header">
-                  <div className="breakdown-name">
-                    <div
-                      className="color-indicator"
-                      style={{ backgroundColor: getChartColor(index) }}
-                    ></div>
-                    <span>{fileType}</span>
-                  </div>
-                  <div className="breakdown-value">{formatNumber(value)}</div>
-                </div>
-                <div className="breakdown-bar-container">
-                  <div
-                    className="breakdown-bar"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: getChartColor(index)
-                    }}
-                  ></div>
-                </div>
-                <div className="breakdown-percentage">{percentage}%</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Render popularity chart
-  const renderPopularityChart = () => {
-    const { popularity } = usageData;
-    if (!popularity || Object.keys(popularity).length === 0) return null;
-
-    // Calculate total for percentages
-    const total = Object.values(popularity).reduce((sum, value) => sum + value, 0);
-
-    // Sort by usage (descending)
-    const sortedPopularity = Object.entries(popularity)
-      .sort(([, a], [, b]) => b - a);
-
-    return (
-      <div className="breakdown-section">
-        <h3>Feature Popularity</h3>
-        <div className="popularity-chart">
-          {sortedPopularity.map(([feature, value], index) => {
-            const percentage = calculatePercentage(value, total);
-
-            return (
-              <div key={feature} className="popularity-item">
-                <div className="popularity-label">{feature}</div>
-                <div className="popularity-bar-container">
-                  <div
-                    className="popularity-bar"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: getChartColor(index)
-                    }}
-                  ></div>
-                  <div className="popularity-percentage">{percentage}%</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Render empty state if no data
-  if (!usageData || Object.keys(usageData).length === 0) {
-    return (
-      <div className={`usage-stats ${className}`}>
-        <div className="section-header">
-          <h2>Usage Statistics</h2>
-        </div>
-        <div className="empty-state">
-          <p>No usage data available yet</p>
-        </div>
-      </div>
+      <Card className={`${darkMode ? 'bg-card/95' : ''} ${className}`}>
+        <CardHeader>
+          <CardTitle>Usage Statistics</CardTitle>
+          <CardDescription>Comprehensive analysis of token and API usage</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground mt-4">Loading usage data...</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={`usage-stats ${className}`}>
-      <div className="section-header">
-        <h2>Usage Statistics</h2>
-        <div className="view-tabs">
-          <button
-            className={`view-tab ${viewMode === 'daily' ? 'active' : ''}`}
-            onClick={() => setViewMode('daily')}
-          >
-            Daily
-          </button>
-          <button
-            className={`view-tab ${viewMode === 'breakdown' ? 'active' : ''}`}
-            onClick={() => setViewMode('breakdown')}
-          >
-            Breakdown
-          </button>
-          <button
-            className={`view-tab ${viewMode === 'popularity' ? 'active' : ''}`}
-            onClick={() => setViewMode('popularity')}
-          >
-            Popularity
-          </button>
-        </div>
-      </div>
-
-      <div className="stats-content">
-        {viewMode === 'daily' && (
-          <div className="daily-view">
-            {renderDailyUsage()}
-          </div>
-        )}
-
-        {viewMode === 'breakdown' && (
-          <div className="breakdown-view">
-            <div className="breakdown-row">
-              {renderModelBreakdown()}
-              {renderFunctionBreakdown()}
+    <div className={`space-y-6 ${className}`}>
+      {/* Main Usage Statistics Card */}
+      <Card className={darkMode ? 'bg-card/95' : ''}>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Usage Statistics
+              </CardTitle>
+              <CardDescription>
+                Comprehensive analysis of token and API usage
+              </CardDescription>
             </div>
-            <div className="breakdown-row">
-              {renderFileTypeBreakdown()}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTimeRangeChange('daily')}
+                className={currentTimeRange === 'daily' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Daily
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTimeRangeChange('weekly')}
+                className={currentTimeRange === 'weekly' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Weekly
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTimeRangeChange('monthly')}
+                className={currentTimeRange === 'monthly' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Monthly
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTimeRangeChange('custom')}
+                className={currentTimeRange === 'custom' ? 'bg-primary text-primary-foreground' : ''}
+              >
+                Custom
+              </Button>
             </div>
           </div>
-        )}
+        </CardHeader>
 
-        {viewMode === 'popularity' && (
-          <div className="popularity-view">
-            {renderPopularityChart()}
+        <Separator />
+
+        <CardContent className="p-6">
+          {/* Key Metrics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">Total Tokens</div>
+              <div className="text-2xl font-bold">{formatNumber(currentData.tokens)}</div>
+              <div className="text-xs text-muted-foreground">{currentTimeRange}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">Total Requests</div>
+              <div className="text-2xl font-bold">{formatNumber(currentData.requests)}</div>
+              <div className="text-xs text-muted-foreground">{currentTimeRange}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">Total Cost</div>
+              <div className="text-2xl font-bold">{formatCurrency(currentData.cost)}</div>
+              <div className="text-xs text-muted-foreground">{currentTimeRange}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">Avg Response Time</div>
+              <div className="text-2xl font-bold">{currentData.avgResponseTime}s</div>
+              <div className="text-xs text-muted-foreground">average</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">Active Users</div>
+              <div className="text-2xl font-bold">{formatNumber(currentData.uniqueUsers)}</div>
+              <div className="text-xs text-muted-foreground">{currentTimeRange}</div>
+            </div>
           </div>
-        )}
-      </div>
 
-      <style jsx="true">{`
-        .usage-stats {
-          display: flex;
-          flex-direction: column;
-        }
+          {/* Model Usage Analysis */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Model Usage Analysis
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium mb-3">Usage by Model</h4>
+                <div className="space-y-3">
+                  {Object.entries(safeUsageData.byModel).map(([model, data]) => (
+                    <div key={model} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-primary rounded-full"></div>
+                        <span className="capitalize">{model}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">{formatNumber(data.tokens || 0)}</div>
+                        <div className="text-sm text-muted-foreground">{formatPercent(data.percentage || 0)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-3">Model Performance</h4>
+                <div className="space-y-3">
+                  {Object.entries(safeUsageData.byModel).map(([model, data]) => (
+                    <div key={model} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="capitalize">{model}</span>
+                        <span>{formatCurrency(data.cost || 0)}</span>
+                      </div>
+                      <Progress value={data.percentage || 0} className="h-2" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
+          {/* Category Usage Analysis */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PieChart className="h-5 w-5" />
+              Usage by Category
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Object.entries(safeUsageData.byCategory).map(([category, data]) => (
+                <div key={category} className="bg-muted/20 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium capitalize">{category}</h4>
+                    <Badge variant="outline">{formatPercent(data.percentage || 0)}</Badge>
+                  </div>
+                  <div className="text-2xl font-bold mb-1">{formatNumber(data.tokens || 0)}</div>
+                  <div className="text-sm text-muted-foreground">{formatCurrency(data.cost || 0)}</div>
+                  <div className="text-sm text-muted-foreground">{formatNumber(data.requests || 0)} requests</div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        .section-header h2 {
-          margin: 0;
-          font-size: 1.25rem;
-        }
+          {/* Usage Patterns and Trends */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Usage Patterns
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {safeUsageData.topUsagePatterns.map((pattern, index) => (
+                <div key={index} className="bg-muted/20 rounded-lg p-4 text-center">
+                  <div className="text-lg font-bold">{pattern.time}</div>
+                  <div className="text-sm text-muted-foreground">{pattern.label}</div>
+                  <div className="text-2xl font-bold text-primary mt-2">{pattern.usage}%</div>
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-500">{currentData.growth}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        .view-tabs {
-          display: flex;
-        }
+          {/* Efficiency Metrics */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Efficiency Metrics
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Cache Hit Rate</div>
+                <div className="text-2xl font-bold">{formatPercent(safeUsageData.efficiency.cacheHitRate || 0)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Avg Tokens/Request</div>
+                <div className="text-2xl font-bold">{formatNumber(safeUsageData.efficiency.avgTokensPerRequest || 0)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Cost Efficiency</div>
+                <div className="text-2xl font-bold">{formatPercent(safeUsageData.efficiency.costEfficiency || 0)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Response Time Score</div>
+                <div className="text-2xl font-bold">{formatPercent(safeUsageData.efficiency.responseTimeScore || 0)}</div>
+              </div>
+            </div>
+          </div>
 
-        .view-tab {
-          padding: 0.375rem 0.75rem;
-          background: none;
-          border: none;
-          border-bottom: 2px solid transparent;
-          cursor: pointer;
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          transition: all 0.15s;
-        }
+          {/* Period Comparisons */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              vs Previous Period
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Object.entries(safeComparisons.previousPeriod).map(([metric, data]) => (
+                <div key={metric} className="bg-muted/20 rounded-lg p-4 text-center">
+                  <div className="text-sm text-muted-foreground capitalize">{metric}</div>
+                  <div className="text-xl font-bold">{formatNumber(data.current || 0)}</div>
+                  <div className={`flex items-center justify-center gap-1 mt-2 ${
+                    (data.change || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {(data.change || 0) >= 0 ? (
+                      <TrendingUp className="h-4 w-4" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4" />
+                    )}
+                    <span className="text-sm">
+                      {(data.change || 0) >= 0 ? '+' : ''}{(data.change || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        .view-tab:hover {
-          color: var(--text-color);
-        }
+          {/* Budget and Target Tracking */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Budget Tracking
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium mb-3">Monthly Budget</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Current Spend</span>
+                    <span className="font-bold">{formatCurrency(currentData.cost)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Budget Limit</span>
+                    <span className="font-bold">{formatCurrency(safeComparisons.targets.monthlyBudget || 0)}</span>
+                  </div>
+                  <Progress 
+                    value={((currentData.cost || 0) / (safeComparisons.targets.monthlyBudget || 1)) * 100} 
+                    className="h-3"
+                  />
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-3">Token Limit</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Current Usage</span>
+                    <span className="font-bold">{formatNumber(currentData.tokens)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Token Limit</span>
+                    <span className="font-bold">{formatNumber(safeComparisons.targets.tokenLimit || 0)}</span>
+                  </div>
+                  <Progress 
+                    value={((currentData.tokens || 0) / (safeComparisons.targets.tokenLimit || 1)) * 100} 
+                    className="h-3"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
-        .view-tab.active {
-          color: var(--primary-color);
-          border-bottom-color: var(--primary-color);
-          font-weight: 500;
-        }
+          {/* Industry Benchmarks */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Industry Benchmarks
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-muted/20 rounded-lg p-4 text-center">
+                <div className="text-sm text-muted-foreground">Industry Avg</div>
+                <div className="text-sm text-muted-foreground">Cost per Token</div>
+                <div className="text-xl font-bold">{formatCurrency(safeComparisons.benchmarks.industry?.avgCostPerToken || 0)}</div>
+                <Badge variant="outline" className="mt-2">Above Average</Badge>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-4 text-center">
+                <div className="text-sm text-muted-foreground">Industry Avg</div>
+                <div className="text-sm text-muted-foreground">Response Time</div>
+                <div className="text-xl font-bold">{safeComparisons.benchmarks.industry?.avgResponseTime || 0}s</div>
+                <Badge variant="outline" className="mt-2">Below Average</Badge>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-4 text-center">
+                <div className="text-sm text-muted-foreground">Industry Avg</div>
+                <div className="text-sm text-muted-foreground">Cache Hit Rate</div>
+                <div className="text-xl font-bold">{formatPercent(safeComparisons.benchmarks.industry?.avgCacheHit || 0)}</div>
+                <Badge variant="outline" className="mt-2">Above Average</Badge>
+              </div>
+            </div>
+          </div>
 
-        .stats-content {
-          flex: 1;
-        }
+          {/* Data Export and Sharing */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Export & Share
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" onClick={() => onExport('csv')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as CSV
+              </Button>
+              <Button variant="outline" onClick={() => onExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </Button>
+              <Button variant="outline">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Report
+              </Button>
+              <Button variant="outline" onClick={onRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+          </div>
 
-        /* Daily usage chart */
-        .chart-section {
-          margin-bottom: 1.5rem;
-        }
-
-        .chart-section h3 {
-          font-size: 1rem;
-          margin-top: 0;
-          margin-bottom: 1rem;
-        }
-
-        .daily-chart {
-          display: flex;
-          align-items: flex-end;
-          height: 200px;
-          gap: 3px;
-          margin-bottom: 0.5rem;
-        }
-
-        .day-column {
-          flex: 1;
-          height: 100%;
-          display: flex;
-          align-items: flex-end;
-        }
-
-        .day-bar {
-          width: 100%;
-          min-height: 1px;
-          border-radius: 2px 2px 0 0;
-          transition: height 0.3s;
-        }
-
-        .day-bar.current-day {
-          background-color: var(--primary-color);
-        }
-
-        .chart-legend {
-          display: flex;
-          gap: 1rem;
-          margin-top: 0.5rem;
-        }
-
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.75rem;
-        }
-
-        .legend-color {
-          width: 12px;
-          height: 12px;
-          border-radius: 2px;
-        }
-
-        /* Breakdown charts */
-        .breakdown-view {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-
-        .breakdown-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .breakdown-section {
-          margin-bottom: 1rem;
-        }
-
-        .breakdown-section h3 {
-          font-size: 1rem;
-          margin-top: 0;
-          margin-bottom: 1rem;
-        }
-
-        .breakdown-chart {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .breakdown-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .breakdown-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .breakdown-name {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-
-        .color-indicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 2px;
-        }
-
-        .breakdown-value {
-          font-size: 0.875rem;
-          font-weight: 500;
-        }
-
-        .breakdown-bar-container {
-          height: 8px;
-          background-color: var(--border-color);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .breakdown-bar {
-          height: 100%;
-          transition: width 0.3s;
-        }
-
-        .breakdown-percentage {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          align-self: flex-end;
-        }
-
-        /* Popularity chart */
-        .popularity-chart {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .popularity-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .popularity-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-        }
-
-        .popularity-bar-container {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .popularity-bar {
-          height: 24px;
-          background-color: var(--primary-color);
-          border-radius: 4px;
-          transition: width 0.3s;
-        }
-
-        .popularity-percentage {
-          font-size: 0.875rem;
-          font-weight: 500;
-          min-width: 40px;
-        }
-
-        .empty-state {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          padding: 2rem;
-          background-color: var(--background-color);
-          border-radius: var(--border-radius-md);
-          color: var(--text-secondary);
-        }
-
-        @media (max-width: 768px) {
-          .section-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
-
-          .view-tabs {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .breakdown-row {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+          {/* Real-time Updates */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Real-time Updates
+            </h3>
+            <div className="bg-muted/20 rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-medium">Auto-refresh enabled</div>
+                  <div className="text-sm text-muted-foreground">
+                    Last updated: {new Date().toLocaleTimeString()}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={onRefresh}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

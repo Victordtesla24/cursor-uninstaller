@@ -1,397 +1,287 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Badge,
-  Separator,
   Progress
 } from '../ui/index.js';
+import MetricCard from './MetricCard.jsx';
 import {
   Activity,
-  Clock,
-  Database,
-  Zap,
   TrendingUp,
   TrendingDown,
+  Zap,
+  Clock,
+  Target,
   AlertTriangle,
   CheckCircle,
-  ArrowUp,
-  ArrowDown,
+  BarChart3,
   Gauge,
-  Shield,
-  Server,
-  Wifi,
-  BarChart3
+  Cpu,
+  Database
 } from 'lucide-react';
 
+// Performance Status Indicator
+function PerformanceStatus({ status, label }) {
+  const statusConfig = {
+    excellent: {
+      icon: CheckCircle,
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-100 dark:bg-emerald-900/20',
+      label: 'Excellent'
+    },
+    good: {
+      icon: CheckCircle,
+      color: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-100 dark:bg-blue-900/20',
+      label: 'Good'
+    },
+    warning: {
+      icon: AlertTriangle,
+      color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-100 dark:bg-amber-900/20',
+      label: 'Needs Attention'
+    },
+    critical: {
+      icon: AlertTriangle,
+      color: 'text-red-600 dark:text-red-400',
+      bg: 'bg-red-100 dark:bg-red-900/20',
+      label: 'Critical'
+    }
+  };
+
+  const config = statusConfig[status] || statusConfig.good;
+  const Icon = config.icon;
+
+  return (
+    <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${config.bg} ${config.color}`}>
+      <Icon className="w-4 h-4 mr-2" />
+      <span>{label || config.label}</span>
+    </div>
+  );
+}
+
 /**
- * Enhanced MetricsPanel Component
- * 
- * Displays system performance metrics with sophisticated visual design,
- * animated progress indicators, and modern UI patterns
- * 
- * @param {Object} props Component props
- * @param {Object} props.metrics Performance metrics data
- * @param {String} props.className Additional CSS classes
- * @param {Boolean} props.darkMode Whether dark mode is enabled
+ * Enhanced MetricsPanel Component with modern design
  */
-function MetricsPanel({ metrics = {}, className = '', darkMode = false }) {
+const MetricsPanel = ({ metricsData = {}, darkMode, className = '' }) => { // Added darkMode prop
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Animation effect on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Safely extract metrics with defaults
   const safeMetrics = {
     totalRequests: 0,
-    tokensUsed: 0,
-    averageResponseTime: 0,
+    avgResponseTime: 0,
     cacheHitRate: 0,
-    reliability: 0,
     systemLoad: 0,
-    activeConnections: 0,
+    memoryUsage: 0,
     errorRate: 0,
     throughput: 0,
-    ...metrics
+    activeConnections: 0,
+    ...metricsData
   };
 
-  // Format large numbers with appropriate suffixes and animations
-  const formatNumber = (num) => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+  // Calculate system health status
+  const getSystemHealth = () => {
+    const { avgResponseTime, systemLoad, errorRate, memoryUsage } = safeMetrics;
+    
+    if (avgResponseTime > 5000 || systemLoad > 90 || errorRate > 5 || memoryUsage > 90) {
+      return 'critical';
     }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
+    if (avgResponseTime > 2000 || systemLoad > 70 || errorRate > 2 || memoryUsage > 70) {
+      return 'warning';
     }
-    return num?.toString() || '0';
+    if (avgResponseTime < 1000 && systemLoad < 50 && errorRate < 1 && memoryUsage < 50) {
+      return 'excellent';
+    }
+    return 'good';
   };
 
-  // Format change values with proper styling
-  const formatChange = (value) => {
-    if (!value) return null;
-    const isPositive = value > 0;
-    const prefix = isPositive ? '+' : '';
+  // Format numbers with appropriate units
+  const formatMetricValue = (value, type) => {
+    if (typeof value !== 'number') return '0';
+    
+    switch (type) {
+      case 'time':
+        return value < 1000 ? `${value.toFixed(0)}ms` : `${(value / 1000).toFixed(1)}s`;
+      case 'percentage':
+        return `${value.toFixed(1)}%`;
+      case 'bytes':
+        if (value < 1024) return `${value.toFixed(0)}B`;
+        if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)}KB`;
+        if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)}MB`;
+        return `${(value / (1024 * 1024 * 1024)).toFixed(1)}GB`;
+      case 'rate':
+        return value >= 1000 ? `${(value / 1000).toFixed(1)}K/s` : `${value.toFixed(0)}/s`;
+      default:
+        return value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toFixed(0);
+    }
+  };
+
+  // Calculate performance trends (mock data for demonstration)
+  const getTrend = (current, baseline = 100) => {
+    const change = ((current - baseline) / baseline) * 100;
     return {
-      value: `${prefix}${value.toFixed(1)}%`,
-      isPositive,
-      class: isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
-      icon: isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />
+      direction: change > 5 ? 'up' : change < -5 ? 'down' : 'stable',
+      percentage: Math.abs(change).toFixed(1)
     };
   };
 
-  // Get status indicator based on metric value
-  const getStatusIndicator = (value, thresholds = { good: 90, warning: 70 }) => {
-    if (value >= thresholds.good) {
-      return {
-        color: 'emerald',
-        icon: <CheckCircle className="h-4 w-4" />,
-        label: 'Excellent'
-      };
-    } else if (value >= thresholds.warning) {
-      return {
-        color: 'amber',
-        icon: <AlertTriangle className="h-4 w-4" />,
-        label: 'Good'
-      };
-    } else {
-      return {
-        color: 'red',
-        icon: <AlertTriangle className="h-4 w-4" />,
-        label: 'Needs Attention'
-      };
-    }
-  };
+  const systemHealth = getSystemHealth();
 
-  // Enhanced color system with gradients
-  const getColorClasses = (color, type) => {
-    const colorMap = {
-      emerald: {
-        bg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-        bgLight: 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30',
-        border: 'border-emerald-200 dark:border-emerald-800',
-        text: 'text-emerald-700 dark:text-emerald-300',
-        badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-        glow: 'shadow-emerald-500/25'
-      },
-      blue: {
-        bg: 'bg-gradient-to-br from-blue-500 to-blue-600',
-        bgLight: 'bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-950/30 dark:to-blue-950/30',
-        border: 'border-blue-200 dark:border-blue-800',
-        text: 'text-blue-700 dark:text-blue-300',
-        badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-        glow: 'shadow-blue-500/25'
-      },
-      purple: {
-        bg: 'bg-gradient-to-br from-purple-500 to-purple-600',
-        bgLight: 'bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-950/30 dark:to-purple-950/30',
-        border: 'border-purple-200 dark:border-purple-800',
-        text: 'text-purple-700 dark:text-purple-300',
-        badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-        glow: 'shadow-purple-500/25'
-      },
-      amber: {
-        bg: 'bg-gradient-to-br from-amber-500 to-orange-500',
-        bgLight: 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30',
-        border: 'border-amber-200 dark:border-amber-800',
-        text: 'text-amber-700 dark:text-amber-300',
-        badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-        glow: 'shadow-amber-500/25'
-      },
-      red: {
-        bg: 'bg-gradient-to-br from-red-500 to-red-600',
-        bgLight: 'bg-gradient-to-br from-red-50 to-red-50 dark:from-red-950/30 dark:to-red-950/30',
-        border: 'border-red-200 dark:border-red-800',
-        text: 'text-red-700 dark:text-red-300',
-        badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-        glow: 'shadow-red-500/25'
-      }
-    };
-    return colorMap[color]?.[type] || colorMap.blue[type];
-  };
-
-  // Memoized metrics configuration with enhanced styling
-  const metricsConfig = useMemo(() => [
-    {
-      id: 'requests',
-      title: 'Total Requests',
-      value: formatNumber(safeMetrics.totalRequests),
-      change: formatChange(safeMetrics.requestsChange),
-      icon: <Activity className="h-5 w-5" />,
-      color: 'blue',
-      description: 'API requests processed',
-      trend: safeMetrics.requestsTrend || []
-    },
-    {
-      id: 'response_time',
-      title: 'Avg Response Time',
-      value: `${safeMetrics.averageResponseTime}ms`,
-      change: formatChange(safeMetrics.responseTimeChange),
-      icon: <Clock className="h-5 w-5" />,
-      color: 'emerald',
-      description: 'Average AI response time',
-      benchmark: '< 1000ms',
-      status: getStatusIndicator(1000 - safeMetrics.averageResponseTime, { good: 800, warning: 500 })
-    },
-    {
-      id: 'cache_hit_rate',
-      title: 'Cache Hit Rate',
-      value: `${safeMetrics.cacheHitRate}%`,
-      change: formatChange(safeMetrics.cacheHitRateChange),
-      icon: <Database className="h-5 w-5" />,
-      color: 'purple',
-      description: 'Requests served from cache',
-      progress: safeMetrics.cacheHitRate,
-      status: getStatusIndicator(safeMetrics.cacheHitRate)
-    },
-    {
-      id: 'system_load',
-      title: 'System Load',
-      value: `${safeMetrics.systemLoad}%`,
-      change: formatChange(safeMetrics.systemLoadChange),
-      icon: <Gauge className="h-5 w-5" />,
-      color: safeMetrics.systemLoad > 80 ? 'red' : safeMetrics.systemLoad > 60 ? 'amber' : 'emerald',
-      description: 'Current system utilization',
-      progress: safeMetrics.systemLoad,
-      status: getStatusIndicator(100 - safeMetrics.systemLoad, { good: 20, warning: 40 })
-    },
-    {
-      id: 'reliability',
-      title: 'Reliability',
-      value: `${safeMetrics.reliability}%`,
-      change: formatChange(safeMetrics.reliabilityChange),
-      icon: <Shield className="h-5 w-5" />,
-      color: 'emerald',
-      description: 'System uptime percentage',
-      progress: safeMetrics.reliability,
-      status: getStatusIndicator(safeMetrics.reliability, { good: 99, warning: 95 })
-    },
-    {
-      id: 'throughput',
-      title: 'Throughput',
-      value: `${formatNumber(safeMetrics.throughput)}/s`,
-      change: formatChange(safeMetrics.throughputChange),
-      icon: <Zap className="h-5 w-5" />,
-      color: 'amber',
-      description: 'Requests per second',
-      trend: safeMetrics.throughputTrend || []
-    }
-  ], [safeMetrics]);
-
-  // Enhanced metric card component with sophisticated animations
-  const MetricCard = ({ metric, index }) => {
-    const colors = getColorClasses(metric.color, 'bg');
-    const bgColors = getColorClasses(metric.color, 'bgLight');
-    const textColors = getColorClasses(metric.color, 'text');
-    const glowColors = getColorClasses(metric.color, 'glow');
-
-    return (
-      <div 
-        className={`
-          group relative overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02]
-          ${bgColors} border ${getColorClasses(metric.color, 'border')}
-          shadow-lg hover:shadow-xl ${glowColors}
-          animate-in slide-in-from-bottom duration-700
-        `}
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent dark:from-white/5 dark:to-transparent" />
-        
-        {/* Content */}
-        <div className="relative p-6 space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className={`p-3 rounded-xl ${colors} text-white shadow-lg ${glowColors}`}>
-              {metric.icon}
-            </div>
-            
-            {metric.status && (
-              <Badge 
-                variant="outline" 
-                className={`${getColorClasses(metric.status.color, 'badge')} border-0 shadow-sm`}
-              >
-                <span className="flex items-center space-x-1">
-                  {metric.status.icon}
-                  <span className="text-xs font-medium">{metric.status.label}</span>
-                </span>
-              </Badge>
-            )}
-          </div>
-
-          {/* Title and Description */}
-          <div className="space-y-1">
-            <h3 className={`font-semibold text-sm ${textColors}`}>
-              {metric.title}
-            </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              {metric.description}
-            </p>
-          </div>
-
-          {/* Value and Change */}
-          <div className="space-y-3">
-            <div className="flex items-end justify-between">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                {metric.value}
-              </span>
-              
-              {metric.change && (
-                <div className={`flex items-center space-x-1 text-sm ${metric.change.class}`}>
-                  {metric.change.icon}
-                  <span className="font-medium">{metric.change.value}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Progress Bar */}
-            {metric.progress !== undefined && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span>Progress</span>
-                  <span>{metric.progress}%</span>
-                </div>
-                <div className="relative h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className={`absolute left-0 top-0 h-full ${colors} rounded-full transition-all duration-1000 ease-out`}
-                    style={{ width: `${metric.progress}%` }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Benchmark */}
-            {metric.benchmark && (
-              <div className="text-xs text-slate-600 dark:text-slate-400">
-                Target: {metric.benchmark}
-              </div>
-            )}
-          </div>
-
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        </div>
-      </div>
-    );
-  };
-
+  // The outer Card is removed as MetricsPanel is already wrapped in Dashboard.jsx
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25">
-            <BarChart3 className="h-5 w-5" />
+    <div className={`space-y-6 ${className} ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+      {/* System Overview Header - simplified as the main title is in Dashboard.jsx */}
+      <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-800/50' : 'bg-slate-50/50'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-600/30 text-purple-300' : 'bg-purple-100 text-purple-600'} shadow-md`}>
+              <Gauge className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className={`text-md font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                System Performance Snapshot
+              </h3>
+              <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Key real-time indicators
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Performance Metrics
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Key system performance indicators
-            </p>
-          </div>
-        </div>
-
-        {/* System Status Indicator */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-full">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-medium text-green-700 dark:text-green-300">
-              All Systems Operational
-            </span>
-          </div>
+          <PerformanceStatus status={systemHealth} />
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {metricsConfig.map((metric, index) => (
-          <MetricCard key={metric.id} metric={metric} index={index} />
-        ))}
+      {/* Primary Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <MetricCard
+          title="Total Requests"
+          value={formatMetricValue(safeMetrics.totalRequests)}
+          change={`+${getTrend(safeMetrics.totalRequests, 1000).percentage}%`}
+          trend={getTrend(safeMetrics.totalRequests, 1000).direction}
+          icon={BarChart3}
+          color="blue"
+          description="API requests processed"
+        />
+        <MetricCard
+          title="Avg Response Time"
+          value={formatMetricValue(safeMetrics.avgResponseTime, 'time')}
+          change={`${getTrend(safeMetrics.avgResponseTime, 2000).direction === 'up' ? '+' : '-'}${getTrend(safeMetrics.avgResponseTime, 2000).percentage}%`}
+          trend={getTrend(safeMetrics.avgResponseTime, 2000).direction === 'up' ? 'down' : 'up'} // Inverted
+          icon={Clock}
+          color="green"
+          description="Average API latency"
+          target={1000}
+        />
+        <MetricCard
+          title="Cache Hit Rate"
+          value={formatMetricValue(safeMetrics.cacheHitRate, 'percentage')}
+          change={`+${getTrend(safeMetrics.cacheHitRate, 85).percentage}%`}
+          trend={getTrend(safeMetrics.cacheHitRate, 85).direction}
+          icon={Zap}
+          color="amber"
+          description="Requests from cache"
+          target={90}
+        />
+        <MetricCard
+          title="System Load"
+          value={formatMetricValue(safeMetrics.systemLoad, 'percentage')}
+          change={`${getTrend(safeMetrics.systemLoad, 45).direction === 'up' ? '+' : '-'}${getTrend(safeMetrics.systemLoad, 45).percentage}%`}
+          trend={getTrend(safeMetrics.systemLoad, 45).direction === 'up' ? 'down' : 'up'} // Inverted
+          icon={Cpu}
+          color="purple"
+          description="Current CPU utilization"
+          target={80}
+        />
       </div>
 
-      {/* Summary Statistics */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6 border border-slate-200 dark:border-slate-600">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
-              {formatNumber(safeMetrics.activeConnections || 42)}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              Active Connections
-            </div>
-          </div>
-          
-          <div className="text-center space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
-              {(safeMetrics.errorRate || 0.1).toFixed(1)}%
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              Error Rate
-            </div>
-          </div>
-          
-          <div className="text-center space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
-              {formatNumber(safeMetrics.tokensUsed)}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              Tokens Processed
-            </div>
-          </div>
-          
-          <div className="text-center space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
-              99.9%
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              SLA Compliance
-            </div>
-          </div>
+      {/* Secondary Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <MetricCard
+          title="Memory Usage"
+          value={formatMetricValue(safeMetrics.memoryUsage, 'percentage')}
+          trend={getTrend(safeMetrics.memoryUsage, 60).direction === 'up' ? 'down' : 'up'} // Inverted
+          icon={Database}
+          color="blue"
+          description="RAM utilization"
+          target={75}
+        />
+        <MetricCard
+          title="Error Rate"
+          value={formatMetricValue(safeMetrics.errorRate, 'percentage')}
+          trend={getTrend(safeMetrics.errorRate, 1).direction === 'up' ? 'down' : 'up'} // Inverted
+          icon={AlertTriangle}
+          color="green" // Consider red/amber if error rate is high
+          description="Failed requests"
+        />
+        <MetricCard
+          title="Throughput"
+          value={formatMetricValue(safeMetrics.throughput, 'rate')}
+          change={`+${getTrend(safeMetrics.throughput, 500).percentage}%`}
+          trend={getTrend(safeMetrics.throughput, 500).direction}
+          icon={Activity}
+          color="amber"
+          description="Requests per second"
+        />
+        <MetricCard
+          title="Active Connections"
+          value={formatMetricValue(safeMetrics.activeConnections)}
+          change={`+${getTrend(safeMetrics.activeConnections, 150).percentage}%`}
+          trend={getTrend(safeMetrics.activeConnections, 150).direction}
+          icon={Target}
+          color="purple"
+          description="Concurrent users"
+        />
+      </div>
+
+      {/* Performance Indicators - Refined Look */}
+      <div className={`mt-6 p-5 rounded-xl ${darkMode ? 'bg-slate-800/60' : 'bg-slate-100/70'} border ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+        <h3 className={`text-sm font-semibold mb-4 flex items-center ${darkMode ? 'text-slate-100' : 'text-slate-700'}`}>
+          <Activity className="w-4 h-4 mr-2 text-blue-500" />
+          Key Performance Indicators
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+          {[
+            { label: 'Response Time', value: safeMetrics.avgResponseTime, target: 1000, lowerIsBetter: true, unit: 'ms' },
+            { label: 'System Health', value: systemHealth === 'excellent' ? 100 : systemHealth === 'good' ? 75 : systemHealth === 'warning' ? 50 : 25, target: 100, unit: '%' },
+            { label: 'Cache Efficiency', value: safeMetrics.cacheHitRate, target: 90, unit: '%' }
+          ].map(indicator => {
+            const progressValue = indicator.lowerIsBetter 
+              ? Math.max(0, 100 - ((indicator.value / (indicator.target * 1.5)) * 100)) // Adjusted for better visual representation
+              : (indicator.value / indicator.target) * 100;
+            
+            let statusText = '';
+            let statusColor = '';
+            if (indicator.label === 'Response Time') {
+              statusText = indicator.value < 1000 ? 'Excellent' : indicator.value < 2000 ? 'Good' : 'Needs Attention';
+              statusColor = indicator.value < 1000 ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : indicator.value < 2000 ? (darkMode ? 'text-amber-400' : 'text-amber-600') : (darkMode ? 'text-red-400' : 'text-red-600');
+            } else if (indicator.label === 'System Health') {
+              statusText = systemHealth.charAt(0).toUpperCase() + systemHealth.slice(1);
+              statusColor = systemHealth === 'excellent' ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : systemHealth === 'good' ? (darkMode ? 'text-blue-400' : 'text-blue-600') : systemHealth === 'warning' ? (darkMode ? 'text-amber-400' : 'text-amber-600') : (darkMode ? 'text-red-400' : 'text-red-600');
+            } else { // Cache Efficiency
+              statusText = indicator.value > 80 ? 'High' : indicator.value > 60 ? 'Medium' : 'Low';
+              statusColor = indicator.value > 80 ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : indicator.value > 60 ? (darkMode ? 'text-amber-400' : 'text-amber-600') : (darkMode ? 'text-red-400' : 'text-red-600');
+            }
+
+            return (
+              <div key={indicator.label} className="flex items-center justify-between">
+                <span className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{indicator.label}</span>
+                <div className="flex items-center space-x-2">
+                  <Progress value={Math.min(100, Math.max(0, progressValue))} className="w-16 h-1.5" />
+                  <span className={`text-xs font-medium ${statusColor}`}>
+                    {statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default MetricsPanel;

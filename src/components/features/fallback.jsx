@@ -47,24 +47,7 @@ export const FallbackSettingsPanel = () => (
   </div>
 );
 
-// Fallback style
-const FallbackStyle = () => (
-  <style jsx="true">{`
-    .fallback-component {
-      padding: 20px;
-      margin: 10px 0;
-      background-color: #fff3cd;
-      border: 1px solid #ffeeba;
-      border-radius: 4px;
-      color: #856404;
-    }
-
-    .fallback-component h3 {
-      margin-top: 0;
-      font-size: 18px;
-    }
-  `}</style>
-);
+// Fallback styles are now inline in components
 
 /**
  * FallbackDashboard component

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0.79% </span>
+                <span class="strong">0.8% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/126</span>
+                <span class='fraction'>1/124</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/141</span>
+                <span class='fraction'>0/138</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.02% </span>
+                <span class="strong">1.04% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/98</span>
+                <span class='fraction'>1/96</span>
             </div>
         
             
@@ -792,27 +792,7 @@
 <a name='L727'></a><a href='#L727'>727</a>
 <a name='L728'></a><a href='#L728'>728</a>
 <a name='L729'></a><a href='#L729'>729</a>
-<a name='L730'></a><a href='#L730'>730</a>
-<a name='L731'></a><a href='#L731'>731</a>
-<a name='L732'></a><a href='#L732'>732</a>
-<a name='L733'></a><a href='#L733'>733</a>
-<a name='L734'></a><a href='#L734'>734</a>
-<a name='L735'></a><a href='#L735'>735</a>
-<a name='L736'></a><a href='#L736'>736</a>
-<a name='L737'></a><a href='#L737'>737</a>
-<a name='L738'></a><a href='#L738'>738</a>
-<a name='L739'></a><a href='#L739'>739</a>
-<a name='L740'></a><a href='#L740'>740</a>
-<a name='L741'></a><a href='#L741'>741</a>
-<a name='L742'></a><a href='#L742'>742</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L730'></a><a href='#L730'>730</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -860,15 +840,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1483,7 +1460,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1545,7 +1521,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useEffect, useMemo } from 'react';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -1567,20 +1543,12 @@ import {
   ArrowUp,
   LayoutGrid,
   List,
-  Plus,
-  ZoomIn,
-  Copy,
   BadgeCheck,
-  BarChart,
-  BarChart2,
   Clock,
   DollarSign,
   Cpu,
   Scale,
-  Sparkles,
   CheckCircle,
-  SlidersHorizontal,
-  ExternalLink,
   RefreshCw
 } from "lucide-react";
 &nbsp;
@@ -1598,13 +1566,10 @@ import {
  */
 const ModelPerformanceComparison = <span class="fstat-no" title="function not covered" >({</span>
   modelsData = <span class="branch-0 cbranch-no" title="branch not covered" >{},</span>
-  usageData = <span class="branch-0 cbranch-no" title="branch not covered" >{},</span>
-  onModelSelect,
   darkMode = <span class="branch-0 cbranch-no" title="branch not covered" >false</span>
 }) =&gt; {
   // State for selected models to compare
   const [selectedModels, setSelectedModels] = <span class="cstat-no" title="statement not covered" >useState([]);</span>
-  const [comparisonMetric, setComparisonMetric] = <span class="cstat-no" title="statement not covered" >useState('latency');</span>
   const [viewType, setViewType] = <span class="cstat-no" title="statement not covered" >useState('grid');</span>
   const [showAllMetrics, setShowAllMetrics] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
   const [refreshingData, setRefreshingData] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
@@ -2224,7 +2189,6 @@ const ModelPerformanceComparison = <span class="fstat-no" title="function not co
                             : parseFloat(data.difference) &lt; 0;
 &nbsp;
                           // Calculate which model performed better for this metric
-                          const betterModel = <span class="cstat-no" title="statement not covered" >diffIsPositive ? 'B' : 'A';</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >                          return (</span>
                             &lt;tr key={metricId} className="border-b hover:bg-muted/30"&gt;
@@ -2293,7 +2257,7 @@ export default ModelPerformanceComparison;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-05-29T07:40:15.448Z
+                at 2025-05-31T10:32:57.074Z
             </div>
         <script src="../prettify.js"></script>
         <script>

@@ -5,10 +5,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -29,7 +27,6 @@ import {
   ChevronUp,
   Settings,
   CreditCard,
-  Save,
   X,
   Edit,
   Check,
@@ -65,8 +62,7 @@ const SettingsPanel = ({
   onBudgetChange = () => {},
   isCollapsed = false,
   onToggleCollapse = () => {},
-  className = '',
-  darkMode = false
+  className = ''
 }) => {
   // State for editing budget values
   const [editingBudget, setEditingBudget] = useState(null);
@@ -103,26 +99,7 @@ const SettingsPanel = ({
     }
   };
 
-  // Helper for finding the category of a setting
-  const findSettingCategory = (settingId) => {
-    for (const [category, {settings: items}] of Object.entries(settingsCategories)) {
-      if (items.some(item => item.id === settingId)) {
-        return category;
-      }
-    }
-    return 'general'; // Default category
-  };
 
-  // Get all available settings (for test compatibility)
-  const getAllSettings = () => {
-    const allSettings = {};
-    Object.values(settingsCategories).forEach(({settings: items}) => {
-      items.forEach(setting => {
-        allSettings[setting.id] = settings[setting.id] || false;
-      });
-    });
-    return allSettings;
-  };
 
   // Extract budget categories from tokenBudgets or use defaults
   const budgetCategories = tokenBudgets ? Object.keys(tokenBudgets).sort() : [];

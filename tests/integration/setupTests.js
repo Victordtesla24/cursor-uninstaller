@@ -102,10 +102,7 @@ jest.mock("../../src/components/ui/card-footer", () => ({
 
 jest.mock("../../src/components/ui/tooltip", () => ({
   __esModule: true,
-  TooltipProvider: ({ children }) => <>{children}</>,
-  Tooltip: ({ children }) => <>{children}</>,
-  TooltipTrigger: ({ className, children, ...props }) => <span className={`mock-tooltip-trigger ${className || ''}`} {...props}>{children}</span>,
-  TooltipContent: ({ className, children, ...props }) => <div data-testid="mock-tooltip-content" className={`mock-tooltip-content ${className || ''}`} {...props}>{children}</div>
+  default: ({ children, className = '', ...props }) => <div className={`mock-tooltip ${className}`} {...props}>{children}</div>
 }));
 
 jest.mock("../../src/components/ui/badge", () => ({

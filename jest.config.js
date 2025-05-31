@@ -54,15 +54,13 @@ module.exports = {
     '^../../src/components/ui$': '<rootDir>/src/components/ui',
     '^../../src/components/ui/(.*)$': '<rootDir>/src/components/ui/$1',
     
-    // UI component mappings for enhanced dashboard
+    // UI component mappings for enhanced dashboard (only for specific dashboard imports)
     '^../components/ui/index.js$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^../components/ui/index.jsx$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^../components/ui$': '<rootDir>/tests/integration/mocks/ui/index.js',
-    '^../components/ui/(.*)$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^./ui/index.js$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^./ui/index.jsx$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^./ui$': '<rootDir>/tests/integration/mocks/ui/index.js',
-    '^./ui/(.*)$': '<rootDir>/tests/integration/mocks/ui/index.js',
     '^components/ui/(.*)$': '<rootDir>/src/components/ui/$1',
     '^components/ui$': '<rootDir>/src/components/ui/index.js',
     

@@ -1,21 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  Card, // Card is used in BudgetOverview
+  CardContent, // CardContent is used in BudgetOverview
   Badge,
-  Separator,
   Progress
-} from "./ui/index.js";
+} from "../ui/index.js";
 import {
   Database,
-  Info,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
@@ -24,88 +15,215 @@ import {
   Zap,
   Sparkles,
   BarChart3,
-  CreditCard
+  CreditCard,
+  Target,
+  DollarSign,
+  Timer,
+  Activity
 } from "lucide-react";
 
+// Enhanced Token Category Card Component
+function TokenCategoryCard({ category, usage, budget, percentage, icon, trend }) {
+  const getStatusConfig = (percentage) => {
+    if (percentage > 90) {
+      return {
+        color: 'red',
+        bg: 'from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20',
+        text: 'text-red-900 dark:text-red-100',
+        accent: 'text-red-600 dark:text-red-400',
+        status: 'Critical'
+      };
+    }
+    if (percentage > 75) {
+      return {
+        color: 'amber',
+        bg: 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20',
+        text: 'text-amber-900 dark:text-amber-100',
+        accent: 'text-amber-600 dark:text-amber-400',
+        status: 'Warning'
+      };
+    }
+    return {
+      color: 'emerald',
+      bg: 'from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20',
+      text: 'text-emerald-900 dark:text-emerald-100',
+      accent: 'text-emerald-600 dark:text-emerald-400',
+      status: 'Good'
+    };
+  };
+
+  const config = getStatusConfig(percentage);
+
+  return (
+    <div className={`bg-gradient-to-br ${config.bg} p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/50 dark:border-slate-700/50 group`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className={`p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 ${config.accent}`}>
+          {icon}
+        </div>
+        <Badge 
+          variant={percentage > 90 ? 'destructive' : percentage > 75 ? 'secondary' : 'success'}
+          className="text-xs"
+        >
+          {config.status}
+        </Badge>
+      </div>
+      
+      <div className="space-y-3">
+        <div>
+          <div className={`text-xs ${config.accent} font-medium uppercase tracking-wide`}>
+            {category}
+          </div>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className={`text-lg font-bold ${config.text}`}>
+              {usage?.toLocaleString() || '0'}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              / {budget?.toLocaleString() || '0'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-600 dark:text-slate-400">Usage</span>
+            <span className={`text-xs font-medium ${config.accent}`}>
+              {percentage.toFixed(1)}%
+            </span>
+          </div>
+          <Progress value={percentage} className="h-2" />
+        </div>
+
+        {trend && (
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-600 dark:text-slate-400">Trend</span>
+            <div className={`flex items-center space-x-1 ${trend.direction === 'up' ? 'text-emerald-600' : trend.direction === 'down' ? 'text-red-600' : 'text-slate-500'}`}>
+              {trend.direction === 'up' ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : trend.direction === 'down' ? (
+                <TrendingDown className="w-3 h-3" />
+              ) : null}
+              <span>{trend.value}%</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Budget Overview Card
+function BudgetOverview({ totalUsage, totalBudget, percentage, estimatedCost, tokensSaved, cacheEfficiency }) {
+  const getOverallStatus = () => {
+    if (percentage > 90) return { status: 'critical', icon: AlertTriangle, color: 'text-red-600 dark:text-red-400' };
+    if (percentage > 75) return { status: 'warning', icon: AlertTriangle, color: 'text-amber-600 dark:text-amber-400' };
+    return { status: 'good', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400' };
+  };
+
+  const statusConfig = getOverallStatus();
+  const StatusIcon = statusConfig.icon;
+
+  return (
+    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-slate-200 dark:border-slate-700">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+              <Target className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Overall Budget</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Total token allocation</p>
+            </div>
+          </div>
+          
+          <div className={`flex items-center space-x-2 px-3 py-2 rounded-full bg-white dark:bg-slate-800 ${statusConfig.color}`}>
+            <StatusIcon className="w-4 h-4" />
+            <span className="text-sm font-medium capitalize">{statusConfig.status}</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-600 dark:text-slate-400">Token Usage</span>
+            <span className="text-lg font-bold text-slate-900 dark:text-white">
+              {totalUsage.toLocaleString()} / {totalBudget.toLocaleString()}
+            </span>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-600 dark:text-slate-400">Progress</span>
+              <span className={`text-xs font-medium ${percentage > 90 ? 'text-red-600' : percentage > 75 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {percentage.toFixed(1)}%
+              </span>
+            </div>
+            <Progress value={percentage} className="h-3" />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">${estimatedCost}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-400">Est. Cost</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{tokensSaved.toLocaleString()}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-400">Saved</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Activity className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{(cacheEfficiency * 100).toFixed(1)}%</div>
+              <div className="text-xs text-slate-600 dark:text-slate-400">Cache Hit</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 /**
- * TokenUtilization Component
- *
- * Displays token usage metrics and budgets with visual indicators and accessibility features
- *
- * @param {Object} props Component props
- * @param {Object} props.tokenData Token usage and budget data
- * @param {Object} props.tokenData.usage Current token usage stats by category
- * @param {Object} props.tokenData.budgets Budget limits by category
- * @param {Number} props.tokenData.cacheEfficiency Percentage of tokens saved via caching
- * @param {Object} props.costData Token cost information
- * @param {String} props.className Additional CSS classes
- * @param {Boolean} props.darkMode Whether dark mode is enabled
+ * Enhanced TokenUtilization Component with modern design
  */
 const TokenUtilization = ({
   tokenData = {},
   costData = {},
-  className = '',
-  darkMode = false
+  darkMode, // Added darkMode prop
+  className = ''
 }) => {
-  const { usage = {}, budgets = {}, cacheEfficiency } = tokenData;
+  const [isVisible, setIsVisible] = useState(false);
+  const { usage = {}, budgets = {}, cacheEfficiency = 0 } = tokenData;
+
+  // Animation effect on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Helper function to calculate usage percentage
   const calculatePercentage = (used, total) => {
-    if (!total) {
-      return 0;
-    }
+    if (!total) return 0;
     return Math.min(100, Math.round((used / total) * 100));
   };
 
-  // Memoized helpers for better performance
-  const statusColorMapping = useMemo(() => ({
-    high: darkMode ? "bg-red-500" : "bg-red-600",
-    medium: darkMode ? "bg-amber-400" : "bg-amber-500",
-    normal: darkMode ? "bg-emerald-500" : "bg-emerald-600",
-  }), [darkMode]);
-
-  const badgeColorMapping = useMemo(() => ({
-    high: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    medium: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    normal: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  }), []);
-
-  // Helper to determine color based on usage percentage
-  const getStatusColor = useMemo(() => (percentage) => {
-    if (percentage > 90) {
-      return statusColorMapping.high;
-    }
-    if (percentage > 75) {
-      return statusColorMapping.medium;
-    }
-    return statusColorMapping.normal;
-  }, [statusColorMapping]);
-
-  // Helper to get badge color variant for percentage
-  const getBadgeColor = useMemo(() => (percentage) => {
-    if (percentage > 90) {
-      return badgeColorMapping.high;
-    }
-    if (percentage > 75) {
-      return badgeColorMapping.medium;
-    }
-    return badgeColorMapping.normal;
-  }, [badgeColorMapping]);
-
   // Icon mapping for each category
   const categoryIconMap = useMemo(() => ({
-    'prompt': <Zap className="h-3.5 w-3.5" aria-hidden="true" />,
-    'completion': <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />,
-    'embedding': <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />,
-    'fine-tuning': <Shield className="h-3.5 w-3.5" aria-hidden="true" />,
-    'chat': <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />,
-    'vision': <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+    'prompt': <Zap className="h-4 w-4" />,
+    'completion': <CheckCircle className="h-4 w-4" />,
+    'embedding': <Sparkles className="h-4 w-4" />,
+    'fine-tuning': <Shield className="h-4 w-4" />,
+    'chat': <BarChart3 className="h-4 w-4" />,
+    'vision': <CreditCard className="h-4 w-4" />
   }), []);
-
-  // Helper to get icon based on category
-  const getCategoryIcon = useMemo(() => (category) => {
-    return categoryIconMap[category.toLowerCase()] || null;
-  }, [categoryIconMap]);
 
   // Get categories excluding 'total'
   const categories = useMemo(() =>
@@ -125,276 +243,169 @@ const TokenUtilization = ({
 
   // Memoized savings calculation
   const tokensSaved = useMemo(() => {
-    if (cacheEfficiency === undefined) {
-      return 0;
-    }
+    if (cacheEfficiency === undefined) return 0;
     return Math.round((usage.total || 0) * cacheEfficiency);
   }, [usage.total, cacheEfficiency]);
 
-  // If no data available, show placeholder message with improved visual design
+  // Generate mock trend data for demonstration
+  const getTrend = (category) => {
+    const trends = {
+      prompt: { direction: 'up', value: '12.5' },
+      completion: { direction: 'up', value: '8.3' },
+      embedding: { direction: 'down', value: '5.2' },
+      'fine-tuning': { direction: 'stable', value: '0.0' },
+      chat: { direction: 'up', value: '15.7' },
+      vision: { direction: 'down', value: '3.1' }
+    };
+    return trends[category] || { direction: 'stable', value: '0.0' };
+  };
+
+  // If no data available, show enhanced placeholder
   if (!usage.total && !budgets.total) {
     return (
-      <Card
-        className={`${className} shadow-sm hover:shadow-md transition-shadow duration-200`}
-        aria-labelledby="token-utilization-empty-title"
-      >
-        <CardHeader>
-          <CardTitle id="token-utilization-empty-title" className="flex items-center">
-            <Database className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
-            Token Utilization
-          </CardTitle>
-          <CardDescription>
-            No token usage data available
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-3 h-48 text-muted-foreground">
-          <AlertTriangle className="h-8 w-8 text-amber-500 opacity-80 animate-pulse" aria-hidden="true" />
-          <p>Token usage metrics will appear here when available</p>
-        </CardContent>
-      </Card>
+      // Removed Card wrapper, styling will be applied directly or by parent
+      <div className={`${className} ${darkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-700'} p-6 rounded-xl shadow-lg`}>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-600/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              Token Utilization
+            </h3>
+            <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Monitor token usage and budget allocation
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 h-40">
+          <div className={`p-4 rounded-full ${darkMode ? 'bg-slate-700' : 'bg-slate-100'}`}>
+            <Timer className={`h-8 w-8 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} />
+          </div>
+          <div className="text-center">
+            <p className="font-medium">No token data available</p>
+            <p className="text-sm">Usage metrics will appear here when available</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card
-      className={`${className} shadow-sm hover:shadow-md transition-shadow duration-300 animate-in fade-in ${darkMode ? 'bg-card/95' : ''}`}
-      aria-labelledby="token-utilization-title"
-    >
-      <CardHeader className="pb-3">
-        <CardTitle id="token-utilization-title" className="flex items-center">
-          <Database className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
-          Token Utilization
-        </CardTitle>
-        <CardDescription>
-          Token usage across different categories and overall budget
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Overall Budget Summary with improved visual design */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Overall Budget</h3>
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" aria-hidden="true" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>Total token usage across all categories</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div
-              className="text-sm font-medium"
-              aria-label={`${(usage.total || 0).toLocaleString()} tokens used out of ${(budgets.total || 0).toLocaleString()} tokens budgeted`}
-            >
-              {(usage.total || 0).toLocaleString()} / {(budgets.total || 0).toLocaleString()}
-            </div>
+    // Removed outer Card wrapper
+    <div className={`space-y-6 ${className} ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+      {/* Budget Overview - now uses darkMode prop */}
+      <BudgetOverview
+        totalUsage={usage.total || 0}
+        totalBudget={budgets.total || 0}
+        percentage={totalPercentage}
+        estimatedCost={estimatedCost}
+        tokensSaved={tokensSaved}
+        cacheEfficiency={cacheEfficiency}
+        darkMode={darkMode} 
+      />
+
+      {/* Category Breakdown - now uses darkMode prop */}
+      <div className={`${darkMode ? 'bg-slate-800' : 'bg-white'} p-6 rounded-xl shadow-lg`}>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className={`p-2 rounded-lg ${darkMode ? 'bg-emerald-600/30 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
+            <BarChart3 className="h-5 w-5" />
           </div>
-
-          <div className="relative">
-            <Progress
-              value={totalPercentage}
-              className="h-3"
-              aria-label={`Overall budget usage is at ${totalPercentage} percent`}
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-valuenow={totalPercentage}
-            />
-
-            {/* Critical threshold markers with enhanced visual design */}
-            <div className="absolute top-0 left-[75%] h-full w-[1px] bg-amber-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-amber-500"></div>
-            <div className="absolute top-0 left-[90%] h-full w-[1px] bg-red-500/70 after:content-[''] after:absolute after:top-[-3px] after:left-[-2px] after:w-[5px] after:h-[5px] after:rounded-full after:bg-red-500"></div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
-            <Badge
-              variant="outline"
-              className={`${getBadgeColor(totalPercentage)} w-fit flex items-center gap-0.5 px-2 py-0.5`}
-            >
-              {totalPercentage > 75 ? <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" /> : null}
-              {totalPercentage}% used
-            </Badge>
-            <div
-              className="text-sm text-muted-foreground flex items-center gap-1.5"
-              aria-label={`Estimated cost: ${estimatedCost} dollars`}
-            >
-              <CreditCard className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />
-              Est. Cost: <span className="font-semibold">${estimatedCost}</span>
-            </div>
+          <div>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              Category Breakdown
+            </h3>
+            <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Token usage by category and type
+            </p>
           </div>
         </div>
 
-        <Separator className="my-1" />
-
-        {/* Categories Breakdown with improved visual design and animation */}
-        <div className="space-y-4" aria-labelledby="budget-categories-heading">
-          <h3 id="budget-categories-heading" className="text-sm font-semibold">Budget Categories</h3>
-
-          <div className="grid gap-5">
-            {categories.map((category, index) => {
-              const used = usage[category] || 0;
-              const budget = budgets[category] || 0;
-              const percentage = calculatePercentage(used, budget);
-              const categoryIcon = getCategoryIcon(category);
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {categories.map((category) => {
+              const categoryUsage = usage[category] || 0;
+              const categoryBudget = budgets[category] || 0;
+              const percentage = calculatePercentage(categoryUsage, categoryBudget);
+              const icon = categoryIconMap[category.toLowerCase()] || <Database className="h-4 w-4" />;
+              const trend = getTrend(category);
 
               return (
-                <div
+                <TokenCategoryCard
                   key={category}
-                  className="space-y-2 animate-in fade-in slide-in-from-left duration-300"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                  aria-labelledby={`category-${category}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      {categoryIcon && (
-                        <span className={`p-1 rounded-full ${darkMode ? 'bg-primary/20' : 'bg-primary/10'} text-primary`}>
-                          {categoryIcon}
-                        </span>
-                      )}
-                      <span id={`category-${category}`} className="capitalize text-sm font-medium">{category}</span>
-                    </div>
-                    <div
-                      className="text-xs text-muted-foreground"
-                      aria-label={`${used.toLocaleString()} tokens used out of ${budget.toLocaleString()} tokens budgeted for ${category}`}
-                    >
-                      {used.toLocaleString()} / {budget.toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div
-                    className="relative h-2 w-full rounded-full bg-muted overflow-hidden"
-                    role="progressbar"
-                    aria-label={`${category} usage is at ${percentage} percent`}
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-valuenow={percentage}
-                  >
-                    <div
-                      className={`absolute left-0 top-0 h-full rounded-full ${getStatusColor(percentage)} transition-all duration-700 ease-in-out`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-
-                    {/* Add pulsing animation for high usage */}
-                    {percentage > 90 && (
-                      <div
-                        className="absolute inset-0 bg-red-500/20 rounded-full animate-pulse"
-                        aria-hidden="true"
-                      ></div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <Badge
-                      variant="outline"
-                      className={getBadgeColor(percentage)}
-                    >
-                      {percentage}%
-                    </Badge>
-
-                    {/* Show trend if available with improved visualization */}
-                    {tokenData.trends && tokenData.trends[category] && (
-                      <div className="flex items-center">
-                        {tokenData.trends[category] > 0 ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 flex items-center"
-                            aria-label={`Trending up ${tokenData.trends[category].toFixed(1)} percent`}
-                          >
-                            <TrendingUp className="mr-1 h-3 w-3" aria-hidden="true" />
-                            {tokenData.trends[category].toFixed(1)}%
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center"
-                            aria-label={`Trending down ${tokenData.trends[category].toFixed(1)} percent`}
-                          >
-                            <TrendingDown className="mr-1 h-3 w-3" aria-hidden="true" />
-                            <span>{tokenData.trends[category].toFixed(1)}</span>%
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  category={category}
+                  usage={categoryUsage}
+                  budget={categoryBudget}
+                  percentage={percentage}
+                  icon={icon}
+                  trend={trend}
+                  // Pass darkMode to TokenCategoryCard if it needs it, or adjust its styles internally
+                />
               );
             })}
           </div>
-        </div>
+        ) : (
+          <div className={`text-center py-8 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No category data available</p>
+          </div>
+        )}
+      </div>
 
-        {/* Cache Efficiency with improved visual design */}
-        {cacheEfficiency !== undefined && (
-          <>
-            <Separator className="my-1" />
-            <div
-              className={`rounded-lg ${darkMode ? 'bg-primary/15' : 'bg-primary/5'} p-4 animate-in fade-in duration-500 shadow-sm`}
-              aria-labelledby="cache-efficiency-heading"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-primary" aria-hidden="true" />
-                  <span id="cache-efficiency-heading" className="font-medium">Cache Efficiency</span>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={`${darkMode ? 'bg-primary/25 border-primary/30' : 'bg-primary/10 border-primary/20'} text-primary`}
-                  aria-label={`Cache efficiency is ${(cacheEfficiency * 100).toFixed(0)} percent`}
-                >
-                  {(cacheEfficiency * 100).toFixed(0)}%
-                </Badge>
-              </div>
-              <p
-                className="mt-2 text-xs text-muted-foreground"
-                aria-label={`${tokensSaved.toLocaleString()} tokens saved through caching`}
-              >
-                Tokens saved through caching: <span className="font-semibold">{tokensSaved.toLocaleString()}</span>
-              </p>
-
-              {/* Enhanced visual representation of cache savings */}
-              <div className="mt-3 pt-1">
-                <div
-                  className="h-2 w-full bg-muted rounded-full overflow-hidden"
-                  role="progressbar"
-                  aria-label={`Cache efficiency visual indicator at ${(cacheEfficiency * 100).toFixed(0)} percent`}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  aria-valuenow={(cacheEfficiency * 100)}
-                >
-                  <div
-                    className={`h-full rounded-full ${darkMode ? 'bg-primary/80' : 'bg-primary/60'} transition-all duration-1000 ease-in-out`}
-                    style={{ width: `${cacheEfficiency * 100}%` }}
-                  ></div>
-                </div>
-
-                {/* Add visual scale marks */}
-                <div className="flex justify-between text-[10px] text-muted-foreground/70 mt-1 px-0.5">
-                  <span>0%</span>
-                  <span>50%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              {/* Add estimated savings note */}
-              <div className="mt-3 text-xs text-muted-foreground bg-background/50 rounded p-2 border border-border/40">
-                <div className="flex items-center gap-1">
-                  <CreditCard className="h-3 w-3 text-primary/70" aria-hidden="true" />
-                  <span className="font-medium">Estimated Savings:</span>
-                  <span
-                    className="font-semibold"
-                    aria-label={`Saved ${(tokensSaved / 1000 * (costData?.averageRate || 0.002)).toFixed(2)} dollars through caching`}
-                  >
-                    ${(tokensSaved / 1000 * (costData?.averageRate || 0.002)).toFixed(2)}
-                  </span>
-                </div>
+      {/* Performance Metrics - now uses darkMode prop */}
+      <div className={`${darkMode ? 'bg-slate-800' : 'bg-white'} p-6 rounded-xl shadow-lg`}>
+        <h3 className={`text-sm font-semibold mb-4 flex items-center ${darkMode ? 'text-slate-100' : 'text-slate-700'}`}>
+          <Activity className={`w-4 h-4 mr-2 ${darkMode ? 'text-blue-400' : 'text-blue-500'}`} />
+          Performance Insights
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Budget Utilization</span>
+              <div className="flex items-center space-x-2">
+                <Progress value={totalPercentage} className="w-16 h-2" />
+                <span className={`text-xs font-medium ${totalPercentage > 90 ? (darkMode ? 'text-red-400' : 'text-red-600') : totalPercentage > 75 ? (darkMode ? 'text-amber-400' : 'text-amber-600') : (darkMode ? 'text-emerald-400' : 'text-emerald-600')}`}>
+                  {totalPercentage > 90 ? 'High' : totalPercentage > 75 ? 'Medium' : 'Optimal'}
+                </span>
               </div>
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Cache Efficiency</span>
+              <div className="flex items-center space-x-2">
+                <Progress value={cacheEfficiency * 100} className="w-16 h-2" />
+                <span className={`text-xs font-medium ${cacheEfficiency > 0.8 ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : cacheEfficiency > 0.6 ? (darkMode ? 'text-amber-400' : 'text-amber-600') : (darkMode ? 'text-red-400' : 'text-red-600')}`}>
+                  {cacheEfficiency > 0.8 ? 'Excellent' : cacheEfficiency > 0.6 ? 'Good' : 'Needs Attention'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Cost Efficiency</span>
+              <div className="flex items-center space-x-2">
+                <DollarSign className={`w-3 h-3 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                <span className={`text-xs font-medium ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                  ${(parseFloat(estimatedCost) / (usage.total || 1) * 1000).toFixed(4)}/1K tokens
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Tokens Saved</span>
+              <div className="flex items-center space-x-2">
+                <Zap className={`w-3 h-3 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                <span className={`text-xs font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                  {tokensSaved.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

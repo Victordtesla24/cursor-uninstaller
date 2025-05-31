@@ -5,7 +5,7 @@ import React from 'react';
  *
  * The trigger element that shows a tooltip on hover/focus.
  */
-const TooltipTrigger = ({ children, asChild, className = '', ...props }) => {
+const TooltipTrigger = ({ children, className = '', ...props }) => {
   return (
     <div
       className={`${className}`}

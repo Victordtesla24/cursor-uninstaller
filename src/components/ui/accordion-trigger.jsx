@@ -1,31 +1,23 @@
 import React from 'react';
-import { useAccordion } from './accordion';
-import { useAccordionItem } from './accordion-item';
+import { ChevronDown } from 'lucide-react';
 
-/**
- * AccordionTrigger Component
- *
- * The clickable trigger element that expands/collapses an accordion item.
- */
-const AccordionTrigger = ({ children, className = '', ...props }) => {
-  const { onValueChange } = useAccordion();
-  const { value, isOpen } = useAccordionItem();
-
-  const handleClick = () => {
-    onValueChange(value);
-  };
-
+const AccordionTrigger = ({ children, onClick, className, isOpen, ...props }) => {
   return (
-    <button
-      type="button"
-      className={`${className}`}
-      onClick={handleClick}
-      aria-expanded={isOpen}
-      data-state={isOpen ? 'open' : 'closed'}
+    <div 
+      className={`accordion-trigger flex items-center justify-between py-4 font-medium transition-all hover:underline cursor-pointer ${className || ''}`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick?.(e);
+        }
+      }}
       {...props}
     >
       {children}
-    </button>
+      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+    </div>
   );
 };
 

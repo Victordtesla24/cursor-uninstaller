@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import puppeteerClient from '../lib/puppeteerClient';
+import puppeteerClient from '../../dashboard/lib/puppeteerClient';
 
 // Fallback if import fails
 if (!puppeteerClient || Object.keys(puppeteerClient).length === 0) {

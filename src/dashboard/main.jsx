@@ -1,9 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import EnhancedDashboard from "./enhancedDashboard.jsx";
-import { initializeMcpServers } from './lib/setupMcpServer.js';
+import ModernDashboard from "./ModernDashboard.jsx";
 import "./styles.css";
-// Removed import for Dashboard.jsx and index.jsx as they are consolidated into enhancedDashboard.jsx
 
 console.log("Starting Cline AI Dashboard...");
 
@@ -39,9 +37,7 @@ const ensureRootElement = () => {
 };
 
 /**
- * Initialize MCP and render the dashboard
- * This function sets up the MCP client and then renders
- * the EnhancedDashboard as the sole application component.
+ * Initialize and render the modern dashboard
  */
 async function initAndRenderApp() {
   try {
@@ -49,61 +45,35 @@ async function initAndRenderApp() {
     ensureRootElement();
     const rootElement = document.getElementById("root");
 
-    // Initialize MCP servers via the setup module
-    console.log("Setting up MCP servers...");
-    const mcpStatus = await initializeMcpServers();
-    console.log("MCP setup complete", mcpStatus);
-
-    // Render the EnhancedDashboard
-    console.log("Rendering EnhancedDashboard...");
+    // Render the ModernDashboard
+    console.log("Rendering ModernDashboard...");
     const reactRoot = ReactDOM.createRoot(rootElement);
     reactRoot.render(
       <React.StrictMode>
-        <EnhancedDashboard />
+        <ModernDashboard />
       </React.StrictMode>
     );
 
     // Remove loading screen after render
     removeLoadingScreen();
 
-    console.log("Dashboard rendered successfully");
+    console.log("Modern Dashboard rendered successfully");
   } catch (error) {
     console.error("Error initializing application:", error);
-
-    // Even if MCP setup fails, still render the dashboard
-    // enhancedDashboardApi will fall back to mock data
-    try {
-      const rootElement = document.getElementById("root");
-      if (rootElement) {
-        console.log("Rendering EnhancedDashboard with fallback to mock data...");
-        const reactRoot = ReactDOM.createRoot(rootElement);
-        reactRoot.render(
-          <React.StrictMode>
-            <EnhancedDashboard />
-          </React.StrictMode>
-        );
-
-        // Remove loading screen
-        removeLoadingScreen();
-
-        console.log("Dashboard rendered with fallback to mock data");
-      }
-    } catch (renderError) {
-      console.error("Critical error rendering dashboard:", renderError);
-      // Display error message in root element
-      const rootElement = document.getElementById("root");
-      if (rootElement) {
-        rootElement.innerHTML = `
-          <div style="padding: 20px; font-family: sans-serif; background-color: #fdd; border: 1px solid #f00; color: #a00;">
-            <h2>Dashboard Failed to Load</h2>
-            <p>There was a critical error initializing the dashboard application.</p>
-            <p><strong>Error Message:</strong> ${renderError.message || "Unknown error"}</p>
-            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
-              Reload Page
-            </button>
-          </div>
-        `;
-      }
+    
+    // Display error message in root element
+    const rootElement = document.getElementById("root");
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="padding: 20px; font-family: sans-serif; background-color: #fdd; border: 1px solid #f00; color: #a00;">
+          <h2>Dashboard Failed to Load</h2>
+          <p>There was a critical error initializing the dashboard application.</p>
+          <p><strong>Error Message:</strong> ${error.message || "Unknown error"}</p>
+          <button onclick="window.location.reload()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+            Reload Page
+          </button>
+        </div>
+      `;
     }
   }
 }
