@@ -20,36 +20,15 @@ module.exports = {
     '^../lib/utils$': '<rootDir>/src/dashboard/lib/utils.js',
     '^../index.jsx$': '<rootDir>/src/dashboard/index.jsx',
     
-    // Map dashboard component imports (from dashboard files themselves)
-    '^./components/CostTracker.jsx$': '<rootDir>/tests/integration/mocks/components/CostTracker.jsx',
-    '^./components/MetricsPanel.jsx$': '<rootDir>/tests/integration/mocks/components/MetricsPanel.jsx',
-    '^./components/TokenUtilization.jsx$': '<rootDir>/tests/integration/mocks/components/TokenUtilization.jsx',
-    '^./components/UsageStats.jsx$': '<rootDir>/tests/integration/mocks/components/UsageStats.jsx',
+    // Map remaining dashboard component imports (from dashboard files themselves)
     '^./components/ModelSelector.jsx$': '<rootDir>/tests/integration/mocks/components/ModelSelector.jsx',
-    '^./components/SettingsPanel.jsx$': '<rootDir>/tests/integration/mocks/components/SettingsPanel.jsx',
     '^./components/Header.jsx$': '<rootDir>/tests/integration/mocks/components/Header.jsx',
     
     // Map component imports from test files to mock components
-    '^../components/TokenUtilization$': '<rootDir>/tests/integration/mocks/components/TokenUtilization.jsx',
-    '^../components/TokenUtilization.jsx$': '<rootDir>/tests/integration/mocks/components/TokenUtilization.jsx',
-    '^../components/SettingsPanel$': '<rootDir>/tests/integration/mocks/components/SettingsPanel.jsx',
-    '^../components/SettingsPanel.jsx$': '<rootDir>/tests/integration/mocks/components/SettingsPanel.jsx',
     '^../components/ModelSelector$': '<rootDir>/tests/integration/mocks/components/ModelSelector.jsx',
     '^../components/ModelSelector.jsx$': '<rootDir>/tests/integration/mocks/components/ModelSelector.jsx',
-    '^../components/UsageStats$': '<rootDir>/tests/integration/mocks/components/UsageStats.jsx',
-    '^../components/UsageStats.jsx$': '<rootDir>/tests/integration/mocks/components/UsageStats.jsx',
-    '^../components/UsageChart$': '<rootDir>/tests/integration/mocks/components/UsageChart.jsx',
-    '^../components/UsageChart.jsx$': '<rootDir>/tests/integration/mocks/components/UsageChart.jsx',
-    '^../components/CostTracker$': '<rootDir>/tests/integration/mocks/components/CostTracker.jsx',
-    '^../components/CostTracker.jsx$': '<rootDir>/tests/integration/mocks/components/CostTracker.jsx',
-    '^../components/MetricsPanel$': '<rootDir>/tests/integration/mocks/components/MetricsPanel.jsx',
-    '^../components/MetricsPanel.jsx$': '<rootDir>/tests/integration/mocks/components/MetricsPanel.jsx',
     '^../components/Header$': '<rootDir>/tests/integration/mocks/components/Header.jsx',
     '^../components/Header.jsx$': '<rootDir>/tests/integration/mocks/components/Header.jsx',
-    '^../components/EnhancedHeader$': '<rootDir>/tests/integration/mocks/components/Header.jsx',
-    '^../components/features/EnhancedAnalyticsDashboard$': '<rootDir>/tests/integration/mocks/components/EnhancedAnalyticsDashboard.jsx',
-    '^../components/features/ModelPerformanceComparison$': '<rootDir>/tests/integration/mocks/components/ModelPerformanceComparison.jsx',
-    '^../components/features/TokenBudgetRecommendations$': '<rootDir>/tests/integration/mocks/components/TokenBudgetRecommendations.jsx',
     
     '^../../src/components/ui$': '<rootDir>/src/components/ui',
     '^../../src/components/ui/(.*)$': '<rootDir>/src/components/ui/$1',
@@ -78,7 +57,6 @@ module.exports = {
   },
   setupFilesAfterEnv: [
     '@testing-library/jest-dom',
-    '<rootDir>/tests/integration/setupTests.js',
     '<rootDir>/tests/integration/setupJest.js'
   ],
   transform: {

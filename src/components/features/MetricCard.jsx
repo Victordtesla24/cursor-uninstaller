@@ -65,7 +65,7 @@ const MetricCard = ({
       <div className={`bg-gradient-to-br ${classes.bg} p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/50 dark:border-slate-700/50 ${className}`} {...props}>
         <div className="flex items-start justify-between mb-3">
           <div className={`p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 ${classes.icon}`}>
-            {Icon && <Icon className="w-4 h-4" data-testid={getIconTestId(title)} />}
+            {Icon && <Icon className="w-4 h-4 animate-pulse-soft" data-testid={getIconTestId(title)} />}
           </div>
           {change && (
             <Badge variant={trend === 'up' ? 'success' : trend === 'down' ? 'destructive' : 'secondary'} className="text-xs" data-testid="badge">
@@ -100,12 +100,12 @@ const MetricCard = ({
 
   // Default Card-based styling (backwards compatibility)
   return (
-    <Card className={`${className}`} {...props}>
+    <Card className={`metric-card hover-lift shadow-medium ${className}`} {...props}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
           {title}
         </CardTitle>
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground animate-pulse-soft" />}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -124,4 +124,4 @@ const MetricCard = ({
   );
 };
 
-export default MetricCard; 
+export default MetricCard;

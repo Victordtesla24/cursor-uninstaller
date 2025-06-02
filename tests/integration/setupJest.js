@@ -45,29 +45,6 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-// Suppress certain console errors/warnings that might come from testing components
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  // Ignore specific React DOM prop type errors or other known warnings
-  const suppressPatterns = [
-    'Warning: ReactDOM.render',
-    'Warning: Invalid DOM property',
-    'Warning: Unknown prop',
-    'Warning: Each child in a list',
-    'pretty-format: Unknown option "maxWidth"',
-    'MCP tool call to server.tool',
-    'Cannot read properties of undefined',
-    'is not a function'
-  ];
-
-  if (!args.some(arg =>
-    typeof arg === 'string' &&
-    suppressPatterns.some(pattern => arg.includes(pattern))
-  )) {
-    originalConsoleError(...args);
-  }
-};
-
 // Mock localStorage
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'localStorage', {

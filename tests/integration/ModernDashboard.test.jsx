@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ModernDashboard from '../../src/dashboard/ModernDashboard.jsx';
 
@@ -134,7 +134,9 @@ describe('ModernDashboard Component', () => {
     expect(refreshButton).toHaveAttribute('disabled');
     
     // Fast forward time to complete the refresh
-    jest.advanceTimersByTime(1000);
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
     
     await waitFor(() => {
       expect(refreshButton).not.toHaveAttribute('disabled');
@@ -189,6 +191,54 @@ describe('ModernDashboard Component', () => {
     expect(analyticsTab).toHaveClass('border-blue-500', 'text-blue-600');
   });
 
+  test('validates enhanced styling classes are applied', () => {
+    const { container } = render(<ModernDashboard />);
+    
+    // Check for glassmorphism effects
+    const glassElements = container.querySelectorAll('.glass-strong, .glass');
+    expect(glassElements.length).toBeGreaterThan(0);
+    
+    // Check for animation classes
+    const animatedElements = container.querySelectorAll('[class*="animate-"]');
+    expect(animatedElements.length).toBeGreaterThan(0);
+    
+    // Check for hover effects
+    const hoverElements = container.querySelectorAll('.hover-lift');
+    expect(hoverElements.length).toBeGreaterThan(0);
+    
+    // Check for shadow effects
+    const shadowElements = container.querySelectorAll('.shadow-medium');
+    expect(shadowElements.length).toBeGreaterThan(0);
+    
+    // Check for dashboard card styling
+    const dashboardCards = container.querySelectorAll('.dashboard-card');
+    expect(dashboardCards.length).toBeGreaterThan(0);
+  });
+
+  test('validates gradient text effects are applied', () => {
+    const { container } = render(<ModernDashboard />);
+    
+    // Check for gradient text classes
+    const gradientTextElements = container.querySelectorAll('[class*="text-gradient-"]');
+    expect(gradientTextElements.length).toBeGreaterThan(0);
+    
+    // Specifically check for the System Overview title
+    const systemOverviewTitle = screen.getByText('System Overview');
+    expect(systemOverviewTitle).toHaveClass('text-gradient-blue');
+  });
+
+  test('validates transition and animation classes are applied', () => {
+    const { container } = render(<ModernDashboard />);
+    
+    // Check for transition classes
+    const transitionElements = container.querySelectorAll('.transition-all');
+    expect(transitionElements.length).toBeGreaterThan(0);
+    
+    // Check for main content animation
+    const mainContent = container.querySelector('main');
+    expect(mainContent).toHaveClass('animate-slide-up');
+  });
+
   test('handles component mounting and unmounting correctly', () => {
     const { unmount } = render(<ModernDashboard />);
     
@@ -211,4 +261,25 @@ describe('ModernDashboard Component', () => {
     const mainContent = document.querySelector('.max-w-7xl');
     expect(mainContent).toBeInTheDocument();
   });
-}); 
+
+  test('validates enhanced button styling', () => {
+    const { container } = render(<ModernDashboard />);
+    
+    // Check that buttons have hover-lift class
+    const buttons = container.querySelectorAll('button.hover-lift');
+    expect(buttons.length).toBeGreaterThan(0);
+  });
+
+  test('validates tab content animations on switch', async () => {
+    const { container } = render(<ModernDashboard />);
+    
+    // Click on Analytics tab
+    fireEvent.click(screen.getByText('Analytics'));
+    
+    await waitFor(() => {
+      // Check that the analytics content has fade-in animation
+      const analyticsContent = container.querySelector('.animate-fade-in');
+      expect(analyticsContent).toBeInTheDocument();
+    });
+  });
+});

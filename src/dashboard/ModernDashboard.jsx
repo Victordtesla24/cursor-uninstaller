@@ -14,85 +14,28 @@ import {
   Clock,
   Database
 } from 'lucide-react';
-
-// Modern Card Component
-const Card = ({ children, className = '' }) => (
-  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}>
-    {children}
-  </div>
-);
-
-const CardHeader = ({ children, className = '' }) => (
-  <div className={`p-6 pb-4 ${className}`}>
-    {children}
-  </div>
-);
-
-const CardContent = ({ children, className = '' }) => (
-  <div className={`p-6 pt-0 ${className}`}>
-    {children}
-  </div>
-);
-
-const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${className}`}>
-    {children}
-  </h3>
-);
-
-// Modern Button Component
-const Button = ({ children, onClick, variant = 'primary', size = 'md', className = '', disabled = false }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
-  
-  const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white focus:ring-gray-500',
-    ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
-  };
-  
-  const sizes = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base'
-  };
-  
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-// Badge Component
-const Badge = ({ children, variant = 'default', className = '' }) => {
-  const variants = {
-    default: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
-    success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    error: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-  };
-  
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
-      {children}
-    </span>
-  );
-};
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  Button,
+  Badge
+} from '../components/ui/index.js';
+import {
+  MetricCard
+} from '../components/features/index.js';
 
 // Modern Header Component
 const ModernHeader = ({ darkMode, onToggleDarkMode, onRefresh, isRefreshing, lastUpdated }) => {
   return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <div className="glass-strong border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left Section - Title and Status */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
+              <div className="p-2 bg-blue-600 rounded-lg animate-glow">
                 <Activity className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -106,8 +49,8 @@ const ModernHeader = ({ darkMode, onToggleDarkMode, onRefresh, isRefreshing, las
             </div>
             
             <div className="flex items-center space-x-2">
-              <Badge variant="success">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse-soft"></div>
                 Real-time monitoring active
               </Badge>
             </div>
@@ -126,7 +69,7 @@ const ModernHeader = ({ darkMode, onToggleDarkMode, onRefresh, isRefreshing, las
               size="sm"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="p-2"
+              className="p-2 hover-lift"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -135,7 +78,7 @@ const ModernHeader = ({ darkMode, onToggleDarkMode, onRefresh, isRefreshing, las
               variant="ghost"
               size="sm"
               onClick={onToggleDarkMode}
-              className="p-2"
+              className="p-2 hover-lift"
             >
               {darkMode ? (
                 <Sun className="h-4 w-4" />
@@ -162,7 +105,7 @@ const NavigationTabs = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <div className="glass border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav className="flex space-x-8">
           {tabs.map((tab) => {
@@ -173,10 +116,10 @@ const NavigationTabs = ({ activeTab, onTabChange }) => {
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`flex items-center space-x-2 py-3 px-3 rounded-t-md border-b-2 font-medium text-sm transition-all duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
                   isActive
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800/60'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -187,47 +130,6 @@ const NavigationTabs = ({ activeTab, onTabChange }) => {
         </nav>
       </div>
     </div>
-  );
-};
-
-// Metrics Card Component
-const MetricsCard = ({ title, value, icon: Icon, trend, change, description }) => {
-  return (
-    <Card className="hover:shadow-xl transition-shadow duration-200">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {title}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {value}
-              </p>
-              {description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {description}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {change && (
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-sm font-medium ${
-              trend === 'up' 
-                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-            }`}>
-              <TrendingUp className={`h-3 w-3 ${trend === 'down' ? 'rotate-180' : ''}`} />
-              <span>{change}%</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
@@ -304,12 +206,12 @@ const ModernDashboard = () => {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
         {activeTab === 'overview' && (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-gradient-blue">
                   System Overview
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -320,45 +222,53 @@ const ModernDashboard = () => {
 
             {/* System Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <MetricsCard
+              <MetricCard
                 title="System Status"
                 value="Excellent"
                 icon={Activity}
                 description="All systems operational"
+                color="green"
+                className="hover-lift"
               />
               
-              <MetricsCard
+              <MetricCard
                 title="API Requests"
                 value={data.activeRequests}
                 icon={Database}
                 description="Active requests"
+                color="blue"
+                className="hover-lift"
               />
               
-              <MetricsCard
+              <MetricCard
                 title="Response Time"
                 value={data.responseTime}
                 icon={Clock}
                 description="Avg latency: 0.6% of target"
+                color="amber"
+                className="hover-lift"
               />
               
-              <MetricsCard
+              <MetricCard
                 title="Cache Hit Rate"
                 value={data.cacheHitRate}
                 icon={Gauge}
                 description="Requests served from cache"
+                color="purple"
+                className="hover-lift"
               />
             </div>
 
             {/* Additional Metrics */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card>
+              <Card className="dashboard-card animate-slide-up hover-lift shadow-medium">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                    <BarChart3 className="h-5 w-5 text-blue-600 animate-pulse-soft" />
                     <span>Total Requests</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="text-3xl font-bold text-gray-900 dark:text-white">
                     {data.totalRequests}
                   </div>
@@ -368,39 +278,39 @@ const ModernDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="dashboard-card animate-scale-in hover-lift shadow-medium">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <TrendingUp className="h-5 w-5 text-green-600 animate-pulse-soft" />
                     <span>Avg Response Time</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="text-3xl font-bold text-gray-900 dark:text-white">
                     {data.avgResponseTime}ms
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '45%' }}></div>
+                    <div className="bg-blue-600 h-2 rounded-full animate-shimmer" style={{ width: '45%' }}></div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="dashboard-card animate-scale-in hover-lift shadow-medium">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <DollarSign className="h-5 w-5 text-yellow-600" />
-                    <span>Processing Status</span>
+                    <DollarSign className="h-5 w-5 text-purple-600 animate-pulse-soft" />
+                    <span className="text-gradient-purple">System Health</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Mock Data</span>
-                      <Badge variant="success">Active</Badge>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Active</Badge>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Live Updates</span>
-                      <Badge variant="success">Enabled</Badge>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Monitoring</span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Enabled</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -409,35 +319,90 @@ const ModernDashboard = () => {
           </div>
         )}
 
-        {/* Other tab content */}
-        {activeTab !== 'overview' && (
-          <div className="text-center py-20">
-            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg inline-block">
-              <BarChart3 className="h-12 w-12 text-blue-600 dark:text-blue-400 mx-auto" />
+        {activeTab === 'analytics' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center py-12">
+              <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-float" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 text-gradient-blue">
+                Analytics View
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Advanced analytics features are being loaded...
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-4">
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} View
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Advanced {activeTab} features are being loaded...
-            </p>
+          </div>
+        )}
+
+        {activeTab === 'usage' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center py-12">
+              <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-float" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 text-gradient-green">
+                Usage Insights
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Usage analytics features are being loaded...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'recommendations' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center py-12">
+              <Zap className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-float" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 text-gradient-purple">
+                AI Recommendations
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                AI recommendation features are being loaded...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'comparison' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center py-12">
+              <Gauge className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-float" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 text-gradient-blue">
+                Model Comparison
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Model comparison features are being loaded...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center py-12">
+              <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-float" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 text-gradient-green">
+                Settings View
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Advanced settings features are being loaded...
+              </p>
+            </div>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-20">
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Cline AI Dashboard
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Badge variant="outline">v2.0.0</Badge>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Modern AI monitoring and optimization platform
               </span>
-              <Badge>v2.0.0</Badge>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 md:mt-0">
-              Modern AI monitoring and optimization platform
-            </p>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              © 2024 Cline AI Dashboard
+            </div>
           </div>
         </div>
       </footer>
@@ -445,4 +410,4 @@ const ModernDashboard = () => {
   );
 };
 
-export default ModernDashboard; 
+export default ModernDashboard;
