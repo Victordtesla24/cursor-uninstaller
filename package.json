@@ -2,7 +2,7 @@
   "name": "cursor-uninstaller",
   "version": "1.0.0",
   "description": "Cursor uninstaller tool for macOS",
-  "main": "uninstall_cursor.sh",
+  "main": "bin/uninstall_cursor.sh",
   "scripts": {
     "test": "jest --config=jest.config.js --testTimeout=30000",
     "test:unit": "bats tests/unit/*.bats",

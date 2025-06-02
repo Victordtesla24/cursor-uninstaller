@@ -257,7 +257,7 @@ run_tests() {
     
     # Test 4: Main script functionality test
     log_info "Test 4: Testing main script functionality..."
-    if timeout 10s bash uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if timeout 10s bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "✓ Main script responds to help command"
     else
         log_error "✗ Main script help test failed or timed out"
@@ -307,7 +307,7 @@ validate_project() {
     log_step "VALIDATING PROJECT STRUCTURE"
     
     local required_files=(
-        "uninstall_cursor.sh"
+        "bi./bin/uninstall_cursor.sh"
         "lib/config.sh"
         "lib/helpers.sh"
         "lib/ui.sh"
@@ -336,7 +336,7 @@ validate_project() {
     
     # Check that scripts are executable
     local script_files=(
-        "uninstall_cursor.sh"
+        "bi./bin/uninstall_cursor.sh"
         "scripts/create_dmg_package.sh"
         "scripts/install_cursor_uninstaller.sh"
     )
@@ -560,7 +560,7 @@ Launch the app from Applications folder for guided menu interface.
 
 ### Command Line Mode
 \`\`\`bash
-./uninstall_cursor.sh [OPTIONS]
+./bin/uninstall_cursor.sh [OPTIONS]
 
 OPTIONS:
   -u, --uninstall         Complete removal of Cursor
@@ -577,16 +577,16 @@ OPTIONS:
 ### Examples
 \`\`\`bash
 # Git backup + complete uninstall
-./uninstall_cursor.sh --git-backup -u
+./bin/uninstall_cursor.sh --git-backup -u
 
 # AI performance optimization
-./uninstall_cursor.sh --optimize
+./bin/uninstall_cursor.sh --optimize
 
 # System health check
-./uninstall_cursor.sh --health
+./bin/uninstall_cursor.sh --health
 
 # Show Git status
-./uninstall_cursor.sh --git-status
+./bin/uninstall_cursor.sh --git-status
 \`\`\`
 
 ## Verification
@@ -774,7 +774,7 @@ main() {
         log_info "Skipping comprehensive tests for development build"
         # Still run basic syntax check
         log_info "Running basic syntax validation..."
-        if ! bash -n "$PROJECT_ROOT/uninstall_cursor.sh"; then
+        if ! bash -n "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh"; then
             log_error "Main script has syntax errors"
             exit 1
         fi

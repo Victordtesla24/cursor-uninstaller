@@ -8,7 +8,7 @@ const path = require('path');
 
 describe('Cursor Uninstaller Basic Tests', () => {
   test('main uninstaller script exists and is readable', () => {
-    const scriptPath = path.join(__dirname, '../../uninstall_cursor.sh');
+    const scriptPath = path.join(__dirname, '../../bin/uninstall_cursor.sh');
     expect(fs.existsSync(scriptPath)).toBe(true);
     
     const stats = fs.statSync(scriptPath);
@@ -23,7 +23,7 @@ describe('Cursor Uninstaller Basic Tests', () => {
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     expect(packageJson.name).toBe('cursor-uninstaller');
     expect(packageJson.description).toBe('Cursor uninstaller tool for macOS');
-    expect(packageJson.main).toBe('uninstall_cursor.sh');
+    expect(packageJson.main).toBe('bin/uninstall_cursor.sh');
   });
 
   test('src directory structure is valid', () => {
@@ -43,7 +43,7 @@ describe('Cursor Uninstaller Basic Tests', () => {
   test('essential project files exist', () => {
     const essentialFiles = [
       'package.json',
-      'uninstall_cursor.sh',
+      'bin/uninstall_cursor.sh',
       'README.md',
       'jest.config.js'
     ];

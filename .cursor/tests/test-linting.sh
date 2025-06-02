@@ -384,46 +384,46 @@ fi
 
 # Test 7: Check if the uninstall script exists and is valid
 log "${BLUE}ℹ "
-log "${BLUE}Checking uninstall_cursor.sh script...${NC}"
+log "${BLUE}Checking bin/uninstall_cursor.sh script...${NC}"
 
-UNINSTALL_SCRIPT="${REPO_ROOT}/uninstall_cursor.sh"
+UNINSTALL_SCRIPT="${REPO_ROOT}/bin/uninstall_cursor.sh"
 if [ -f "${UNINSTALL_SCRIPT}" ]; then
   uninstall_output=$(mktemp)
   
   # Check if script is executable
   if [ -x "${UNINSTALL_SCRIPT}" ]; then
-    log "${GREEN}✓ uninstall_cursor.sh is executable${NC}"
+    log "${GREEN}✓ bin/uninstall_cursor.sh is executable${NC}"
   else
-    log "${RED}✗ uninstall_cursor.sh is not executable${NC}"
+    log "${RED}✗ bin/uninstall_cursor.sh is not executable${NC}"
     log "${YELLOW}⚠ Attempting to make script executable...${NC}"
     
     if run_test "Make uninstall script executable" "chmod +x \"${UNINSTALL_SCRIPT}\"" "$uninstall_output"; then
-      log "${GREEN}✓ uninstall_cursor.sh is now executable${NC}"
+      log "${GREEN}✓ bin/uninstall_cursor.sh is now executable${NC}"
     else
-      log "${RED}✗ Failed to make uninstall_cursor.sh executable${NC}"
+      log "${RED}✗ Failed to make bin/uninstall_cursor.sh executable${NC}"
       FAILURES=$((FAILURES + 1))
     fi
   fi
   
   # Check script syntax
   if run_test "Uninstall script syntax" "bash -n \"${UNINSTALL_SCRIPT}\"" "$uninstall_output"; then
-    log "${GREEN}✓ uninstall_cursor.sh has valid syntax${NC}"
+    log "${GREEN}✓ bin/uninstall_cursor.sh has valid syntax${NC}"
     
     # Check if script contains essential components for uninstalling
     if run_test "Uninstall script components" "grep -E 'rm|delete|remove|uninstall' \"${UNINSTALL_SCRIPT}\" > /dev/null" "$uninstall_output"; then
-      log "${GREEN}✓ uninstall_cursor.sh appears to contain uninstall functionality${NC}"
+      log "${GREEN}✓ bin/uninstall_cursor.sh appears to contain uninstall functionality${NC}"
     else
-      log "${RED}✗ uninstall_cursor.sh may not contain proper uninstall functionality${NC}"
+      log "${RED}✗ bin/uninstall_cursor.sh may not contain proper uninstall functionality${NC}"
       FAILURES=$((FAILURES + 1))
     fi
   else
-    log "${RED}✗ uninstall_cursor.sh has syntax errors${NC}"
+    log "${RED}✗ bin/uninstall_cursor.sh has syntax errors${NC}"
     FAILURES=$((FAILURES + 1))
   fi
   
   rm -f "$uninstall_output"
 else
-  log "${RED}✗ uninstall_cursor.sh not found at ${UNINSTALL_SCRIPT}${NC}"
+  log "${RED}✗ bin/uninstall_cursor.sh not found at ${UNINSTALL_SCRIPT}${NC}"
   log "${RED}✗ This script is required for proper uninstallation functionality${NC}"
   FAILURES=$((FAILURES + 1))
 fi

@@ -64,6 +64,6 @@
   },
   "initialization_commands": [
     "echo 'Cursor Uninstaller Environment Ready'",
-    "echo 'Run ./uninstall_cursor.sh to start uninstallation process'"
+    "echo 'Run ./bin/uninstall_cursor.sh to start uninstallation process'"
   ]
 }

@@ -633,15 +633,15 @@ fi
 log "${BLUE}ℹ "
 log "${BLUE}Checking uninstall script...${NC}"
 
-if [ -f "${REPO_ROOT}/uninstall_cursor.sh" ]; then
-  log "${GREEN}✓ Uninstall script exists at ${REPO_ROOT}/uninstall_cursor.sh${NC}"
+if [ -f "${REPO_ROOT}/bin/uninstall_cursor.sh" ]; then
+  log "${GREEN}✓ Uninstall script exists at ${REPO_ROOT}/bin/uninstall_cursor.sh${NC}"
   
   # Check execution permissions
-  if [ -x "${REPO_ROOT}/uninstall_cursor.sh" ]; then
+  if [ -x "${REPO_ROOT}/bin/uninstall_cursor.sh" ]; then
     log "${GREEN}✓ Uninstall script is executable${NC}"
   else
     log "${RED}✗ Uninstall script is not executable${NC}"
-    if chmod +x "${REPO_ROOT}/uninstall_cursor.sh"; then
+    if chmod +x "${REPO_ROOT}/bin/uninstall_cursor.sh"; then
       log "${YELLOW}⚠ Made uninstall_cursor.sh executable. Ensure this is set by default.${NC}"
     else
       log "${RED}✗ CRITICAL: Failed to make uninstall_cursor.sh executable${NC}"
@@ -651,7 +651,7 @@ if [ -f "${REPO_ROOT}/uninstall_cursor.sh" ]; then
   
   # Check syntax
   temp_file3=$(mktemp)
-  if run_test "uninstall.sh syntax check" "bash -n \"${REPO_ROOT}/uninstall_cursor.sh\"" "$temp_file3"; then
+  if run_test "uninstall.sh syntax check" "bash -n \"${REPO_ROOT}/bin/uninstall_cursor.sh\"" "$temp_file3"; then
     log "${GREEN}✓ Uninstall script has valid syntax${NC}"
   else
     log "${RED}✗ Uninstall script has syntax errors${NC}"
@@ -660,7 +660,7 @@ if [ -f "${REPO_ROOT}/uninstall_cursor.sh" ]; then
   fi
   rm -f "$temp_file3"
 else
-  log "${RED}✗ Uninstall script not found at ${REPO_ROOT}/uninstall_cursor.sh${NC}"
+  log "${RED}✗ Uninstall script not found at ${REPO_ROOT}/bin/uninstall_cursor.sh${NC}"
   FAILURES=$((FAILURES + 1))
 fi
 

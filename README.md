@@ -106,7 +106,7 @@ bats tests/test_path_resolution.bats
 ## Using the Script
 
 ```bash
-./uninstall_cursor.sh
+./bin/uninstall_cursor.sh
 ```
 
 This displays an interactive menu with the following options:

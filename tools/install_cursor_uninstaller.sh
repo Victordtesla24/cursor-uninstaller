@@ -261,7 +261,7 @@ validate_source_app() {
     local required_components=(
         "Contents/Info.plist"
         "Contents/MacOS/CursorUninstaller"
-        "Contents/Resources/uninstall_cursor.sh"
+        "Contents/Resources/bin/uninstall_cursor.sh"
     )
     
     local missing_components=()
@@ -333,7 +333,7 @@ install_application() {
     # Set permissions
     chmod -R 755 "$temp_dest" 2>/dev/null || true
     chmod +x "$temp_dest/Contents/MacOS/CursorUninstaller" 2>/dev/null || true
-    chmod +x "$temp_dest/Contents/Resources/uninstall_cursor.sh" 2>/dev/null || true
+    chmod +x "$temp_dest/Contents/Resources/bin/uninstall_cursor.sh" 2>/dev/null || true
     
     # Move to final location
     if mv "$temp_dest" "$dest_app"; then
@@ -426,7 +426,7 @@ post_installation_verification() {
     fi
     
     # Test 3: Resources are present
-    if [[ -f "$app_path/Contents/Resources/uninstall_cursor.sh" ]]; then
+    if [[ -f "$app_path/Contents/Resources/bin/uninstall_cursor.sh" ]]; then
         log_success "✓ Core resources are present"
     else
         log_error "✗ Core resources missing"
@@ -442,7 +442,7 @@ post_installation_verification() {
     fi
     
     # Test 5: Script syntax check
-    if bash -n "$app_path/Contents/Resources/uninstall_cursor.sh" 2>/dev/null; then
+    if bash -n "$app_path/Contents/Resources/bin/uninstall_cursor.sh" 2>/dev/null; then
         log_success "✓ Script syntax is valid"
     else
         log_error "✗ Script contains syntax errors"
@@ -451,7 +451,7 @@ post_installation_verification() {
     
     # Test 6: Quick functional test
     log_info "Running functional test..."
-    if cd "$app_path/Contents/Resources" && timeout 5s bash uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if cd "$app_path/Contents/Resources" && timeout 5s bash bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "✓ Application responds to help command"
     else
         log_warning "⚠ Application help test failed or timed out"
