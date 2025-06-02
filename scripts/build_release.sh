@@ -718,7 +718,8 @@ show_build_summary() {
     echo -e "${BOLD}PACKAGES CREATED:${NC}"
     if [[ -d "$OUTPUT_DIR" ]]; then
         cd "$OUTPUT_DIR"
-        for file in CursorUninstaller-* 2>/dev/null; do
+        for file in CursorUninstaller-*; do
+            [[ -e "$file" ]] || continue
             if [[ -f "$file" ]]; then
                 local size
                 size=$(du -h "$file" | cut -f1)

@@ -6,8 +6,7 @@ module.exports = {
     '<rootDir>/node_modules'
   ],
   moduleNameMapper: {
-    '\\.(css|less|scss)$': 'identity-obj-proxy',
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '\\.(css|less|scss)$': 'identity-obj-proxy'
   },
   setupFilesAfterEnv: [
     '<rootDir>/tests/integration/setupJest.js'
@@ -37,7 +36,6 @@ module.exports = {
   testTimeout: 30000,
   prettierPath: null,
   roots: [
-    '<rootDir>/src',
     '<rootDir>/tests'
   ]
 };

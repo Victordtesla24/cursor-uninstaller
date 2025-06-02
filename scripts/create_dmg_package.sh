@@ -91,8 +91,8 @@ validate_prerequisites() {
     done
     
     # Check if main script exists
-    if [[ ! -f "$PROJECT_ROOT/uninstall_cursor.sh" ]]; then
-        log_error "Main script not found: $PROJECT_ROOT/uninstall_cursor.sh"
+    if [[ ! -f "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh" ]]; then
+        log_error "Main script not found: $PROJECT_ROOT/bi./bin/uninstall_cursor.sh"
         exit 1
     fi
     
@@ -129,8 +129,8 @@ copy_application_files() {
     local app_resources="$PACKAGE_DIR/CursorUninstaller.app/Contents/Resources"
     
     # Copy main script
-    cp "$PROJECT_ROOT/uninstall_cursor.sh" "$app_resources/"
-    chmod +x "$app_resources/uninstall_cursor.sh"
+    cp "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh" "$app_resources/"
+    chmod +x "$app_resource./bin/uninstall_cursor.sh"
     log_info "Copied main script"
     
     # Copy library files
@@ -211,7 +211,7 @@ if [[ -n "$DISPLAY" ]] || [[ "$TERM_PROGRAM" == "Apple_Terminal" ]] || [[ "$TERM
         osascript << APPLESCRIPT
 tell application "Terminal"
     activate
-    set newTab to do script "cd '$APP_DIR' && ./uninstall_cursor.sh --menu"
+    set newTab to do script "cd '$APP_DIR' && ./bin/uninstall_cursor.sh --menu"
     set custom title of newTab to "Cursor Uninstaller v1.0.0"
     set background color of newTab to {0, 0, 0}
     set normal text color of newTab to {65535, 65535, 65535}
@@ -219,11 +219,11 @@ end tell
 APPLESCRIPT
     else
         # Fallback: run directly
-        exec ./uninstall_cursor.sh --menu
+        exec ./bin/uninstall_cursor.sh --menu
     fi
 else
     # Running in non-GUI environment (SSH, etc.)
-    exec ./uninstall_cursor.sh --menu
+    exec ./bin/uninstall_cursor.sh --menu
 fi
 EOF
     
@@ -372,7 +372,7 @@ The application provides both interactive menu and command-line interfaces:
 - Command-line: Use Terminal for advanced options
 
 COMMAND LINE USAGE:
-./uninstall_cursor.sh [OPTIONS]
+./bin/uninstall_cursor.sh [OPTIONS]
 
 OPTIONS:
   -u, --uninstall         Complete removal of Cursor
@@ -384,9 +384,9 @@ OPTIONS:
   -h, --help             Show help message
 
 EXAMPLES:
-./uninstall_cursor.sh --git-backup -u   # Git backup + complete uninstall
-./uninstall_cursor.sh --optimize        # AI performance optimization
-./uninstall_cursor.sh --health          # System health check
+./bin/uninstall_cursor.sh --git-backup -u   # Git backup + complete uninstall
+./bin/uninstall_cursor.sh --optimize        # AI performance optimization
+./bin/uninstall_cursor.sh --health          # System health check
 
 SECURITY:
 This utility requires administrator privileges to perform system-level operations.
@@ -641,7 +641,7 @@ verify_package() {
         ((verification_errors++))
     fi
     
-    if [[ ! -f "$app_path/Contents/Resources/uninstall_cursor.sh" ]]; then
+    if [[ ! -f "$app_path/Contents/Resource./bin/uninstall_cursor.sh" ]]; then
         log_error "Main script not found in resources"
         ((verification_errors++))
     fi
@@ -662,7 +662,7 @@ verify_package() {
     
     # Test script execution
     log_info "Testing script execution..."
-    if cd "$app_path/Contents/Resources" && bash uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if cd "$app_path/Contents/Resources" && bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "Script execution test passed"
     else
         log_warning "Script execution test failed - check dependencies"
@@ -686,7 +686,7 @@ run_package_tests() {
     # Test 1: Check if all required files are present
     log_info "Test 1: Checking required files..."
     local required_files=(
-        "uninstall_cursor.sh"
+        "bi./bin/uninstall_cursor.sh"
         "lib/config.sh"
         "lib/helpers.sh"
         "lib/ui.sh"
@@ -711,7 +711,7 @@ run_package_tests() {
     
     # Test 2: Check script permissions
     log_info "Test 2: Checking script permissions..."
-    if [[ -x "$app_resources/uninstall_cursor.sh" ]]; then
+    if [[ -x "$app_resource./bin/uninstall_cursor.sh" ]]; then
         log_success "✓ Main script is executable"
     else
         log_error "✗ Main script is not executable"
@@ -720,7 +720,7 @@ run_package_tests() {
     
     # Test 3: Test script syntax
     log_info "Test 3: Testing script syntax..."
-    if bash -n "$app_resources/uninstall_cursor.sh"; then
+    if bash -n "$app_resource./bin/uninstall_cursor.sh"; then
         log_success "✓ Script syntax is valid"
     else
         log_error "✗ Script syntax errors detected"
@@ -729,7 +729,7 @@ run_package_tests() {
     
     # Test 4: Test help function
     log_info "Test 4: Testing help function..."
-    if cd "$app_resources" && timeout 10s bash uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if cd "$app_resources" && timeout 10s bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "✓ Help function works correctly"
     else
         log_warning "⚠ Help function test timeout or failed"
