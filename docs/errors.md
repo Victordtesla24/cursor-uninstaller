@@ -1,4 +1,4 @@
-=============================================
+==============================================
           CURSOR MANAGEMENT UTILITY           
 ==============================================
 
@@ -18,41 +18,66 @@ OTHER FEATURES:
 
   Q) QUIT
 
-ENTER YOUR CHOICE [1-8,Q]: 1
-[INFO] EXECUTING POST-INSTALLATION CHECK
+ENTER YOUR CHOICE [1-8,Q]: 4
+[INFO] EXECUTING GIT BACKUP OPERATION
 
-🔍 CURSOR INSTALLATION STATUS CHECK   
+⚠️  GIT BACKUP CONFIRMATION
+═══════════════════════════════════════════════
+This will create a comprehensive backup of your git repositories
+before proceeding with Cursor uninstallation.
+
+BACKUP WILL INCLUDE:
+  • Complete repository history and branches
+  • Uncommitted changes and working directories
+  • Repository metadata and configuration
+  • Detailed backup logs and restore instructions
+
+BACKUP LOCATION: /Users/vicd/cursor_backup_20250602_152021
+
+Create comprehensive git backup? (Y/n): y
+[INFO] User confirmed git backup operation
+
+📦 PRODUCTION-GRADE GIT BACKUP OPERATIONS
 ═══════════════════════════════════════════════
 
-1. CHECKING CURSOR APPLICATION:
-[2025-06-02 13:49:15] [ERROR] ✗ Cursor.app not found
-    Status: Cursor application is not installed at /Applications/Cursor.app
+[INFO] Git version: git version 2.39.5 (Apple Git-154)
+[SUCCESS] ✓ Backup directory created: /Users/vicd/cursor_backup_20250602_152021
+[INFO] Scanning for git repositories...
+[INFO] Found 3 git repositories
 
-2. CHECKING CURSOR CLI TOOLS:
-    Version: Version unknown
-    Type: Symlink -> /Applications/Cursor.app/Contents/Resources/app/bin/code
+REPOSITORIES FOUND FOR BACKUP:
+  1. perplexity-mcp (/Users/vicd/Documents/Cline/MCP/perplexity-mcp)
+  2. servers (/Users/vicd/Documents/Cline/MCP/servers)
+  3. Software-planning-mcp (/Users/vicd/Documents/Cline/MCP/Software-planning-mcp)
 
-3. CHECKING USER CONFIGURATION:
-    Note: This is normal for fresh installations
+Proceed with backing up 3 repositories? (Y/n): Y
+[INFO] Starting backup of 3 repositories...
 
-4. CHECKING SYSTEM INTEGRATION:
-    Note: Launch Services check unavailable
-    Status: No Cursor processes currently running
+[1/3] Processing repository: perplexity-mcp
+[INFO] Backing up repository: perplexity-mcp
+[ERROR] ✗ Failed to create bare clone for perplexity-mcp
+[ERROR] ✗ Repository backup failed
 
-📊 INSTALLATION CHECK SUMMARY
+[2/3] Processing repository: servers
+[INFO] Backing up repository: servers
+[ERROR] ✗ Failed to create bare clone for servers
+[ERROR] ✗ Repository backup failed
+
+[3/3] Processing repository: Software-planning-mcp
+[INFO] Backing up repository: Software-planning-mcp
+[ERROR] ✗ Failed to create bare clone for Software-planning-mcp
+[ERROR] ✗ Repository backup failed
+
+📊 BACKUP COMPLETION SUMMARY
 ═══════════════════════════════════════════════
-Total Checks: 4
-Passed: 3
-Issues: 1
+Total Repositories: 3
+Successfully Backed Up: 0
+Failed Backups: 3
+Backup Location: /Users/vicd/cursor_backup_20250602_152021
 
-[2025-06-02 13:49:16] [WARNING] ⚠ PARTIAL INSTALLATION DETECTED - 1 ISSUES FOUND
+[ERROR] ❌ BACKUP FAILED FOR ALL REPOSITORIES
+[ERROR] Manual backup recommended before proceeding with uninstall
 
-RECOMMENDED ACTIONS:
-  • Reinstall Cursor to fix missing components
-  • Set up CLI tools from within the Cursor app
-  • Check system permissions if needed
-  • Try launching Cursor to complete registration
-
-[ERROR] LINE 927: COMMAND FAILED: return 1
+[ERROR] LINE 1035: COMMAND FAILED: return 1
 [ERROR] ERROR COUNT: 1
-vicd@Vics-MacBook-Air cursor_uninstaller % 
+vicd@Vics-MacBook-Air bin % 

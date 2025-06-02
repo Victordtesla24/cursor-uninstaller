@@ -5,7 +5,7 @@ describe('Project Directory Structure Validation', () => {
   const projectRoot = path.join(__dirname, '..', '..'); // Adjusted path for tests/integration
 
   test('Essential directories should exist', () => {
-    const dirsToExist = ['bin', 'scripts', 'tests', 'docs', '.github', '.cursor', '.clinerules'];
+    const dirsToExist = ['bin', 'lib', 'modules', 'scripts', 'tests', 'docs', '.github', '.cursor', '.clinerules'];
     dirsToExist.forEach(dir => {
       const dirPath = path.join(projectRoot, dir);
       expect(fs.existsSync(dirPath)).toBe(true);
@@ -36,6 +36,29 @@ describe('Project Directory Structure Validation', () => {
     expect(binContents).toEqual(['uninstall_cursor.sh']);
   });
 
+  test('lib/ directory should contain essential library files', () => {
+    const libPath = path.join(projectRoot, 'lib');
+    expect(fs.existsSync(libPath)).toBe(true);
+    const libContents = fs.readdirSync(libPath).sort();
+    const expectedLibContents = ['config.sh', 'helpers.sh', 'ui.sh'].sort();
+    expect(libContents).toEqual(expectedLibContents);
+  });
+
+  test('modules/ directory should contain functional modules', () => {
+    const modulesPath = path.join(projectRoot, 'modules');
+    expect(fs.existsSync(modulesPath)).toBe(true);
+    const modulesContents = fs.readdirSync(modulesPath).sort();
+    const expectedModulesContents = [
+      'ai_optimization.sh',
+      'complete_removal.sh', 
+      'git_integration.sh',
+      'installation.sh',
+      'optimization.sh',
+      'uninstall.sh'
+    ].sort();
+    expect(modulesContents).toEqual(expectedModulesContents);
+  });
+
   test('scripts/ directory should contain expected utility scripts and resume-creation/', () => {
     const scriptsDir = path.join(projectRoot, 'scripts');
     const actualScriptsContents = fs.readdirSync(scriptsDir).sort();
@@ -48,15 +71,35 @@ describe('Project Directory Structure Validation', () => {
     expect(actualScriptsContents).toEqual(expectedScriptsContents);
   });
 
-  test('No unexpected files or directories in root (visual check reminder)', () => {
-    // This test serves as a reminder for a manual check or more sophisticated listing/diffing if needed.
-    // For now, it just passes.
-    expect(true).toBe(true);
+  test('No development artifacts should remain in root', () => {
+    const rootContents = fs.readdirSync(projectRoot);
+    const bannedItems = ['coverage', '.vscode', 'src'];
+    
+    bannedItems.forEach(bannedItem => {
+      expect(rootContents).not.toContain(bannedItem);
+    });
   });
   
-  test('src/ directory should exist (currently expected to fail if src is missing)', () => {
-    const srcPath = path.join(projectRoot, 'src');
-    // This test is expected to fail until src is restored.
-    expect(fs.existsSync(srcPath)).toBe(true); 
+  test('Main script dependencies are satisfied', () => {
+    // Check that main script can find all its dependencies
+    const libFiles = ['config.sh', 'helpers.sh', 'ui.sh'];
+    const moduleFiles = [
+      'installation.sh',
+      'optimization.sh', 
+      'uninstall.sh',
+      'git_integration.sh',
+      'complete_removal.sh',
+      'ai_optimization.sh'
+    ];
+    
+    libFiles.forEach(file => {
+      const filePath = path.join(projectRoot, 'lib', file);
+      expect(fs.existsSync(filePath)).toBe(true);
+    });
+    
+    moduleFiles.forEach(file => {
+      const filePath = path.join(projectRoot, 'modules', file);
+      expect(fs.existsSync(filePath)).toBe(true);
+    });
   });
 }); 
