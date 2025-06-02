@@ -10,7 +10,6 @@ const path = require('path');
 
 // Files to fix and their unused imports/variables
 const fixes = {
-  // Dashboard components and files have been removed
   // This script is kept for potential future use
 };
 

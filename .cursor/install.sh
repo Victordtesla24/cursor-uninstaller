@@ -37,7 +37,7 @@ handle_error() {
     log "Continuing despite error..."
     return 0
   else
-    exit $2
+    exit "$2"
   fi
 }
 
@@ -57,7 +57,7 @@ retry() {
     
     if [[ $count -lt $attempts ]]; then
       log "Command '$*' failed, attempt $count/$attempts. Retrying in $delay seconds..."
-      sleep $delay
+      sleep "$delay"
     else
       log "Command '$*' failed after $attempts attempts."
       return $exit_code
@@ -231,7 +231,7 @@ else
   log "No package.json found, skipping npm install"
 fi
 
-# Dashboard dependencies removed - no longer needed
+# Dependencies check completed
 
 # Remove Docker installation block as it should be handled by Dockerfile
 # Installation completed successfully

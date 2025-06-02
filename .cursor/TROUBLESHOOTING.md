@@ -254,7 +254,7 @@ This document provides solutions to common issues that may arise with the Cursor
    - Ensure each terminal entry has name, command, and description fields
    - Test terminals manually to ensure commands work:
      ```bash
-     bash -c "echo 'Dashboard removed - no longer available'"
+     bash -c "echo 'Test terminal command'"
      ```
 
 ## Git Repository Issues

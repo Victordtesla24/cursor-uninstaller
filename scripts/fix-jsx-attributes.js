@@ -78,7 +78,7 @@ function processComponentFiles() {
     .filter(file => file.endsWith('.jsx'))
     .map(file => path.join(componentsDir, file));
 
-  // Dashboard files removed
+  // Additional root files to check
   const rootFiles = [
     path.join(__dirname, 'main.jsx')
   ];

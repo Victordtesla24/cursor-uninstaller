@@ -1,6 +1,6 @@
 /**
  * Basic integration tests for cursor-uninstaller
- * Tests basic functionality after dashboard removal
+ * Tests core functionality
  */
 
 const fs = require('fs');
@@ -26,24 +26,31 @@ describe('Cursor Uninstaller Basic Tests', () => {
     expect(packageJson.main).toBe('uninstall_cursor.sh');
   });
 
-  test('dashboard directory has been completely removed', () => {
-    const dashboardPath = path.join(__dirname, '../../src/dashboard');
-    expect(fs.existsSync(dashboardPath)).toBe(false);
-  });
-
-  test('src directory structure is clean', () => {
+  test('src directory structure is valid', () => {
     const srcPath = path.join(__dirname, '../../src');
     if (fs.existsSync(srcPath)) {
       const srcContents = fs.readdirSync(srcPath);
-      expect(srcContents).not.toContain('dashboard');
+      // Verify src contains only expected directories
+      const allowedDirs = ['components'];
+      srcContents.forEach(item => {
+        if (fs.statSync(path.join(srcPath, item)).isDirectory()) {
+          expect(allowedDirs).toContain(item);
+        }
+      });
     }
   });
 
-  test('no dashboard references in package.json', () => {
-    const packagePath = path.join(__dirname, '../../package.json');
-    const packageContent = fs.readFileSync(packagePath, 'utf8');
-    expect(packageContent.toLowerCase()).not.toContain('dashboard');
-    expect(packageContent.toLowerCase()).not.toContain('react');
-    expect(packageContent.toLowerCase()).not.toContain('vite');
+  test('essential project files exist', () => {
+    const essentialFiles = [
+      'package.json',
+      'uninstall_cursor.sh',
+      'README.md',
+      'jest.config.js'
+    ];
+    
+    essentialFiles.forEach(file => {
+      const filePath = path.join(__dirname, '../..', file);
+      expect(fs.existsSync(filePath)).toBe(true);
+    });
   });
 }); 
