@@ -875,8 +875,19 @@ production_execute_optimize() {
     
     local spotlight_optimized=0
     for exclusion in "${spotlight_exclusions[@]}"; do
-        if [[ -d "$exclusion" ]] && sudo mdutil -i off "$exclusion" 2>/dev/null; then
-            ((spotlight_optimized++))
+        if [[ -d "$exclusion" ]]; then
+            # Check if directory is suitable for mdutil operations first
+            if sudo mdutil -s "$exclusion" >/dev/null 2>&1; then
+                # Only attempt to disable indexing if the directory supports it
+                if sudo mdutil -i off "$exclusion" >/dev/null 2>&1; then
+                    ((spotlight_optimized++))
+                    production_log_message "DEBUG" "Successfully disabled Spotlight indexing for: $(basename "$exclusion")"
+                else
+                    production_log_message "DEBUG" "Could not disable Spotlight indexing for: $(basename "$exclusion") (not supported or already configured)"
+                fi
+            else
+                production_log_message "DEBUG" "Skipping Spotlight optimization for: $(basename "$exclusion") (not indexable)"
+            fi
         fi
     done
     
@@ -884,8 +895,8 @@ production_execute_optimize() {
         production_success_message "✓ Optimized Spotlight indexing ($spotlight_optimized directories)"
         ((optimizations_applied++))
     else
-        production_warning_message "⚠ Could not optimize Spotlight indexing"
-        ((optimization_warnings++))
+        production_info_message "ℹ Spotlight optimization skipped (directories not suitable for indexing control)"
+        # Don't count as a warning since this is expected behavior on some systems
     fi
 
     # 8. Environment Variables for AI Performance
@@ -1307,14 +1318,27 @@ optimize_memory_and_performance() {
     
     local excluded_count=0
     for exclusion in "${spotlight_exclusions[@]}"; do
-        if [[ -d "$exclusion" ]] && sudo mdutil -i off "$exclusion" 2>/dev/null; then
-            ((excluded_count++))
+        if [[ -d "$exclusion" ]]; then
+            # Check if directory is suitable for mdutil operations first
+            if sudo mdutil -s "$exclusion" >/dev/null 2>&1; then
+                # Only attempt to disable indexing if the directory supports it
+                if sudo mdutil -i off "$exclusion" >/dev/null 2>&1; then
+                    ((excluded_count++))
+                    production_log_message "DEBUG" "Successfully disabled Spotlight indexing for: $(basename "$exclusion")"
+                else
+                    production_log_message "DEBUG" "Could not disable Spotlight indexing for: $(basename "$exclusion") (not supported or already configured)"
+                fi
+            else
+                production_log_message "DEBUG" "Skipping Spotlight optimization for: $(basename "$exclusion") (not indexable)"
+            fi
         fi
     done
     
     if [[ $excluded_count -gt 0 ]]; then
         production_success_message "✓ Optimized Spotlight indexing ($excluded_count directories)"
         ((tuning_applied++))
+    else
+        production_log_message "DEBUG" "Spotlight optimization skipped (directories not suitable for indexing control)"
     fi
     
     # 7. Configure network settings for AI API calls

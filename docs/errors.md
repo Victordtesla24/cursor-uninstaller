@@ -18,66 +18,55 @@ OTHER FEATURES:
 
   Q) QUIT
 
-ENTER YOUR CHOICE [1-8,Q]: 4
-[INFO] EXECUTING GIT BACKUP OPERATION
+ENTER YOUR CHOICE [1-8,Q]: 2
+[INFO] EXECUTING COMPLETE CURSOR UNINSTALL
 
-⚠️  GIT BACKUP CONFIRMATION
-═══════════════════════════════════════════════
-This will create a comprehensive backup of your git repositories
-before proceeding with Cursor uninstallation.
-
-BACKUP WILL INCLUDE:
-  • Complete repository history and branches
-  • Uncommitted changes and working directories
-  • Repository metadata and configuration
-  • Detailed backup logs and restore instructions
-
-BACKUP LOCATION: /Users/vicd/cursor_backup_20250602_152021
-
-Create comprehensive git backup? (Y/n): y
-[INFO] User confirmed git backup operation
-
-📦 PRODUCTION-GRADE GIT BACKUP OPERATIONS
+⚠️  COMPLETE CURSOR REMOVAL
 ═══════════════════════════════════════════════
 
-[INFO] Git version: git version 2.39.5 (Apple Git-154)
-[SUCCESS] ✓ Backup directory created: /Users/vicd/cursor_backup_20250602_152021
-[INFO] Scanning for git repositories...
-[INFO] Found 3 git repositories
+THIS WILL COMPLETELY AND PERMANENTLY REMOVE ALL CURSOR COMPONENTS:
+  • APPLICATION BUNDLE AND ALL EXECUTABLES
+  • ALL USER CONFIGURATIONS AND PREFERENCES
+  • CACHE FILES AND TEMPORARY DATA
+  • CLI TOOLS AND SYSTEM INTEGRATIONS
+  • SYSTEM DATABASE REGISTRATIONS
+  • BACKGROUND PROCESSES AND SERVICES
+  • ALL SETTINGS AND WORKSPACES
 
-REPOSITORIES FOUND FOR BACKUP:
-  1. perplexity-mcp (/Users/vicd/Documents/Cline/MCP/perplexity-mcp)
-  2. servers (/Users/vicd/Documents/Cline/MCP/servers)
-  3. Software-planning-mcp (/Users/vicd/Documents/Cline/MCP/Software-planning-mcp)
+NO BACKUPS WILL BE CREATED - THIS IS IRREVERSIBLE
 
-Proceed with backing up 3 repositories? (Y/n): Y
-[INFO] Starting backup of 3 repositories...
+TYPE 'REMOVE' TO CONFIRM COMPLETE CURSOR REMOVAL: REMOVE
+[INFO] USER CONFIRMED COMPLETE REMOVAL WITH EXACT CONFIRMATION
+[INFO] STARTING COMPLETE CURSOR REMOVAL PROCESS...
 
-[1/3] Processing repository: perplexity-mcp
-[INFO] Backing up repository: perplexity-mcp
-[ERROR] ✗ Failed to create bare clone for perplexity-mcp
-[ERROR] ✗ Repository backup failed
-
-[2/3] Processing repository: servers
-[INFO] Backing up repository: servers
-[ERROR] ✗ Failed to create bare clone for servers
-[ERROR] ✗ Repository backup failed
-
-[3/3] Processing repository: Software-planning-mcp
-[INFO] Backing up repository: Software-planning-mcp
-[ERROR] ✗ Failed to create bare clone for Software-planning-mcp
-[ERROR] ✗ Repository backup failed
-
-📊 BACKUP COMPLETION SUMMARY
+🗑️ ENHANCED CURSOR UNINSTALL
 ═══════════════════════════════════════════════
-Total Repositories: 3
-Successfully Backed Up: 0
-Failed Backups: 3
-Backup Location: /Users/vicd/cursor_backup_20250602_152021
 
-[ERROR] ❌ BACKUP FAILED FOR ALL REPOSITORIES
-[ERROR] Manual backup recommended before proceeding with uninstall
+[INFO] Checking for running Cursor processes...
+[INFO] Sent quit command to Cursor
+[INFO] Force terminating remaining processes: 61930
+[SUCCESS] Cursor processes terminated
+[INFO] Removing Cursor.app...
+[SUCCESS] Removed Cursor.app
+[INFO] Resetting Launch Services database...
+[SUCCESS] Launch Services database reset
 
-[ERROR] LINE 1035: COMMAND FAILED: return 1
+🧹 COMPLETE CURSOR REMOVAL
+═══════════════════════════════════════════════
+
+[INFO] Performing thorough system cleanup...
+[INFO] Removing cache directory: /Users/vicd/Library/Caches/com.todesktop.230313mzl4w4u92
+[SUCCESS] Removed: /Users/vicd/Library/Caches/com.todesktop.230313mzl4w4u92
+[INFO] Removing preference file: /Users/vicd/Library/Preferences/com.todesktop.230313mzl4w4u92.plist
+[SUCCESS] Removed: /Users/vicd/Library/Preferences/com.todesktop.230313mzl4w4u92.plist
+[INFO] Removing preference file: /Users/vicd/Library/Preferences/ByHost/com.todesktop.230313mzl4w4u92.ShipIt.366AB98F-291A-5A3B-9902-2AECD9BA9C7D.plist
+[SUCCESS] Removed: /Users/vicd/Library/Preferences/ByHost/com.todesktop.230313mzl4w4u92.ShipIt.366AB98F-291A-5A3B-9902-2AECD9BA9C7D.plist
+[INFO] Clearing system database entries...
+[WARNING] Could not run system maintenance
+[INFO] Complete removal finished with 1 warnings
+[ERROR] COMPLETE REMOVAL ENCOUNTERED ERRORS
+[ERROR] SOME COMPONENTS MAY STILL REMAIN - MANUAL CLEANUP MAY BE REQUIRED
+
+[ERROR] LINE 1819: COMMAND FAILED: return 1
 [ERROR] ERROR COUNT: 1
 vicd@Vics-MacBook-Air bin % 

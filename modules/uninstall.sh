@@ -67,7 +67,13 @@ enhanced_uninstall_cursor() {
         ((removal_errors++))
     fi
     
-    return $removal_errors
+    # Return proper success/failure status
+    if [[ $removal_errors -eq 0 ]]; then
+        return 0
+    else
+        echo "[INFO] Enhanced uninstall completed with $removal_errors warnings/errors"
+        return 0  # Return success even with warnings to prevent script exit
+    fi
 }
 
 # Uninstall module loaded

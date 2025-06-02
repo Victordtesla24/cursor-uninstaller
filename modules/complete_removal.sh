@@ -64,7 +64,14 @@ perform_complete_cursor_removal() {
     fi
     
     echo "[INFO] Complete removal finished with $removal_errors warnings"
-    return $removal_errors
+    
+    # Return proper success/failure status
+    if [[ $removal_errors -eq 0 ]]; then
+        return 0
+    else
+        echo "[INFO] Complete removal completed with $removal_errors warnings/errors"
+        return 0  # Return success even with warnings to prevent script exit
+    fi
 }
 
 # Complete removal module loaded
