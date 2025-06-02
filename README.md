@@ -128,3 +128,4 @@ This displays an interactive menu with the following options:
 - For fresh installation: Cursor DMG file at `/Users/vicd/Downloads/Cursor-darwin-universal.dmg`
 - For performance optimization: Homebrew (installed automatically if missing)
 - For testing: `bats-core` (can be installed via Homebrew)
+# Test comment
