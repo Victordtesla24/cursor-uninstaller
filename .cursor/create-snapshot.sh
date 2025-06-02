@@ -81,11 +81,7 @@ cat > environment-snapshot.json << 'EOF'
   "install": "./.cursor/install.sh",
   "start": "echo 'Background agent environment started.' && if command -v docker &> /dev/null; then sudo service docker start || true; fi",
   "terminals": [
-    {
-      "name": "dashboard_dev_server",
-      "command": "cd ui/dashboard && npm run dev -- --host --no-open",
-      "description": "Runs the UI dashboard development server. Access it via the port Vite announces (usually 3000 or 5173 if 3000 is taken)."
-    },
+    
     {
       "name": "agent_validation",
       "command": "echo 'Running validation tests...' && bash ./test-background-agent.sh || echo 'Validation tests completed with status: $?'",

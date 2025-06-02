@@ -231,27 +231,7 @@ else
   log "No package.json found, skipping npm install"
 fi
 
-# Install UI/dashboard dependencies if they exist
-DASHBOARD_DIR="${REPO_ROOT}/ui/dashboard"
-if [ -d "$DASHBOARD_DIR" ]; then
-  log "Changing to $DASHBOARD_DIR directory..."
-  cd "$DASHBOARD_DIR"
-  if [ -f "package.json" ]; then
-    log "Dashboard package.json found. Running npm install in $DASHBOARD_DIR..."
-    npm install || { log "WARNING: npm install in dashboard directory failed"; handle_error $LINENO $? "continue"; }
-    log "Dashboard npm install completed."
-
-    log "Running npx vite optimize --force in $DASHBOARD_DIR..."
-    npx vite optimize --force || { log "WARNING: Vite optimization failed"; handle_error $LINENO $? "continue"; }
-    log "Vite optimization completed."
-  else
-    log "No package.json found in $DASHBOARD_DIR. Skipping dashboard setup."
-  fi
-  log "Changing back to root directory..."
-  cd "${REPO_ROOT}" # Go back to the project root
-else
-  log "ui/dashboard directory not found. Skipping dashboard setup."
-fi
+# Dashboard dependencies removed - no longer needed
 
 # Remove Docker installation block as it should be handled by Dockerfile
 # Installation completed successfully

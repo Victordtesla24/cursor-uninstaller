@@ -10,82 +10,8 @@ const path = require('path');
 
 // Files to fix and their unused imports/variables
 const fixes = {
-  'components/MetricsPanel.jsx': {
-    removeImports: ['Separator'],
-    prefixUnused: []
-  },
-  'components/ModelSelector.jsx': {
-    removeImports: ['useState', 'useEffect', 'useMemo', 'ChevronsUpDown'],
-    prefixUnused: ['darkMode', 'isRecommendedFor', 'modelId']
-  },
-  'components/SettingsPanel.jsx': {
-    removeImports: ['CardFooter', 'CollapsibleTrigger', 'Save'],
-    prefixUnused: ['darkMode', 'findSettingCategory', 'getAllSettings']
-  },
-  'components/EnhancedHeader.jsx': {
-    removeImports: [],
-    prefixUnused: ['e']
-  },
-  'components/Header.jsx': {
-    removeImports: [],
-    prefixUnused: ['e']
-  },
-  'components/fallback.jsx': {
-    removeImports: [],
-    prefixUnused: ['FallbackStyle']
-  },
-  'components/features/EnhancedAnalyticsDashboard.jsx': {
-    removeImports: ['Search', 'CreditCard', 'Info', 'Shield', 'Zap'],
-    prefixUnused: ['metrics']
-  },
-  'components/features/ModelPerformanceComparison.jsx': {
-    removeImports: ['useEffect', 'Plus', 'ZoomIn', 'Copy', 'BarChart', 'BarChart2', 'SlidersHorizontal', 'ExternalLink'],
-    prefixUnused: ['usageData', 'onModelSelect', 'comparisonMetric', 'setComparisonMetric', 'betterModel']
-  },
-  'components/features/TokenBudgetRecommendations.jsx': {
-    removeImports: ['useMemo', 'Separator', 'BarChart3', 'BarChart4'],
-    prefixUnused: []
-  },
-  'components/ui/collapsible-trigger.jsx': {
-    removeImports: [],
-    prefixUnused: ['asChild']
-  },
-  'components/ui/tooltip-trigger.jsx': {
-    removeImports: [],
-    prefixUnused: ['asChild']
-  },
-  'debug-test.js': {
-    removeImports: ['ReactDOM', 'enhancedDashboardApi', 'setupMcp'],
-    prefixUnused: []
-  },
-  'debug.js': {
-    removeImports: ['isPuppeteerAvailable'],
-    prefixUnused: ['e']
-  },
-  'enhancedDashboard.jsx': {
-    removeImports: ['Header', 'EnhancedHeader', 'Separator', 'ArrowUpRight', 'ArrowDownRight', 'SectionHeader'],
-    prefixUnused: ['handleViewModeChange']
-  },
-  'index.jsx': {
-    removeImports: [],
-    prefixUnused: ['setSessionTime']
-  },
-  'lib/setupMcpServer.js': {
-    removeImports: ['waitForGlobal'],
-    prefixUnused: ['projectPath']
-  },
-  'magic-mcp-integration.js': {
-    removeImports: [],
-    prefixUnused: ['mockError']
-  },
-  'mcpApi.js': {
-    removeImports: ['handleMcpError'],
-    prefixUnused: ['e']
-  },
-  'mockApi.js': {
-    removeImports: [],
-    prefixUnused: ['modelId', 'setting', 'value', 'budgetType']
-  }
+  // Dashboard components and files have been removed
+  // This script is kept for potential future use
 };
 
 console.log('🔧 Starting comprehensive linting fixes...\n');

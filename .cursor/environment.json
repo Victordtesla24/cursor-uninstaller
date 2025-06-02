@@ -14,25 +14,10 @@
   },
   "terminals": [
     {
-      "name": "dashboard_dev_server",
-      
-      "command": "cd ui/dashboard && npm run dev -- --host --no-open",
-      "description": "Runs the UI dashboard development server. Access it via the port Vite announces (usually 3000 or 5173 if 3000 is taken)."
-    },
-    {
-      "name": "git_status",
-      "command": "git config --list && echo '----- Repository Status -----' && git status && echo '----- Branches -----' && git branch -a",
-      "description": "Displays git configuration and repository status for debugging purposes."
-    },
-    {
-      "name": "log_monitor",
-      "command": "tail -f .cursor/logs/agent.log",
-      "description": "Monitors the background agent log file for debugging."
-    },
-    {
-      "name": "github_setup",
-      "command": "bash .cursor/github-setup.sh",
-      "description": "Runs the GitHub setup script to configure Git for the Background Agent."
+      "name": "main_terminal",
+      "type": "bash",
+      "command": "bash",
+      "description": "Main terminal for running uninstaller commands and scripts."
     }
   ],
   "tasks": {
@@ -48,5 +33,37 @@
       "command": "git pull",
       "description": "Pulls changes from the remote repository."
     }
-  }
+  },
+  "name": "cursor-uninstaller",
+  "version": "1.0.0",
+  "description": "Cursor uninstaller tool for macOS",
+  "environment_variables": [
+    {
+      "name": "CURSOR_UNINSTALLER_MODE",
+      "value": "standard",
+      "description": "Sets the uninstaller mode - standard, thorough, or custom"
+    },
+    {
+      "name": "CURSOR_DEBUG",
+      "value": "0",
+      "description": "Enable debug mode for detailed logging (0=off, 1=on)"
+    }
+  ],
+  "working_directory": {
+    "path": "/Users/Shared/cursor/cursor-uninstaller",
+    "description": "Main project directory for the cursor uninstaller"
+  },
+  "project_info": {
+    "type": "utility_script",
+    "language": "bash",
+    "platform": "macOS",
+    "requirements": [
+      "bash",
+      "sudo privileges"
+    ]
+  },
+  "initialization_commands": [
+    "echo 'Cursor Uninstaller Environment Ready'",
+    "echo 'Run ./uninstall_cursor.sh to start uninstallation process'"
+  ]
 }

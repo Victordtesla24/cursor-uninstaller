@@ -78,11 +78,8 @@ function processComponentFiles() {
     .filter(file => file.endsWith('.jsx'))
     .map(file => path.join(componentsDir, file));
 
-  // Add Dashboard.jsx and any other files at the root level
+  // Dashboard files removed
   const rootFiles = [
-    path.join(__dirname, 'Dashboard.jsx'),
-    path.join(__dirname, 'enhancedDashboard.jsx'),
-    path.join(__dirname, 'index.jsx'),
     path.join(__dirname, 'main.jsx')
   ];
 

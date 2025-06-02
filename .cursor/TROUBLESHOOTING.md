@@ -254,7 +254,7 @@ This document provides solutions to common issues that may arise with the Cursor
    - Ensure each terminal entry has name, command, and description fields
    - Test terminals manually to ensure commands work:
      ```bash
-     bash -c "cd ui/dashboard && npm run dev -- --host --no-open"
+     bash -c "echo 'Dashboard removed - no longer available'"
      ```
 
 ## Git Repository Issues
