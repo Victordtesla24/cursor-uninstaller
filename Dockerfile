@@ -52,7 +52,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install npm global packages for diagnostics and development
-RUN npm install -g npm@10.2.5 vite@5.0.8 nodemon@3.0.2 concurrently@8.2.2
+RUN npm install -g npm@10.2.5
 
 # Configure sudo for the node user to start Docker services without a password
 RUN echo 'node ALL=(ALL) NOPASSWD: /usr/sbin/service docker start, /usr/sbin/service docker status, /usr/sbin/service docker stop, /bin/systemctl start docker, /bin/systemctl status docker, /bin/systemctl stop docker' > /etc/sudoers.d/node-docker && \

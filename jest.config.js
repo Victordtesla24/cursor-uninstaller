@@ -5,19 +5,9 @@ module.exports = {
     'node_modules',
     '<rootDir>/node_modules'
   ],
-  moduleNameMapper: {
-    '\\.(css|less|scss)$': 'identity-obj-proxy'
-  },
   setupFilesAfterEnv: [
     '<rootDir>/tests/integration/setupJest.js'
   ],
-  transform: {
-    '^.+\\.(js|jsx)$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }]
-      ],
-    }]
-  },
   testMatch: [
     '<rootDir>/tests/integration/**/*.test.js'
   ],

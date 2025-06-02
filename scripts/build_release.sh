@@ -119,6 +119,7 @@ validate_build_environment() {
             log_warning "Working directory has uncommitted changes:"
             git -C "$PROJECT_ROOT" status --short
             echo
+            # shellcheck disable=SC2162
             read -p "Continue with uncommitted changes? (y/N): " continue_build
             case "$continue_build" in
                 [Yy]|[Yy][Ee][Ss])
@@ -174,6 +175,7 @@ clean_builds() {
         echo "$old_dmgs"
         
         if [[ "$BUILD_TYPE" == "release" ]]; then
+            # shellcheck disable=SC2162
             read -p "Remove existing DMG files? (Y/n): " remove_old
             case "$remove_old" in
                 [Nn]|[Nn][Oo])
@@ -257,7 +259,7 @@ run_tests() {
     
     # Test 4: Main script functionality test
     log_info "Test 4: Testing main script functionality..."
-    if timeout 10s bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if timeout 10s bash bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "✓ Main script responds to help command"
     else
         log_error "✗ Main script help test failed or timed out"
@@ -307,7 +309,7 @@ validate_project() {
     log_step "VALIDATING PROJECT STRUCTURE"
     
     local required_files=(
-        "bi./bin/uninstall_cursor.sh"
+        "bin/uninstall_cursor.sh"
         "lib/config.sh"
         "lib/helpers.sh"
         "lib/ui.sh"
@@ -336,7 +338,7 @@ validate_project() {
     
     # Check that scripts are executable
     local script_files=(
-        "bi./bin/uninstall_cursor.sh"
+        "bin/uninstall_cursor.sh"
         "scripts/create_dmg_package.sh"
         "scripts/install_cursor_uninstaller.sh"
     )
@@ -775,7 +777,7 @@ main() {
         log_info "Skipping comprehensive tests for development build"
         # Still run basic syntax check
         log_info "Running basic syntax validation..."
-        if ! bash -n "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh"; then
+        if ! bash -n "$PROJECT_ROOT/bin/uninstall_cursor.sh"; then
             log_error "Main script has syntax errors"
             exit 1
         fi

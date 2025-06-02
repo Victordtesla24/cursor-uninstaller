@@ -29,7 +29,7 @@ export const MockTokenUtilization = ({ tokenData = {}, costData = {}, className 
           </div>
 
           {/* Mock trends if available */}
-          {tokenData.trends && Object.keys(tokenData.trends).map(key => (
+          {tokenData.trends && typeof tokenData.trends === 'object' && Object.keys(tokenData.trends).map(key => (
             <div key={key}>{key}: {tokenData.trends[key]}%</div>
           ))}
         </>

@@ -91,8 +91,8 @@ validate_prerequisites() {
     done
     
     # Check if main script exists
-    if [[ ! -f "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh" ]]; then
-        log_error "Main script not found: $PROJECT_ROOT/bi./bin/uninstall_cursor.sh"
+    if [[ ! -f "$PROJECT_ROOT/bin/uninstall_cursor.sh" ]]; then
+        log_error "Main script not found: $PROJECT_ROOT/bin/uninstall_cursor.sh"
         exit 1
     fi
     
@@ -129,8 +129,8 @@ copy_application_files() {
     local app_resources="$PACKAGE_DIR/CursorUninstaller.app/Contents/Resources"
     
     # Copy main script
-    cp "$PROJECT_ROOT/bi./bin/uninstall_cursor.sh" "$app_resources/"
-    chmod +x "$app_resource./bin/uninstall_cursor.sh"
+    cp "$PROJECT_ROOT/bin/uninstall_cursor.sh" "$app_resources/"
+    chmod +x "$app_resources/uninstall_cursor.sh"
     log_info "Copied main script"
     
     # Copy library files
@@ -155,7 +155,8 @@ copy_application_files() {
     if [[ -d "$PROJECT_ROOT/scripts" ]]; then
         # Copy scripts but exclude packaging scripts
         for script in "$PROJECT_ROOT/scripts/"*; do
-            local script_name=$(basename "$script")
+            local script_name
+            script_name=$(basename "$script")
             if [[ "$script_name" != "create_dmg_package.sh" ]] && \
                [[ "$script_name" != "build_release.sh" ]] && \
                [[ "$script_name" != "install_cursor_uninstaller.sh" ]]; then
@@ -662,7 +663,7 @@ verify_package() {
     
     # Test script execution
     log_info "Testing script execution..."
-    if cd "$app_path/Contents/Resources" && bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if cd "$app_path/Contents/Resources" && bash bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "Script execution test passed"
     else
         log_warning "Script execution test failed - check dependencies"
@@ -686,7 +687,7 @@ run_package_tests() {
     # Test 1: Check if all required files are present
     log_info "Test 1: Checking required files..."
     local required_files=(
-        "bi./bin/uninstall_cursor.sh"
+        "bin/uninstall_cursor.sh"
         "lib/config.sh"
         "lib/helpers.sh"
         "lib/ui.sh"
@@ -711,7 +712,7 @@ run_package_tests() {
     
     # Test 2: Check script permissions
     log_info "Test 2: Checking script permissions..."
-    if [[ -x "$app_resource./bin/uninstall_cursor.sh" ]]; then
+    if [[ -x "$app_resources/bin/uninstall_cursor.sh" ]]; then
         log_success "✓ Main script is executable"
     else
         log_error "✗ Main script is not executable"
@@ -720,7 +721,7 @@ run_package_tests() {
     
     # Test 3: Test script syntax
     log_info "Test 3: Testing script syntax..."
-    if bash -n "$app_resource./bin/uninstall_cursor.sh"; then
+    if bash -n "$app_resources/bin/uninstall_cursor.sh"; then
         log_success "✓ Script syntax is valid"
     else
         log_error "✗ Script syntax errors detected"
@@ -729,7 +730,7 @@ run_package_tests() {
     
     # Test 4: Test help function
     log_info "Test 4: Testing help function..."
-    if cd "$app_resources" && timeout 10s bash bi./bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
+    if cd "$app_resources" && timeout 10s bash bin/uninstall_cursor.sh --help >/dev/null 2>&1; then
         log_success "✓ Help function works correctly"
     else
         log_warning "⚠ Help function test timeout or failed"

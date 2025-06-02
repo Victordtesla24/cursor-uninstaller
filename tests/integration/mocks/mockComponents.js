@@ -12,7 +12,7 @@ export const MockSettingsPanel = ({
     <h2>Settings</h2>
     {/* Minimal settings render for testing */}
     <div className="settings-items">
-      {settings && Object.keys(settings).map(key => (
+      {settings && typeof settings === 'object' && Object.keys(settings).map(key => (
         <div key={key} className="setting-item" data-setting-id={key}>
           <span>{key}</span>
           <input
@@ -27,7 +27,7 @@ export const MockSettingsPanel = ({
 
     {/* Minimal token budgets render for testing */}
     <div className="budget-items">
-      {tokenBudgets && Object.keys(tokenBudgets).map(key => (
+      {tokenBudgets && typeof tokenBudgets === 'object' && Object.keys(tokenBudgets).map(key => (
         <div key={key} className="budget-item" data-budget-id={key}>
           <span>{key}</span>
           <span>{tokenBudgets[key]}</span>

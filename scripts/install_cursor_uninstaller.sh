@@ -102,7 +102,8 @@ check_system_requirements() {
     fi
     
     # Check architecture
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
     log_info "System architecture: $arch"
     
     # Check available disk space
@@ -155,7 +156,7 @@ check_existing_installation() {
         echo "  1) Replace existing installation (recommended)"
         echo "  2) Cancel installation"
         echo
-        read -p "Enter your choice [1-2]: " choice
+        read -r -p "Enter your choice [1-2]: " choice
         
         case "$choice" in
             1)
@@ -181,7 +182,8 @@ remove_existing_installation() {
     log_info "Removing existing installation..."
     
     # Create backup name with timestamp
-    local backup_name="${APP_NAME}.backup.$(date +%Y%m%d_%H%M%S)"
+    local backup_name
+    backup_name="${APP_NAME}.backup.$(date +%Y%m%d_%H%M%S)"
     
     # First try to move to backup location
     if mv "/Applications/$APP_NAME" "/Applications/$backup_name" 2>/dev/null; then
@@ -189,7 +191,7 @@ remove_existing_installation() {
         
         # Ask user if they want to keep the backup
         echo
-        read -p "Keep backup of previous installation? (Y/n): " keep_backup
+        read -r -p "Keep backup of previous installation? (Y/n): " keep_backup
         case "$keep_backup" in
             [Nn]|[Nn][Oo])
                 log_info "Removing backup..."
@@ -236,7 +238,7 @@ locate_source_app() {
     echo
     log_warning "Source application not found in standard locations"
     echo
-    read -p "Please enter the path to $APP_NAME: " user_path
+    read -r -p "Please enter the path to $APP_NAME: " user_path
     
     if [[ -d "$user_path" ]]; then
         SOURCE_APP="$user_path"
@@ -357,7 +359,7 @@ create_desktop_shortcut() {
     log_step "CREATING DESKTOP SHORTCUT (OPTIONAL)"
     
     echo
-    read -p "Create desktop shortcut? (Y/n): " create_shortcut
+    read -r -p "Create desktop shortcut? (Y/n): " create_shortcut
     
     case "$create_shortcut" in
         [Nn]|[Nn][Oo])
@@ -526,7 +528,7 @@ main() {
         
         # Ask if user wants to launch the application
         echo
-        read -p "Launch Cursor Uninstaller now? (Y/n): " launch_now
+        read -r -p "Launch Cursor Uninstaller now? (Y/n): " launch_now
         case "$launch_now" in
             [Nn]|[Nn][Oo])
                 log_info "You can launch the application later from Applications folder"
