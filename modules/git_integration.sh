@@ -65,10 +65,40 @@ display_git_repository_info() {
         local changes_count
         changes_count=$(echo "$status_output" | wc -l | xargs)
         echo -e "  ${YELLOW}⚠ Uncommitted Changes:${NC} $changes_count files"
-        echo -e "\n${BOLD}Modified Files:${NC}"
-        git status --short | while read -r line; do
-            echo -e "    ${CYAN}•${NC} $line"
-        done
+        
+        # Separate relevant changes from generated files
+        local relevant_files=()
+        local generated_files=()
+        
+        while IFS= read -r line; do
+            local file_path="${line:3}"  # Remove the status prefix
+            
+            # Check if file should be ignored
+            if [[ "$file_path" =~ ^coverage/ ]] || \
+               [[ "$file_path" =~ ^node_modules/ ]] || \
+               [[ "$file_path" =~ ^\.coverage/ ]] || \
+               [[ "$file_path" =~ \.log$ ]] || \
+               [[ "$file_path" =~ \.tmp$ ]] || \
+               [[ "$file_path" =~ ^tmp/ ]]; then
+                generated_files+=("$line")
+            else
+                relevant_files+=("$line")
+            fi
+        done <<< "$status_output"
+        
+        if [[ ${#relevant_files[@]} -gt 0 ]]; then
+            echo -e "\n${BOLD}Important Changes (${#relevant_files[@]} files):${NC}"
+            for line in "${relevant_files[@]}"; do
+                echo -e "    ${CYAN}•${NC} $line"
+            done
+        fi
+        
+        if [[ ${#generated_files[@]} -gt 0 ]]; then
+            echo -e "\n${BOLD}Generated Files (${#generated_files[@]} files - will be ignored):${NC}"
+            for line in "${generated_files[@]}"; do
+                echo -e "    ${YELLOW}•${NC} $line"
+            done
+        fi
     else
         echo -e "  ${GREEN}✓ Clean Working Directory${NC}"
     fi
@@ -111,7 +141,14 @@ perform_git_commit_and_push() {
         return 1
     fi
     
-    # Check for changes
+    # Clean up any generated files first
+    production_info_message "Cleaning up generated files..."
+    if [[ -d "coverage" ]]; then
+        production_info_message "Removing coverage directory..."
+        rm -rf coverage
+    fi
+    
+    # Check for changes after cleanup
     local status_output
     status_output=$(git status --porcelain 2>/dev/null)
     if [[ -z "$status_output" ]]; then
@@ -119,9 +156,38 @@ perform_git_commit_and_push() {
         return 0
     fi
     
+    # Filter out files that should not be committed
+    local filtered_files=()
+    while IFS= read -r line; do
+        local file_path="${line:3}"  # Remove the status prefix (e.g., "M  " or "?? ")
+        
+        # Skip generated/temporary files
+        if [[ "$file_path" =~ ^coverage/ ]] || \
+           [[ "$file_path" =~ ^node_modules/ ]] || \
+           [[ "$file_path" =~ ^\.coverage/ ]] || \
+           [[ "$file_path" =~ \.log$ ]] || \
+           [[ "$file_path" =~ \.tmp$ ]] || \
+           [[ "$file_path" =~ ^tmp/ ]]; then
+            production_log_message "DEBUG" "Skipping generated file: $file_path"
+            continue
+        fi
+        
+        filtered_files+=("$file_path")
+    done <<< "$status_output"
+    
+    # If no files to commit after filtering
+    if [[ ${#filtered_files[@]} -eq 0 ]]; then
+        production_info_message "✓ No relevant changes to commit after filtering generated files"
+        return 0
+    fi
+    
     # Show what will be committed
-    echo -e "${BOLD}FILES TO BE COMMITTED:${NC}"
-    git status --short
+    echo -e "${BOLD}FILES TO BE COMMITTED (${#filtered_files[@]} files):${NC}"
+    for file in "${filtered_files[@]}"; do
+        local status_char
+        status_char=$(git status --porcelain "$file" 2>/dev/null | cut -c1-2)
+        echo -e "    ${CYAN}•${NC} [$status_char] $file"
+    done
     echo ""
     
     if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
@@ -135,47 +201,72 @@ perform_git_commit_and_push() {
         esac
     fi
     
-    # Add all changes
-    production_info_message "Adding all changes to staging area..."
-    if git add .; then
-        production_success_message "✓ All changes staged successfully"
-    else
-        production_error_message "✗ Failed to stage changes"
-        return 1
-    fi
-    
-    # Generate commit message
-    local commit_message
-    commit_message="Update cursor-uninstaller: $(date '+%Y-%m-%d %H:%M:%S')"
-    
-    if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
-        echo -n "Enter commit message (or press Enter to use default): "
-        read -r user_message
-        if [[ -n "$user_message" ]]; then
-            commit_message="$user_message"
+    # Add only the filtered files
+    production_info_message "Adding relevant changes to staging area..."
+    local add_success=true
+    for file in "${filtered_files[@]}"; do
+        if ! git add "$file" 2>/dev/null; then
+            production_warning_message "⚠ Could not add file: $file"
+            add_success=false
         fi
+    done
+    
+    if [[ "$add_success" == "true" ]]; then
+        production_success_message "✓ Relevant changes staged successfully"
+    else
+        production_warning_message "⚠ Some files could not be staged, continuing with available files"
     fi
     
-    # Commit changes
-    production_info_message "Committing changes with message: '$commit_message'"
-    if git commit -m "$commit_message"; then
-        production_success_message "✓ Changes committed successfully"
+    # Verify we have something to commit
+    if ! git diff --cached --quiet 2>/dev/null; then
+        # Generate commit message
+        local commit_message
+        commit_message="Update cursor-uninstaller: $(date '+%Y-%m-%d %H:%M:%S')"
+        
+        if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
+            echo -n "Enter commit message (or press Enter to use default): "
+            read -r user_message
+            if [[ -n "$user_message" ]]; then
+                commit_message="$user_message"
+            fi
+        fi
+        
+        # Commit changes
+        production_info_message "Committing changes with message: '$commit_message'"
+        if git commit -m "$commit_message"; then
+            production_success_message "✓ Changes committed successfully"
+        else
+            production_error_message "✗ Failed to commit changes"
+            return 1
+        fi
+        
+        # Push to remote
+        local current_branch
+        current_branch=$(git branch --show-current)
+        
+        production_info_message "Pushing changes to remote repository..."
+        if git push origin "$current_branch"; then
+            production_success_message "✓ Changes pushed to remote repository successfully"
+        else
+            production_warning_message "⚠ Failed to push to remote - you may need to set up authentication"
+            production_info_message "Commit was successful, but push failed"
+            production_info_message "You can push manually later with: git push origin $current_branch"
+        fi
+        
+        # Show final status
+        echo -e "\n${BOLD}FINAL REPOSITORY STATUS:${NC}"
+        local final_status
+        final_status=$(git status --porcelain 2>/dev/null)
+        if [[ -z "$final_status" ]]; then
+            production_success_message "✓ Working directory is now clean"
+        else
+            production_info_message "Remaining files (ignored by commit):"
+            git status --short | while read -r line; do
+                echo -e "    ${YELLOW}•${NC} $line"
+            done
+        fi
     else
-        production_error_message "✗ Failed to commit changes"
-        return 1
-    fi
-    
-    # Push to remote
-    local current_branch
-    current_branch=$(git branch --show-current)
-    
-    production_info_message "Pushing changes to remote repository..."
-    if git push origin "$current_branch"; then
-        production_success_message "✓ Changes pushed to remote repository successfully"
-    else
-        production_warning_message "⚠ Failed to push to remote - you may need to set up authentication"
-        production_info_message "Commit was successful, but push failed"
-        production_info_message "You can push manually later with: git push origin $current_branch"
+        production_info_message "✓ No staged changes to commit"
     fi
     
     echo ""
