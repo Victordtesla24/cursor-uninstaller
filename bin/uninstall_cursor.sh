@@ -274,14 +274,25 @@ REQUIRED_MODULES=(
     "$SCRIPT_DIR/modules/ai_optimization.sh"
 )
 
-# Load required modules - FAIL HARD if missing
+# Load required modules - Handle missing modules gracefully
 MODULES_LOADED=true
+
+# Temporarily disable error trap during module loading to prevent false errors
+module_loading_trap=$(trap -p ERR | sed "s/trap -- '//" | sed "s/' ERR//" 2>/dev/null || echo "")
+module_loading_set_state="$-"
+set +e  # Disable exit on error during module loading
+trap - ERR  # Disable error trap temporarily
+
 for module in "${REQUIRED_MODULES[@]}"; do
     if [[ "${VERBOSE:-false}" == "true" ]]; then
         production_log_message "DEBUG" "LOADING MODULE: $(basename "$module")"
     fi
 
-    if ! production_load_module "$module"; then
+    # Call production_load_module and capture result without triggering error trap
+    module_load_result=0
+    production_load_module "$module" || module_load_result=$?
+    
+    if [[ $module_load_result -ne 0 ]]; then
         MODULES_LOADED=false
         production_error_message "REQUIRED MODULE FAILED TO LOAD: $(basename "$module")"
     else
@@ -290,6 +301,16 @@ for module in "${REQUIRED_MODULES[@]}"; do
         fi
     fi
 done
+
+# Restore error handling state after module loading
+if [[ "$module_loading_set_state" == *e* ]]; then
+    set -e
+fi
+if [[ -n "$module_loading_trap" ]]; then
+    trap -- "$module_loading_trap" ERR
+else
+    trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
+fi
 
 # Set production configuration if config failed to load
 if [[ "$MODULES_LOADED" == "false" ]]; then
@@ -1368,6 +1389,15 @@ optimize_memory_and_performance_safe() {
 ################################################################################
 
 production_basic_check() {
+    # Temporarily disable error trap for check operations since expected failures should not trigger error handler
+    local previous_set_state="$-"
+    local previous_trap_err
+    previous_trap_err=$(trap -p ERR 2>/dev/null || echo "")
+    
+    # Disable strict error handling for check operations
+    set +e
+    trap - ERR
+    
     echo -e "\n${BOLD}${BLUE}🔍 CURSOR INSTALLATION STATUS CHECK${NC}"
     echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
 
@@ -1548,6 +1578,16 @@ production_basic_check() {
         echo -e "  • Set up CLI tools from within the app"
         echo -e "  • Check system permissions if needed"
         echo -e "  • Try launching Cursor to complete registration"
+    fi
+
+    # Restore error handling state before returning
+    if [[ "$previous_set_state" == *e* ]]; then
+        set -e
+    fi
+    if [[ -n "$previous_trap_err" ]]; then
+        eval "$previous_trap_err"
+    else
+        trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
     fi
 
     # Return 0 to prevent triggering error handler while logging findings
