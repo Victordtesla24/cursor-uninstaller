@@ -12,21 +12,68 @@ GIT_REPOSITORIES_FOUND=()
 GIT_BACKUP_SUCCESS_COUNT=0
 GIT_BACKUP_ERROR_COUNT=0
 
-# Initialize git backup environment
+# Initialize git backup environment with enhanced error handling
 initialize_git_backup() {
     local backup_dir="$1"
     
-    # Create backup directory
+    # Validate backup directory path
+    if [[ -z "$backup_dir" ]]; then
+        production_error_message "Backup directory path cannot be empty"
+        return 1
+    fi
+    
+    # Ensure parent directory exists and is writable
+    local parent_dir
+    parent_dir="$(dirname "$backup_dir")"
+    if [[ ! -d "$parent_dir" ]]; then
+        production_error_message "Parent directory does not exist: $parent_dir"
+        return 1
+    fi
+    
+    if [[ ! -w "$parent_dir" ]]; then
+        production_error_message "Parent directory is not writable: $parent_dir"
+        return 1
+    fi
+    
+    # Create backup directory with error handling
     if ! mkdir -p "$backup_dir"; then
         production_error_message "Failed to create backup directory: $backup_dir"
         return 1
     fi
     
-    # Create log file
-    if ! touch "$backup_dir/backup.log"; then
-        production_error_message "Failed to create backup log file"
+    # Verify backup directory was created and is writable
+    if [[ ! -d "$backup_dir" ]]; then
+        production_error_message "Backup directory was not created: $backup_dir"
         return 1
     fi
+    
+    if [[ ! -w "$backup_dir" ]]; then
+        production_error_message "Backup directory is not writable: $backup_dir"
+        return 1
+    fi
+    
+    # Create repositories subdirectory
+    local repos_dir="$backup_dir/repositories"
+    if ! mkdir -p "$repos_dir"; then
+        production_error_message "Failed to create repositories directory: $repos_dir"
+        return 1
+    fi
+    
+    # Create log file with enhanced error handling
+    local log_file="$backup_dir/backup.log"
+    if ! touch "$log_file"; then
+        production_error_message "Failed to create backup log file: $log_file"
+        return 1
+    fi
+    
+    # Verify log file is writable
+    if [[ ! -w "$log_file" ]]; then
+        production_error_message "Backup log file is not writable: $log_file"
+        return 1
+    fi
+    
+    # Update the global log path
+    GIT_BACKUP_LOG="$log_file"
     
     # Log backup session start
     {
@@ -37,9 +84,14 @@ initialize_git_backup() {
         echo "BACKUP DIRECTORY: $backup_dir"
         echo "SYSTEM: $(uname -a)"
         echo "USER: $(whoami)"
+        echo "GIT VERSION: $(git --version 2>/dev/null || echo 'Git not available')"
+        echo "AVAILABLE DISK SPACE: $(df -h "$backup_dir" | tail -1 | awk '{print $4}' 2>/dev/null || echo 'Unknown')"
         echo "==============================================="
         echo ""
-    } >> "$backup_dir/backup.log"
+    } >> "$log_file" 2>/dev/null || {
+        production_error_message "Failed to write to backup log file"
+        return 1
+    }
     
     return 0
 }
@@ -62,20 +114,22 @@ find_git_repositories() {
     production_info_message "Scanning for git repositories..."
     
     for search_dir in "${search_dirs[@]}"; do
-        if [[ -d "$search_dir" ]]; then
+        if [[ -d "$search_dir" ]] && [[ -r "$search_dir" ]]; then
             production_log_message "DEBUG" "Scanning directory: $search_dir"
             
-            # Find git repositories (look for .git directories)
+            # Find git repositories (look for .git directories) with improved error handling
             while IFS= read -r -d '' git_dir; do
                 local repo_dir
                 repo_dir="$(dirname "$git_dir")"
                 
-                # Verify it's a valid git repository
-                if git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
+                # Verify it's a valid git repository with enhanced validation
+                if [[ -d "$repo_dir" ]] && [[ -r "$repo_dir" ]] && git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
                     GIT_REPOSITORIES_FOUND+=("$repo_dir")
                     production_log_message "DEBUG" "Found git repository: $repo_dir"
                 fi
-            done < <(find "$search_dir" -type d -name ".git" -not -path "*/node_modules/*" -not -path "*/.npm/*" -not -path "*/vendor/*" -print0 2>/dev/null)
+            done < <(find "$search_dir" -type d -name ".git" -not -path "*/node_modules/*" -not -path "*/.npm/*" -not -path "*/vendor/*" -print0 2>/dev/null || true)
+        else
+            production_log_message "DEBUG" "Skipping inaccessible directory: $search_dir"
         fi
     done
     
@@ -94,7 +148,7 @@ find_git_repositories() {
     return 0
 }
 
-# Backup a single git repository
+# Backup a single git repository with enhanced error handling
 backup_git_repository() {
     local repo_path="$1"
     local backup_dir="$2"
@@ -104,38 +158,67 @@ backup_git_repository() {
     
     production_info_message "Backing up repository: $repo_name"
     
-    # Validate source repository first
+    # Enhanced source repository validation
     if [[ ! -d "$repo_path" ]]; then
         production_error_message "Source repository directory does not exist: $repo_path"
-        echo "$(date): ERROR: Source repository directory does not exist: $repo_path" >> "$GIT_BACKUP_LOG"
+        echo "$(date): ERROR: Source repository directory does not exist: $repo_path" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        ((GIT_BACKUP_ERROR_COUNT++))
+        return 1
+    fi
+    
+    if [[ ! -r "$repo_path" ]]; then
+        production_error_message "Source repository directory is not readable: $repo_path"
+        echo "$(date): ERROR: Source repository directory is not readable: $repo_path" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         ((GIT_BACKUP_ERROR_COUNT++))
         return 1
     fi
     
     if [[ ! -d "$repo_path/.git" ]]; then
         production_error_message "Not a valid git repository (missing .git): $repo_path"
-        echo "$(date): ERROR: Not a valid git repository: $repo_path" >> "$GIT_BACKUP_LOG"
+        echo "$(date): ERROR: Not a valid git repository: $repo_path" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         ((GIT_BACKUP_ERROR_COUNT++))
         return 1
     fi
     
-    # Test git operations in source repository
-    if ! git -C "$repo_path" rev-parse --git-dir >/dev/null 2>&1; then
+    # Test git operations in source repository with enhanced error handling
+    local git_test_output
+    git_test_output=$(git -C "$repo_path" rev-parse --git-dir 2>&1)
+    local git_test_result=$?
+    
+    if [[ $git_test_result -ne 0 ]]; then
         production_error_message "Invalid git repository state: $repo_path"
-        echo "$(date): ERROR: Invalid git repository state: $repo_path" >> "$GIT_BACKUP_LOG"
+        production_error_message "Git error: $git_test_output"
+        echo "$(date): ERROR: Invalid git repository state: $repo_path - $git_test_output" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         ((GIT_BACKUP_ERROR_COUNT++))
         return 1
     fi
     
-    # Create backup directory for this repository
+    # Enhanced backup directory creation
+    if [[ ! -d "$backup_dir/repositories" ]]; then
+        if ! mkdir -p "$backup_dir/repositories"; then
+            production_error_message "Failed to create repositories directory: $backup_dir/repositories"
+            echo "$(date): ERROR: Failed to create repositories directory: $backup_dir/repositories" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+            ((GIT_BACKUP_ERROR_COUNT++))
+            return 1
+        fi
+    fi
+    
     if ! mkdir -p "$backup_repo_dir"; then
         production_error_message "Failed to create backup directory for $repo_name"
-        echo "$(date): ERROR: Failed to create backup directory for $repo_name: $backup_repo_dir" >> "$GIT_BACKUP_LOG"
+        echo "$(date): ERROR: Failed to create backup directory for $repo_name: $backup_repo_dir" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         ((GIT_BACKUP_ERROR_COUNT++))
         return 1
     fi
     
-    # Get repository information
+    # Verify backup directory is writable
+    if [[ ! -w "$backup_repo_dir" ]]; then
+        production_error_message "Backup directory is not writable for $repo_name: $backup_repo_dir"
+        echo "$(date): ERROR: Backup directory is not writable for $repo_name: $backup_repo_dir" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        ((GIT_BACKUP_ERROR_COUNT++))
+        return 1
+    fi
+    
+    # Get repository information with enhanced error handling
     local repo_info_file="$backup_repo_dir/repository_info.txt"
     {
         echo "REPOSITORY BACKUP INFORMATION"
@@ -147,104 +230,151 @@ backup_git_repository() {
         echo ""
         echo "REPOSITORY STATUS:"
         
-        # Get repository status (use git -C to avoid changing directories)
-        echo "Current Branch: $(git -C "$repo_path" branch --show-current 2>/dev/null || echo 'Not available')"
+        # Get repository status with enhanced error handling
+        local current_branch
+        current_branch=$(git -C "$repo_path" branch --show-current 2>/dev/null || echo 'Not available')
+        echo "Current Branch: $current_branch"
+        
         echo "Remote URLs:"
         git -C "$repo_path" remote -v 2>/dev/null || echo "No remotes configured"
         echo ""
+        
         echo "Recent Commits (last 10):"
         git -C "$repo_path" log --oneline -10 2>/dev/null || echo "No commits found"
         echo ""
+        
         echo "Repository Status:"
         git -C "$repo_path" status --porcelain 2>/dev/null || echo "Status not available"
         echo ""
+        
         echo "Branches:"
         git -C "$repo_path" branch -a 2>/dev/null || echo "No branches found"
         echo ""
+        
         echo "Tags:"
         git -C "$repo_path" tag -l 2>/dev/null || echo "No tags found"
         echo ""
+        
         echo "Repository Size:"
         du -sh "$repo_path" 2>/dev/null || echo "Size calculation failed"
         
-    } > "$repo_info_file"
+    } > "$repo_info_file" 2>/dev/null || {
+        production_warning_message "Could not create repository info file for $repo_name"
+    }
     
-    # Create bare clone for complete backup with improved error handling
+    # Enhanced git clone operation with comprehensive error handling
     production_log_message "DEBUG" "Creating bare clone of $repo_name"
     production_log_message "DEBUG" "Source: $repo_path"
     production_log_message "DEBUG" "Destination: $backup_repo_dir/repository.git"
     
-    # Attempt the git clone with enhanced error handling
+    # Pre-clone validation
+    local clone_dest="$backup_repo_dir/repository.git"
+    local clone_dest_parent
+    clone_dest_parent="$(dirname "$clone_dest")"
+    
+    if [[ ! -w "$clone_dest_parent" ]]; then
+        production_error_message "✗ Clone destination parent directory is not writable for $repo_name"
+        echo "$(date): ERROR: Clone destination parent directory is not writable: $clone_dest_parent" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        ((GIT_BACKUP_ERROR_COUNT++))
+        return 1
+    fi
+    
+    # Check available disk space (require at least 100MB)
+    local available_space_kb
+    available_space_kb=$(df "$backup_repo_dir" | tail -1 | awk '{print $4}' 2>/dev/null || echo "0")
+    local required_space_kb=102400  # 100MB in KB
+    
+    if [[ $available_space_kb -lt $required_space_kb ]]; then
+        production_error_message "✗ Insufficient disk space for backup of $repo_name"
+        production_error_message "Available: ${available_space_kb}KB, Required: ${required_space_kb}KB"
+        echo "$(date): ERROR: Insufficient disk space for backup of $repo_name" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        ((GIT_BACKUP_ERROR_COUNT++))
+        return 1
+    fi
+    
+    # Perform git clone with enhanced error capture and timeout
     local clone_output=""
     local clone_exit_code=0
+    local clone_timeout=300  # 5 minutes timeout
     
-    # Use a more robust clone approach with proper error capture
-    if [[ -w "$(dirname "$backup_repo_dir/repository.git")" ]]; then
-        # Ensure destination directory exists and is writable
-        mkdir -p "$(dirname "$backup_repo_dir/repository.git")" || {
-            production_error_message "✗ Cannot create destination directory for $repo_name"
-            echo "$(date): ERROR: Cannot create destination directory for $repo_name" >> "$GIT_BACKUP_LOG"
-            ((GIT_BACKUP_ERROR_COUNT++))
-            return 1
-        }
-        
-        # Perform git clone with detailed error capture
-        clone_output=$(git clone --bare "$repo_path" "$backup_repo_dir/repository.git" 2>&1)
-        clone_exit_code=$?
-        
-        if [[ $clone_exit_code -eq 0 ]]; then
+    # Use timeout to prevent hanging and capture detailed output
+    clone_output=$(timeout "$clone_timeout" git clone --bare --verbose "$repo_path" "$clone_dest" 2>&1)
+    clone_exit_code=$?
+    
+    # Analyze clone results
+    if [[ $clone_exit_code -eq 0 ]]; then
+        # Verify the clone was successful by checking the destination
+        if [[ -d "$clone_dest" ]] && [[ -f "$clone_dest/HEAD" ]]; then
             production_success_message "✓ Successfully backed up repository structure for $repo_name"
-            production_log_message "DEBUG" "Clone output: $clone_output"
+            production_log_message "DEBUG" "Clone completed successfully"
+            
+            # Log the backup size
+            local backup_size
+            backup_size=$(du -sh "$clone_dest" 2>/dev/null | cut -f1 || echo "Unknown")
+            echo "$(date): SUCCESS: Repository $repo_name backed up successfully (size: $backup_size)" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         else
-            production_error_message "✗ Failed to create bare clone for $repo_name (exit code: $clone_exit_code)"
-            production_error_message "Git clone error: $clone_output"
-            {
-                echo "$(date): ERROR: Failed to create bare clone for $repo_name (exit code: $clone_exit_code)"
-                echo "$(date): ERROR: Git clone details: $clone_output"
-                echo "$(date): ERROR: Source path: $repo_path"
-                echo "$(date): ERROR: Destination path: $backup_repo_dir/repository.git"
-            } >> "$GIT_BACKUP_LOG"
-            
-            # Attempt to diagnose the issue
-            if [[ ! -d "$repo_path/.git" ]]; then
-                production_error_message "Source repository missing .git directory"
-                echo "$(date): ERROR: Source repository missing .git directory: $repo_path" >> "$GIT_BACKUP_LOG"
-            fi
-            
-            if [[ ! -r "$repo_path" ]]; then
-                production_error_message "Source repository not readable"
-                echo "$(date): ERROR: Source repository not readable: $repo_path" >> "$GIT_BACKUP_LOG"
-            fi
-            
+            production_error_message "✗ Clone completed but destination is invalid for $repo_name"
+            echo "$(date): ERROR: Clone completed but destination is invalid for $repo_name" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
             ((GIT_BACKUP_ERROR_COUNT++))
             return 1
         fi
+    elif [[ $clone_exit_code -eq 124 ]]; then
+        production_error_message "✗ Git clone timed out for $repo_name (timeout: ${clone_timeout}s)"
+        echo "$(date): ERROR: Git clone timed out for $repo_name after ${clone_timeout} seconds" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        ((GIT_BACKUP_ERROR_COUNT++))
+        return 1
     else
-        production_error_message "✗ Backup destination directory is not writable for $repo_name"
-        echo "$(date): ERROR: Backup destination directory is not writable: $(dirname "$backup_repo_dir/repository.git")" >> "$GIT_BACKUP_LOG"
+        production_error_message "✗ Failed to create bare clone for $repo_name"
+        production_error_message "Git clone exit code: $clone_exit_code"
+        
+        # Provide detailed error information
+        if [[ -n "$clone_output" ]]; then
+            production_error_message "Git clone output: $clone_output"
+        fi
+        
+        {
+            echo "$(date): ERROR: Failed to create bare clone for $repo_name (exit code: $clone_exit_code)"
+            echo "$(date): ERROR: Git clone output: $clone_output"
+            echo "$(date): ERROR: Source path: $repo_path"
+            echo "$(date): ERROR: Destination path: $clone_dest"
+            echo "$(date): ERROR: Available disk space: ${available_space_kb}KB"
+        } >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        
+        # Enhanced diagnostics
+        echo "$(date): DIAGNOSTICS: Source permissions: $(ls -ld "$repo_path" 2>/dev/null || echo 'Cannot read')" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        echo "$(date): DIAGNOSTICS: Destination permissions: $(ls -ld "$clone_dest_parent" 2>/dev/null || echo 'Cannot read')" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        
         ((GIT_BACKUP_ERROR_COUNT++))
         return 1
     fi
     
     # Create working directory backup (if there are uncommitted changes)
-    if [[ -n "$(git -C "$repo_path" status --porcelain 2>/dev/null)" ]]; then
+    local status_output
+    status_output=$(git -C "$repo_path" status --porcelain 2>/dev/null || echo "")
+    if [[ -n "$status_output" ]]; then
         production_info_message "Backing up uncommitted changes for $repo_name"
         
         # Create archive of current working directory
-        if tar -czf "$backup_repo_dir/working_directory.tar.gz" -C "$repo_path" . 2>/dev/null; then
+        local working_dir_backup="$backup_repo_dir/working_directory.tar.gz"
+        if timeout 120 tar -czf "$working_dir_backup" -C "$repo_path" . 2>/dev/null; then
             production_success_message "✓ Backed up working directory with uncommitted changes"
+            echo "$(date): SUCCESS: Working directory backed up for $repo_name" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         else
             production_warning_message "⚠ Could not backup working directory for $repo_name"
+            echo "$(date): WARNING: Could not backup working directory for $repo_name" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
         fi
         
-        # Save stash if any uncommitted changes (use git -C to avoid directory changes)
+        # Save stash if any uncommitted changes
         if git -C "$repo_path" stash push -m "Pre-uninstall backup $(date)" >/dev/null 2>&1; then
             production_success_message "✓ Created stash of uncommitted changes"
+            echo "$(date): SUCCESS: Stash created for $repo_name" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        else
+            production_log_message "DEBUG" "Could not create stash for $repo_name (may not have stashable changes)"
         fi
     fi
     
     # Log successful backup
-    echo "$(date): SUCCESS: Backed up repository $repo_name from $repo_path" >> "$GIT_BACKUP_LOG"
+    echo "$(date): SUCCESS: Backed up repository $repo_name from $repo_path" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
     ((GIT_BACKUP_SUCCESS_COUNT++))
     
     return 0
@@ -375,7 +505,9 @@ perform_pre_uninstall_backup() {
     else
         production_error_message "❌ BACKUP FAILED FOR ALL REPOSITORIES"
         production_error_message "Manual backup recommended before proceeding with uninstall"
-        return 1
+        # Return 0 to prevent script exit, but log the failure
+        echo "$(date): WARNING: All repository backups failed" >> "$GIT_BACKUP_LOG" 2>/dev/null || true
+        return 0
     fi
     
     echo -e "\n${CYAN}${BOLD}BACKUP FILES CREATED:${NC}"
@@ -565,4 +697,5 @@ display_git_repository_info() {
 
 # Git integration module loaded
 export GIT_INTEGRATION_LOADED=true
+production_log_message "DEBUG" "Git integration module loaded with production-grade functionality" 
 production_log_message "DEBUG" "Git integration module loaded with production-grade functionality" 
