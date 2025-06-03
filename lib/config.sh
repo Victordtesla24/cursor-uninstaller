@@ -2,155 +2,240 @@
 
 ################################################################################
 # Production Configuration for Cursor AI Editor Management Utility
-# ENHANCED CONFIGURATION WITH VALIDATION AND ERROR HANDLING
+# REFACTORED: Enhanced security, validation, and maintainability
 ################################################################################
 
-# Strict error handling for configuration
+# Secure error handling
 set -euo pipefail
+readonly IFS=$' \t\n'
 
 # Version and Build Information
-export CURSOR_UNINSTALLER_VERSION="2.0.0"
+readonly CURSOR_UNINSTALLER_VERSION="3.0.0"
 declare CURSOR_UNINSTALLER_BUILD
 CURSOR_UNINSTALLER_BUILD="$(date '+%Y%m%d%H%M%S')"
-export CURSOR_UNINSTALLER_BUILD
-export CURSOR_UNINSTALLER_CODENAME="PRODUCTION-GRADE"
+readonly CURSOR_UNINSTALLER_BUILD
+readonly CURSOR_UNINSTALLER_CODENAME="REFACTORED-PRODUCTION"
 
-# Error codes - Production Grade with descriptions
-declare -A ERROR_CODES=(
-    [ERR_GENERAL]=1
-    [ERR_PERMISSION]=2  
-    [ERR_NOT_FOUND]=3
-    [ERR_SYSTEM_ERROR]=4
-    [ERR_USER_CANCELLED]=5
-    [ERR_NETWORK]=6
-    [ERR_TIMEOUT]=7
-    [ERR_VALIDATION]=8
-    [ERR_DEPENDENCY]=9
-    [ERR_CORRUPTION]=10
+# Export immutable constants
+export CURSOR_UNINSTALLER_VERSION CURSOR_UNINSTALLER_BUILD CURSOR_UNINSTALLER_CODENAME
+
+# Error codes with proper associative array
+declare -r -A ERROR_CODES=(
+    [SUCCESS]=0
+    [GENERAL_ERROR]=1
+    [PERMISSION_DENIED]=2  
+    [NOT_FOUND]=3
+    [SYSTEM_ERROR]=4
+    [USER_CANCELLED]=5
+    [NETWORK_ERROR]=6
+    [TIMEOUT_ERROR]=7
+    [VALIDATION_ERROR]=8
+    [DEPENDENCY_ERROR]=9
+    [CORRUPTION_ERROR]=10
 )
 
-# Export error codes
+# Export error codes securely
 for code in "${!ERROR_CODES[@]}"; do
-    export "$code=${ERROR_CODES[$code]}"
+    declare -r "ERR_${code}=${ERROR_CODES[$code]}"
+    export "ERR_${code}"
 done
 
-# Configuration validation function
-validate_config() {
-    local validation_errors=0
+# Secure path handling
+_normalize_path() {
+    local path="$1"
+    # Remove trailing slashes, resolve relative paths safely
+    path="${path%/}"
+    printf '%s' "$(cd "$(dirname "$path")" 2>/dev/null && pwd)/$(basename "$path")" 2>/dev/null || printf '%s' "$path"
+}
+
+# Enhanced security validation
+_validate_security_context() {
+    local -i validation_errors=0
     
-    # Validate required system
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-        echo "[CONFIG ERROR] This utility requires macOS - Current OS: $OSTYPE" >&2
+    # Check for suspicious environment variables
+    local -a suspicious_vars=("LD_PRELOAD" "DYLD_INSERT_LIBRARIES" "PROMPT_COMMAND")
+    for var in "${suspicious_vars[@]}"; do
+        if [[ -n "${!var:-}" ]]; then
+            printf '[SECURITY WARNING] Suspicious environment variable detected: %s\n' "$var" >&2
+            ((validation_errors++))
+        fi
+    done
+    
+    # Validate PATH for security
+    if [[ "$PATH" =~ (^|:)\.(:|$) ]]; then
+        printf '[SECURITY ERROR] Dangerous PATH detected (contains current directory)\n' >&2
         ((validation_errors++))
-    fi
-    
-    # Validate disk space for temp operations
-    local available_space_gb
-    available_space_gb=$(df -g "${TMPDIR:-/tmp}" 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
-    if [[ $available_space_gb -lt 1 ]]; then
-        echo "[CONFIG WARNING] Low disk space in temp directory: ${available_space_gb}GB" >&2
     fi
     
     return $validation_errors
 }
 
-# Enhanced directory management with validation
-setup_directories() {
-    local dir_creation_errors=0
+# Enhanced system validation with security checks
+validate_system_requirements() {
+    local -i validation_errors=0
     
-    # Directory Paths with fallback options
-    export CONFIG_DIR="${CURSOR_UNINSTALLER_CONFIG_DIR:-$HOME/.cursor_management}"
-    export LOG_DIR="${CURSOR_UNINSTALLER_LOG_DIR:-$CONFIG_DIR/logs}"
-    export BACKUP_DIR="${CURSOR_UNINSTALLER_BACKUP_DIR:-$CONFIG_DIR/backups}"
-    export TEMP_DIR="${CURSOR_UNINSTALLER_TEMP_DIR:-${TMPDIR:-/tmp}/cursor_management_$$}"
+    # Security validation first
+    _validate_security_context || ((validation_errors++))
+    
+    # Platform validation
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        printf '[CONFIG ERROR] This utility requires macOS - Current OS: %s\n' "$OSTYPE" >&2
+        ((validation_errors++))
+    fi
+    
+    # Memory validation with safer arithmetic
+    local -i available_space_gb
+    if available_space_gb=$(df -g "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==2 {print int($4)}'); then
+        if (( available_space_gb < 1 )); then
+            printf '[CONFIG WARNING] Low disk space in temp directory: %dGB\n' "$available_space_gb" >&2
+        fi
+    else
+        printf '[CONFIG WARNING] Cannot determine disk space\n' >&2
+    fi
+    
+    return $validation_errors
+}
 
-    # Create directories with proper permissions
-    local dirs=("$CONFIG_DIR" "$LOG_DIR" "$BACKUP_DIR")
-    for dir in "${dirs[@]}"; do
+# Secure directory setup with proper permissions
+setup_directories() {
+    local -i dir_creation_errors=0
+    
+    # Define directories with secure defaults
+    local -r base_config_dir="${CURSOR_UNINSTALLER_CONFIG_DIR:-$HOME/.cursor_management}"
+    
+    # Validate base directory path security
+    if [[ ! "$base_config_dir" =~ ^/[^[:space:]]*$ ]]; then
+        printf '[CONFIG ERROR] Invalid configuration directory path\n' >&2
+        return 1
+    fi
+    
+    # Set normalized paths
+    declare CONFIG_DIR LOG_DIR BACKUP_DIR TEMP_DIR
+    CONFIG_DIR="$(_normalize_path "$base_config_dir")"
+    readonly CONFIG_DIR
+    LOG_DIR="$(_normalize_path "${CURSOR_UNINSTALLER_LOG_DIR:-$CONFIG_DIR/logs}")"
+    readonly LOG_DIR
+    BACKUP_DIR="$(_normalize_path "${CURSOR_UNINSTALLER_BACKUP_DIR:-$CONFIG_DIR/backups}")"
+    readonly BACKUP_DIR
+    TEMP_DIR="$(_normalize_path "${CURSOR_UNINSTALLER_TEMP_DIR:-${TMPDIR:-/tmp}/cursor_management_$$}")"
+    readonly TEMP_DIR
+    
+    # Export with readonly protection
+    export CONFIG_DIR LOG_DIR BACKUP_DIR TEMP_DIR
+    readonly CONFIG_DIR LOG_DIR BACKUP_DIR TEMP_DIR
+    
+    # Create directories with secure permissions
+    local -a directories=("$CONFIG_DIR" "$LOG_DIR" "$BACKUP_DIR")
+    local dir
+    
+    for dir in "${directories[@]}"; do
         if ! mkdir -p "$dir" 2>/dev/null; then
-            echo "[CONFIG ERROR] Cannot create directory: $dir" >&2
+            printf '[CONFIG ERROR] Cannot create directory: %s\n' "$dir" >&2
             ((dir_creation_errors++))
         else
-            chmod 755 "$dir" 2>/dev/null || true
+            # Set secure permissions (owner only)
+            if ! chmod 700 "$dir" 2>/dev/null; then
+                printf '[CONFIG WARNING] Cannot set secure permissions on: %s\n' "$dir" >&2
+            fi
         fi
     done
     
-    # Handle temp directory specially
+    # Handle temp directory specially with unique naming
     if ! mkdir -p "$TEMP_DIR" 2>/dev/null; then
-        echo "[CONFIG WARNING] Cannot create temp directory, using system temp" >&2
-        export TEMP_DIR="${TMPDIR:-/tmp}"
+        printf '[CONFIG WARNING] Cannot create temp directory, using system temp\n' >&2
+        readonly TEMP_DIR="${TMPDIR:-/tmp}"
+        export TEMP_DIR
+    else
+        chmod 700 "$TEMP_DIR" 2>/dev/null || true
     fi
     
     return $dir_creation_errors
 }
 
-# System Requirements with version checking
-export MIN_MACOS_VERSION="10.15"
-export MIN_MEMORY_GB=8
-export MIN_DISK_SPACE_GB=10
+# System requirements with precise version checking
+readonly MIN_MACOS_VERSION="10.15"
+readonly MIN_MEMORY_GB=8
+readonly MIN_DISK_SPACE_GB=10
 
-# Enhanced system validation
-validate_system_requirements() {
-    local requirement_errors=0
+# Enhanced system validation with detailed compatibility checks
+validate_system_compatibility() {
+    local -i requirement_errors=0
     
-    # Check macOS version
+    # macOS version validation with proper comparison
     if command -v sw_vers >/dev/null 2>&1; then
-        local current_version
-        current_version=$(sw_vers -productVersion)
-        local major_version
-        major_version=$(echo "$current_version" | cut -d. -f1)
-        local minor_version
-        minor_version=$(echo "$current_version" | cut -d. -f2)
+        local current_version major_version minor_version
+        current_version=$(sw_vers -productVersion 2>/dev/null || echo "0.0")
         
-        if [[ $major_version -lt 10 ]] || [[ $major_version -eq 10 && $minor_version -lt 15 ]]; then
-            echo "[CONFIG ERROR] macOS version $current_version is below minimum $MIN_MACOS_VERSION" >&2
-            ((requirement_errors++))
+        # Parse version components safely
+        if [[ "$current_version" =~ ^([0-9]+)\.([0-9]+) ]]; then
+            major_version="${BASH_REMATCH[1]}"
+            minor_version="${BASH_REMATCH[2]}"
+            
+            # Version comparison logic
+            if (( major_version < 10 )) || (( major_version == 10 && minor_version < 15 )); then
+                printf '[CONFIG ERROR] macOS version %s is below minimum %s\n' "$current_version" "$MIN_MACOS_VERSION" >&2
+                ((requirement_errors++))
+            fi
+        else
+            printf '[CONFIG WARNING] Cannot parse macOS version: %s\n' "$current_version" >&2
         fi
+    else
+        printf '[CONFIG ERROR] Cannot determine macOS version\n' >&2
+        ((requirement_errors++))
     fi
     
-    # Check memory
-    local total_memory_gb
-    total_memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo "0")
-    if [[ $total_memory_gb -lt $MIN_MEMORY_GB ]]; then
-        echo "[CONFIG WARNING] System memory ${total_memory_gb}GB is below recommended ${MIN_MEMORY_GB}GB" >&2
+    # Memory validation with error handling
+    local -i total_memory_gb
+    if total_memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}'); then
+        if (( total_memory_gb < MIN_MEMORY_GB )); then
+            printf '[CONFIG WARNING] System memory %dGB is below recommended %dGB\n' "$total_memory_gb" "$MIN_MEMORY_GB" >&2
+        fi
+    else
+        printf '[CONFIG WARNING] Cannot determine system memory\n' >&2
     fi
     
-    # Check available disk space
-    local available_space_gb
-    available_space_gb=$(df -g / 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
-    if [[ $available_space_gb -lt $MIN_DISK_SPACE_GB ]]; then
-        echo "[CONFIG WARNING] Available disk space ${available_space_gb}GB is below recommended ${MIN_DISK_SPACE_GB}GB" >&2
+    # Disk space validation
+    local -i available_space_gb
+    if available_space_gb=$(df -g / 2>/dev/null | awk 'NR==2 {print int($4)}'); then
+        if (( available_space_gb < MIN_DISK_SPACE_GB )); then
+            printf '[CONFIG WARNING] Available disk space %dGB is below recommended %dGB\n' "$available_space_gb" "$MIN_DISK_SPACE_GB" >&2
+        fi
+    else
+        printf '[CONFIG WARNING] Cannot determine disk space\n' >&2
     fi
     
     return $requirement_errors
 }
 
-# Required commands with availability checking
-export REQUIRED_COMMANDS="defaults osascript sudo pgrep pkill find xargs"
+# Required commands with comprehensive validation
+readonly REQUIRED_COMMANDS="defaults osascript sudo pgrep pkill find xargs"
 
 validate_required_commands() {
-    local missing_commands=()
+    local -a missing_commands=()
+    local cmd
     
+    # Check each command individually
     for cmd in $REQUIRED_COMMANDS; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
             missing_commands+=("$cmd")
         fi
     done
     
-    if [[ ${#missing_commands[@]} -gt 0 ]]; then
-        echo "[CONFIG ERROR] Missing required commands: ${missing_commands[*]}" >&2
+    if (( ${#missing_commands[@]} > 0 )); then
+        printf '[CONFIG ERROR] Missing required commands: %s\n' "${missing_commands[*]}" >&2
         return ${#missing_commands[@]}
     fi
     
     return 0
 }
 
-# Cursor Application Configuration with validation
-export CURSOR_APP_PATH="/Applications/Cursor.app"
-export CURSOR_BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+# Cursor application configuration with validation
+readonly CURSOR_APP_PATH="/Applications/Cursor.app"
+readonly CURSOR_BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+export CURSOR_APP_PATH CURSOR_BUNDLE_ID
 
-# CLI paths with priority order
-CURSOR_CLI_PATHS=(
+# CLI paths with priority order and validation
+readonly -a CURSOR_CLI_PATHS=(
     "/usr/local/bin/cursor" 
     "/opt/homebrew/bin/cursor"
     "/usr/bin/cursor"
@@ -158,11 +243,17 @@ CURSOR_CLI_PATHS=(
 )
 export CURSOR_CLI_PATHS
 
-# Enhanced User Data Directories with dynamic user detection
+# Enhanced user data directory function with validation
 get_cursor_user_dirs() {
     local user_home="${1:-$HOME}"
     
-    local dirs=(
+    # Validate user home directory
+    if [[ ! -d "$user_home" ]]; then
+        printf '[ERROR] Invalid user home directory: %s\n' "$user_home" >&2
+        return 1
+    fi
+    
+    local -a dirs=(
         "$user_home/Library/Application Support/Cursor"
         "$user_home/Library/Caches/Cursor"
         "$user_home/Library/Caches/com.todesktop.230313mzl4w4u92"
@@ -179,124 +270,138 @@ get_cursor_user_dirs() {
     printf '%s\n' "${dirs[@]}"
 }
 
-# System Integration Paths with validation
-export LAUNCH_SERVICES_CMD="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+# System integration paths with validation
+readonly LAUNCH_SERVICES_CMD="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 validate_system_paths() {
-    local path_errors=0
+    local -i path_errors=0
     
     if [[ ! -x "$LAUNCH_SERVICES_CMD" ]]; then
-        echo "[CONFIG WARNING] Launch Services command not found or not executable" >&2
+        printf '[CONFIG WARNING] Launch Services command not found or not executable\n' >&2
         ((path_errors++))
     fi
     
     return $path_errors
 }
 
-# Color Constants with theme support
+# Enhanced color scheme with better fallback handling
 setup_color_scheme() {
-    # Support for NO_COLOR environment variable
-    if [[ -n "${NO_COLOR:-}" ]] || [[ "${TERM:-}" == "dumb" ]]; then
-        export RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
+    # Check for color support and NO_COLOR compliance
+    if [[ -n "${NO_COLOR:-}" ]] || [[ "${TERM:-}" == "dumb" ]] || [[ ! -t 1 ]]; then
+        # No color mode
+        readonly RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
     else
-        export RED='\033[0;31m'
-        export GREEN='\033[0;32m'  
-        export YELLOW='\033[1;33m'
-        export BLUE='\033[0;34m'
-        export CYAN='\033[0;36m'
-        export BOLD='\033[1m'
-        export NC='\033[0m'
+        # Color mode with validation
+        if command -v tput >/dev/null 2>&1 && (( $(tput colors 2>/dev/null || echo 0) >= 8 )); then
+            readonly RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[1;33m'
+            readonly BLUE='\033[0;34m' CYAN='\033[0;36m' BOLD='\033[1m' NC='\033[0m'
+        else
+            readonly RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
+        fi
     fi
+    
+    # Export with readonly protection
+    export RED GREEN YELLOW BLUE CYAN BOLD NC
 }
 
-# Production Optimization Settings with adaptive configuration
+# Performance configuration with adaptive settings
 setup_optimization_config() {
-    # Get system memory for dynamic configuration
-    local total_memory_gb
-    total_memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo "8")
+    local -i total_memory_gb
     
-    # Adaptive memory limits
-    if [[ $total_memory_gb -ge 32 ]]; then
-        export AI_MEMORY_LIMIT_GB=16
-        export AI_CONTEXT_LENGTH=16384
-    elif [[ $total_memory_gb -ge 16 ]]; then
-        export AI_MEMORY_LIMIT_GB=8
-        export AI_CONTEXT_LENGTH=8192
+    # Get system memory with error handling
+    if total_memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}'); then
+        # Adaptive configuration based on available memory
+        if (( total_memory_gb >= 32 )); then
+            readonly AI_MEMORY_LIMIT_GB=16 AI_CONTEXT_LENGTH=16384
+        elif (( total_memory_gb >= 16 )); then
+            readonly AI_MEMORY_LIMIT_GB=8 AI_CONTEXT_LENGTH=8192
+        else
+            readonly AI_MEMORY_LIMIT_GB=4 AI_CONTEXT_LENGTH=4096
+        fi
     else
-        export AI_MEMORY_LIMIT_GB=4
-        export AI_CONTEXT_LENGTH=4096
+        # Conservative defaults
+        readonly AI_MEMORY_LIMIT_GB=4 AI_CONTEXT_LENGTH=4096
     fi
     
-    export AI_TEMPERATURE=0.05
-    export AI_MAX_TOKENS=2048
-    export FILE_DESCRIPTOR_LIMIT=65536
+    # Performance constants
+    readonly AI_TEMPERATURE=0.05 AI_MAX_TOKENS=2048 FILE_DESCRIPTOR_LIMIT=65536
+    
+    # Export configuration
+    export AI_MEMORY_LIMIT_GB AI_CONTEXT_LENGTH AI_TEMPERATURE AI_MAX_TOKENS FILE_DESCRIPTOR_LIMIT
 }
 
-# Timeout Settings with environment-based configuration
+# Timeout configuration with adaptive settings
 setup_timeout_config() {
-    # Adjust timeouts based on system performance
-    local cpu_cores
-    cpu_cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "1")
+    local -i cpu_cores
     
-    if [[ $cpu_cores -ge 8 ]]; then
-        export OPERATION_TIMEOUT=180
-        export SUDO_TIMEOUT=45
-        export NETWORK_TIMEOUT=20
-    elif [[ $cpu_cores -ge 4 ]]; then
-        export OPERATION_TIMEOUT=300
-        export SUDO_TIMEOUT=60
-        export NETWORK_TIMEOUT=30
+    # Get CPU core count with error handling
+    if cpu_cores=$(sysctl -n hw.ncpu 2>/dev/null); then
+        # Adaptive timeouts based on CPU performance
+        if (( cpu_cores >= 8 )); then
+            readonly OPERATION_TIMEOUT=180 SUDO_TIMEOUT=45 NETWORK_TIMEOUT=20
+        elif (( cpu_cores >= 4 )); then
+            readonly OPERATION_TIMEOUT=300 SUDO_TIMEOUT=60 NETWORK_TIMEOUT=30
+        else
+            readonly OPERATION_TIMEOUT=600 SUDO_TIMEOUT=90 NETWORK_TIMEOUT=45
+        fi
     else
-        export OPERATION_TIMEOUT=600
-        export SUDO_TIMEOUT=90
-        export NETWORK_TIMEOUT=45
+        # Conservative defaults
+        readonly OPERATION_TIMEOUT=600 SUDO_TIMEOUT=90 NETWORK_TIMEOUT=45
     fi
-}
-
-# Logging configuration
-setup_logging_config() {
-    export LOG_LEVEL="${CURSOR_UNINSTALLER_LOG_LEVEL:-INFO}"
-    export LOG_FORMAT="${CURSOR_UNINSTALLER_LOG_FORMAT:-[%Y-%m-%d %H:%M:%S] [%LEVEL%] %MESSAGE%}"
-    export LOG_MAX_SIZE="${CURSOR_UNINSTALLER_LOG_MAX_SIZE:-10M}"
-    export LOG_ROTATE="${CURSOR_UNINSTALLER_LOG_ROTATE:-5}"
-}
-
-# Main configuration initialization
-init_config() {
-    local init_errors=0
     
-    # Run all configuration steps
-    validate_config || ((init_errors++))
+    # Export timeouts
+    export OPERATION_TIMEOUT SUDO_TIMEOUT NETWORK_TIMEOUT
+}
+
+# Enhanced logging configuration
+setup_logging_config() {
+    readonly LOG_LEVEL="${CURSOR_UNINSTALLER_LOG_LEVEL:-INFO}"
+    readonly LOG_FORMAT="${CURSOR_UNINSTALLER_LOG_FORMAT:-[%Y-%m-%d %H:%M:%S] [%LEVEL%] %MESSAGE%}"
+    readonly LOG_MAX_SIZE="${CURSOR_UNINSTALLER_LOG_MAX_SIZE:-10M}"
+    readonly LOG_ROTATE="${CURSOR_UNINSTALLER_LOG_ROTATE:-5}"
+    
+    export LOG_LEVEL LOG_FORMAT LOG_MAX_SIZE LOG_ROTATE
+}
+
+# Main configuration initialization with comprehensive error handling
+init_config() {
+    local -i init_errors=0
+    
+    # Run configuration steps with proper error accumulation
+    validate_system_requirements || ((init_errors++))
     setup_directories || ((init_errors++))
-    validate_system_requirements || true  # Don't fail on warnings
+    validate_system_compatibility || true  # Don't fail on warnings
     validate_required_commands || ((init_errors++))
     validate_system_paths || true  # Don't fail on warnings
+    
+    # Setup configurations (these should not fail)
     setup_color_scheme
     setup_optimization_config
     setup_timeout_config
     setup_logging_config
     
-    if [[ $init_errors -eq 0 ]]; then
-        export CONFIG_LOADED=true
-        export CONFIG_STATUS="READY"
+    # Set final status
+    if (( init_errors == 0 )); then
+        readonly CONFIG_LOADED=true CONFIG_STATUS="READY"
     else
-        export CONFIG_LOADED=false
-        export CONFIG_STATUS="DEGRADED"
-        echo "[CONFIG ERROR] Configuration initialization failed with $init_errors errors" >&2
+        readonly CONFIG_LOADED=false CONFIG_STATUS="DEGRADED"
+        printf '[CONFIG ERROR] Configuration initialization failed with %d errors\n' "$init_errors" >&2
     fi
+    
+    export CONFIG_LOADED CONFIG_STATUS
     
     return $init_errors
 }
 
 # Initialize configuration when sourced
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-    # Being sourced, initialize configuration
+    # Being sourced - initialize configuration
     init_config
 else
-    # Being executed directly, show configuration status
-    echo "Cursor Uninstaller Configuration v${CURSOR_UNINSTALLER_VERSION}"
-    echo "Build: ${CURSOR_UNINSTALLER_BUILD}"
-    echo "Codename: ${CURSOR_UNINSTALLER_CODENAME}"
+    # Being executed directly - show status
+    printf 'Cursor Uninstaller Configuration v%s\n' "$CURSOR_UNINSTALLER_VERSION"
+    printf 'Build: %s\n' "$CURSOR_UNINSTALLER_BUILD"
+    printf 'Codename: %s\n' "$CURSOR_UNINSTALLER_CODENAME"
     init_config
-    echo "Configuration Status: ${CONFIG_STATUS:-UNKNOWN}"
+    printf 'Configuration Status: %s\n' "${CONFIG_STATUS:-UNKNOWN}"
 fi 

@@ -47,10 +47,8 @@ perform_comprehensive_health_check() {
     if command -v vm_stat >/dev/null 2>&1; then
         local vm_output
         vm_output=$(vm_stat 2>/dev/null)
-        local pages_free pages_active pages_inactive page_size
+        local pages_free page_size
         pages_free=$(echo "$vm_output" | awk '/free:/ {print $3}' | tr -d '.')
-        pages_active=$(echo "$vm_output" | awk '/active:/ {print $3}' | tr -d '.')
-        pages_inactive=$(echo "$vm_output" | awk '/inactive:/ {print $3}' | tr -d '.')
         page_size=$(vm_stat 2>/dev/null | awk '/page size/ {print $8}' || echo "4096")
         
         memory_free_gb=$(( (pages_free * page_size) / 1024 / 1024 / 1024 ))
@@ -483,7 +481,7 @@ create_preferences_backup() {
     fi
     
     if [[ "$backup_success" == "true" ]]; then
-        echo "$(date)" > "$BACKUP_PREFERENCES_DIR/backup_timestamp"
+        date > "$BACKUP_PREFERENCES_DIR/backup_timestamp"
         return 0
     else
         return 1
@@ -516,7 +514,11 @@ optimize_visual_effects() {
         effects_success=false
     fi
     
-    return $([ "$effects_success" = true ] && echo 0 || echo 1)
+    if [[ "$effects_success" == "true" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Optimize dock performance
@@ -545,7 +547,11 @@ optimize_dock_performance() {
         dock_success=false
     fi
     
-    return $([ "$dock_success" = true ] && echo 0 || echo 1)
+    if [[ "$dock_success" == "true" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Optimize Finder performance
@@ -574,7 +580,11 @@ optimize_finder_performance() {
         finder_success=false
     fi
     
-    return $([ "$finder_success" = true ] && echo 0 || echo 1)
+    if [[ "$finder_success" == "true" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Advanced memory management optimization
@@ -618,7 +628,11 @@ optimize_network_settings() {
         network_success=false
     fi
     
-    return $([ "$network_success" = true ] && echo 0 || echo 1)
+    if [[ "$network_success" == "true" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Optimize background processes
@@ -698,15 +712,19 @@ EOF
     
     # Add specific recommendations based on issues
     if [[ $issues -gt 0 ]]; then
-        echo "- Consider running system optimization" >> "$report_file"
-        echo "- Close unnecessary applications" >> "$report_file"
-        echo "- Free up disk space if needed" >> "$report_file"
+        {
+            echo "- Consider running system optimization"
+            echo "- Close unnecessary applications"
+            echo "- Free up disk space if needed"
+        } >> "$report_file"
     fi
     
     if [[ "${SYSTEM_OPTIMIZATION_TIER:-}" == "poor" ]]; then
-        echo "- Hardware upgrade may be beneficial" >> "$report_file"
-        echo "- Consider adding more RAM" >> "$report_file"
-        echo "- SSD upgrade recommended if using HDD" >> "$report_file"
+        {
+            echo "- Hardware upgrade may be beneficial"
+            echo "- Consider adding more RAM"
+            echo "- SSD upgrade recommended if using HDD"
+        } >> "$report_file"
     fi
     
     echo "" >> "$report_file"
