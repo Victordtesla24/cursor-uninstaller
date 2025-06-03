@@ -11,7 +11,9 @@ readonly IFS=$' \t\n'
 
 # Script metadata with build information
 readonly SCRIPT_VERSION="4.0.0"
-readonly SCRIPT_BUILD="$(date '+%Y%m%d%H%M%S')"
+declare SCRIPT_BUILD
+SCRIPT_BUILD="$(date '+%Y%m%d%H%M%S')"
+readonly SCRIPT_BUILD
 readonly SCRIPT_CODENAME="SECURITY-ENHANCED"
 
 # SECURITY: Process restrictions and resource limits
@@ -26,7 +28,6 @@ export SCRIPT_VERSION SCRIPT_BUILD SCRIPT_CODENAME
 get_script_path() {
     local source="${BASH_SOURCE[0]}"
     local dir=""
-    local resolved_path=""
     
     # Resolve symlinks securely with depth limit
     local -i symlink_depth=0
@@ -47,7 +48,7 @@ get_script_path() {
     dir="$(cd -P "$(dirname "$source")" && pwd)"
     
     # SECURITY: Comprehensive path validation
-    if [[ ! "$dir" =~ ^/[^[:space:]$'`"\\]*$ ]]; then
+    if [[ ! "$dir" =~ ^/[^[:space:]]*$ ]] || [[ "$dir" =~ [\$\`\"\\] ]]; then
         printf '[SECURITY ERROR] Invalid or dangerous script directory path\n' >&2
         exit 1
     fi
@@ -319,7 +320,7 @@ load_module() {
     module_name="$(basename "$module_path" .sh)"
     
     # SECURITY: Comprehensive path validation
-    if [[ ! "$module_path" =~ ^/[^[:space:]$'`"\\]*\.sh$ ]]; then
+    if [[ ! "$module_path" =~ ^/[^[:space:]]*\.sh$ ]] || [[ "$module_path" =~ [\$\`\"\\] ]]; then
         printf '[SECURITY ERROR] Invalid module path format: %s\n' "$module_path" >&2
         return 1
     fi
@@ -349,9 +350,8 @@ load_module() {
     fi
     
     # SECURITY: Validate file ownership and permissions
-    local file_owner file_perms
+    local file_owner
     file_owner=$(stat -f%u "$real_path" 2>/dev/null || echo "unknown")
-    file_perms=$(stat -f%A "$real_path" 2>/dev/null || echo "unknown")
     
     if [[ "$file_owner" != "$(id -u)" ]] && [[ "$file_owner" != "0" ]]; then
         printf '[SECURITY WARNING] Module owned by different user: %s\n' "$module_name" >&2
@@ -623,7 +623,7 @@ parse_arguments() {
                 dmg_path="$2"
                 
                 # SECURITY: Enhanced DMG path validation
-                if [[ ! "$dmg_path" =~ ^[^[:space:]$'`"\\]*\.dmg$ ]]; then
+                if [[ ! "$dmg_path" =~ ^[^[:space:]]*\.dmg$ ]] || [[ "$dmg_path" =~ [\$\`\"\\] ]]; then
                     error_message "Invalid DMG file path format" "ARG_PARSER"
                     return 1
                 fi

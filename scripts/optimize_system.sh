@@ -6,6 +6,7 @@
 ################################################################################
 
 # Error Handler for this script
+# shellcheck disable=SC2317  # Function is used in trap
 optimize_error_handler() {
     local line_number="$1"
     local failed_command="$2"
@@ -32,12 +33,16 @@ SCRIPT_DIR_OPTIMIZE="$(get_optimize_script_path)"
 PROJECT_ROOT_OPTIMIZE="$(dirname "$SCRIPT_DIR_OPTIMIZE")" # Assumes scripts/ is one level down from project root
 
 # Source necessary libs with corrected relative paths
-# shellcheck source=../lib/config.sh
-source "$PROJECT_ROOT_OPTIMIZE/lib/config.sh" || { echo "Error: Failed to source config.sh" >&2; exit 1; }
-# shellcheck source=../lib/ui.sh
-source "$PROJECT_ROOT_OPTIMIZE/lib/ui.sh" || { echo "Error: Failed to source ui.sh" >&2; exit 1; }
-# shellcheck source=../lib/helpers.sh
-source "$PROJECT_ROOT_OPTIMIZE/lib/helpers.sh" || { echo "Error: Failed to source helpers.sh" >&2; exit 1; } # For terminate_cursor_processes
+# Get the directory of this script for proper relative path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=lib/config.sh
+source "$PROJECT_ROOT/lib/config.sh" || { echo "Error: Failed to source config.sh" >&2; exit 1; }
+# shellcheck source=lib/ui.sh
+source "$PROJECT_ROOT/lib/ui.sh" || { echo "Error: Failed to source ui.sh" >&2; exit 1; }
+# shellcheck source=lib/helpers.sh
+source "$PROJECT_ROOT/lib/helpers.sh" || { echo "Error: Failed to source helpers.sh" >&2; exit 1; } # For terminate_cursor_processes
 
 # Global state tracking for non-interactive mode (if needed by sourced functions)
 NON_INTERACTIVE_MODE=false
@@ -118,7 +123,7 @@ production_execute_optimize() {
     # This uses terminate_cursor_processes from helpers.sh
     if check_cursor_processes > /dev/null; then
         production_info_message "CLOSING CURSOR FOR COMPLETE OPTIMIZATION..."
-        terminate_cursor_processes # From helpers.sh
+        terminate_cursor_processes 10 5 3 # From helpers.sh: graceful_timeout=10s, force_timeout=5s, max_attempts=3
         production_success_message "✓ Cursor processes terminated - ready for optimization"
     fi
     
@@ -132,12 +137,15 @@ production_execute_optimize() {
     
     if [[ -n "$memory_info" ]]; then
         local page_size=4096 # Standard macOS page size
-        local free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//' || echo "0")
-        local inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//' || echo "0")
+        local free_pages
+        free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//' || echo "0")
+        local inactive_pages
+        inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//' || echo "0")
         local available_bytes=$(( (free_pages + inactive_pages) * page_size ))
         available_memory_gb=$(( available_bytes / 1024 / 1024 / 1024 ))
     else
-        local total_memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "8589934592") # Default to 8GB if sysctl fails
+        local total_memory_bytes
+        total_memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "8589934592") # Default to 8GB if sysctl fails
         available_memory_gb=$(( total_memory_bytes / 1024 / 1024 / 1024 / 4 )) # Estimate 25% available
     fi
     
@@ -521,4 +529,4 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     production_execute_optimize "$@"
 fi
 
-exit 0 
+exit 0

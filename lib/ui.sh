@@ -95,8 +95,10 @@ sanitize_message() {
         # Remove null bytes and dangerous control characters
         tr -d '\000-\010\013\014\016-\037\177' | \
         # Remove ALL forms of command substitution and evaluation
-        sed 's/`[^`]*`//g' | \
-        sed 's/\$([^)]*)//g' | \
+        # Remove backtick command substitution (intentionally literal)
+        sed "s/\`[^\`]*\`//g" | \
+        # Remove $() command substitution (intentionally literal)
+        sed "s/\\\$([^)]*)//g" | \
         sed 's/\${[^}]*}//g' | \
         sed 's/\$[a-zA-Z_][a-zA-Z0-9_]*//g' | \
         # Remove eval and exec patterns
@@ -139,7 +141,7 @@ sanitize_message() {
     fi
     
     # SECURITY: Final validation - ensure no dangerous content remains
-    if [[ "$message" =~ (\$\(|\$\{|`|;|&|\|) ]]; then
+    if [[ "$message" =~ \$\(|\$\{|\`|\;|\&|\| ]]; then
         # If dangerous patterns still exist, apply strict sanitization
         message=$(printf '%s' "$message" | tr -cd 'a-zA-Z0-9 .,!?:;()\[\]_-')
         log_with_level "WARNING" "Applied strict sanitization due to dangerous patterns"
@@ -692,4 +694,4 @@ else
     printf 'UI Module v%s\n' "$UI_MODULE_VERSION"
     printf 'This module must be sourced, not executed directly\n'
     exit 1
-fi 
+fi

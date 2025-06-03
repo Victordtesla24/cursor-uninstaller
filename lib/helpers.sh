@@ -258,7 +258,7 @@ safe_remove_file() {
     # SECURITY: Validate path contains only safe characters
     if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
         # Allow spaces and common special characters in user directories
-        if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_. -]+$ ]] || [[ "$normalized_path" =~ [[:cntrl:]] ]]; then
+        if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_.-]+$ ]] || [[ "$normalized_path" =~ [[:cntrl:]] ]]; then
             log_with_level "ERROR" "SECURITY: Path contains dangerous characters: $file_path"
             return 1
         fi
@@ -380,7 +380,8 @@ safe_remove_file() {
     # Create backup if this is an important file and backup is enabled
     local backup_created=false
     if [[ "${ENABLE_BACKUPS:-true}" == "true" && -f "$file_path" && "$file_path" =~ \.(plist|config|json)$ ]]; then
-        local backup_path="${BACKUP_DIR:-/tmp}/$(basename "$file_path").backup.$(date +%s)"
+        local backup_path
+        backup_path="${BACKUP_DIR:-/tmp}/$(basename "$file_path").backup.$(date +%s)"
         if [[ -d "$(dirname "$backup_path")" ]] && cp "$file_path" "$backup_path" 2>/dev/null; then
             log_with_level "INFO" "Created backup: $backup_path"
             backup_created=true
@@ -491,7 +492,8 @@ safe_remove_file() {
             if [[ -d "$parent_dir" ]]; then
                 local basename_file
                 basename_file=$(basename "$file_path")
-                if ls -la "$parent_dir" 2>/dev/null | grep -q "$basename_file"; then
+                # Check if any files matching the pattern exist in parent directory
+                if compgen -G "$parent_dir/$basename_file*" >/dev/null 2>&1; then
                     log_with_level "WARNING" "Possible traces remain in parent directory: $parent_dir"
                 fi
             fi
@@ -871,7 +873,7 @@ check_network_connectivity() {
     local -a test_hosts=("8.8.8.8" "1.1.1.1" "apple.com")
     local -i timeout="${NETWORK_TIMEOUT:-10}"
     local -i successful_tests=0
-    local -i max_concurrent_tests=2
+    # Note: max_concurrent_tests could be used for parallel connectivity checks in the future
     
     log_with_level "INFO" "Checking network connectivity with ${timeout}s timeout..."
     
@@ -992,4 +994,4 @@ else
     printf 'Enhanced Helper Functions v%s\n' "$HELPERS_MODULE_VERSION"
     printf 'This module must be sourced, not executed directly\n'
     exit 1
-fi 
+fi
