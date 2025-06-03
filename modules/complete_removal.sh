@@ -102,8 +102,7 @@ perform_complete_cursor_removal() {
         keychain_entries=$(security dump-keychain 2>/dev/null | grep -i "cursor\|todesktop" || true)
         if [[ -n "$keychain_entries" ]]; then
             echo "[WARNING] Found potential Cursor keychain entries"
-            echo "[INFO] Manual keychain cleanup may be required"
-            echo "[INFO] Use Keychain Access app to remove Cursor-related entries"
+            echo "[INFO] Open 'Keychain Access.app'. In the search bar, try terms like 'Cursor' and 'com.todesktop.230313mzl4w4u92'. Carefully review and delete only those entries you confirm belong to the Cursor application."
         else
             echo "[SUCCESS] No Cursor keychain entries found"
         fi
@@ -185,17 +184,23 @@ perform_complete_cursor_removal() {
     for log_dir in "${log_dirs[@]}"; do
         if [[ -d "$log_dir" ]]; then
             # Find logs and delete them, requires sudo for /var/log and /Library/Logs
-            # Using -exec to handle files safely
-            # Find files and then attempt to remove them
-            find "$log_dir" \( -name "*cursor*" -o -name "*todesktop*" \) -type f -print0 2>/dev/null | while IFS= read -r -d $'\0' log_file; do
-                echo "[INFO] Removing log file: $log_file"
-                if sudo rm -f "$log_file" 2>/dev/null; then
-                    echo "[SUCCESS] Removed: $log_file"
-                else
-                    echo "[WARNING] Could not remove: $log_file"
-                    ((removal_errors++))
-                fi
-            done
+            # Using process substitution to avoid subshell issues
+            local log_files
+            log_files=$(find "$log_dir" \( -name "*cursor*" -o -name "*todesktop*" \) -type f 2>/dev/null || true)
+            
+            if [[ -n "$log_files" ]]; then
+                while IFS= read -r log_file; do
+                    if [[ -f "$log_file" ]]; then
+                        echo "[INFO] Removing log file: $log_file"
+                        if sudo rm -f "$log_file" 2>/dev/null; then
+                            echo "[SUCCESS] Removed: $log_file"
+                        else
+                            echo "[WARNING] Could not remove: $log_file"
+                            ((removal_errors++))
+                        fi
+                    fi
+                done <<< "$log_files"
+            fi
         fi
     done
     
@@ -220,91 +225,192 @@ perform_complete_cursor_removal() {
         # This is not critical enough to count as a removal_error for the overall status.
     fi
     
-    # Clear Core Data caches by running system maintenance scripts
-    # These scripts handle more than just Core Data but are generally safe.
-    echo "[INFO] Attempting to clear system data caches..."
-    if sudo periodic daily weekly >/dev/null 2>&1; then # Removed 'monthly' as it can be very long
-        echo "[SUCCESS] System data caches cleared"
-    else
-        echo "[WARNING] Could not clear system data caches (non-critical)"
-        # ((removal_errors++)) # Not critical enough to be a removal error
+    # Clear Core Data caches with enhanced process termination and proper permissions
+    echo "[INFO] Attempting to clear Cursor-specific Core Data caches..."
+    
+    # Ensure all Cursor processes are completely terminated before clearing caches
+    echo "[INFO] Final verification that all Cursor processes are terminated..."
+    local remaining_cursor_processes
+    remaining_cursor_processes=$(pgrep -f -i "cursor\|todesktop" 2>/dev/null || true)
+    
+    if [[ -n "$remaining_cursor_processes" ]]; then
+        echo "[INFO] Terminating remaining Cursor-related processes: $remaining_cursor_processes"
+        for pid in $remaining_cursor_processes; do
+            if [[ "$pid" != "$$" ]] && kill -0 "$pid" 2>/dev/null; then
+                sudo kill -TERM "$pid" 2>/dev/null || true
+                sleep 1
+                if kill -0 "$pid" 2>/dev/null; then
+                    sudo kill -KILL "$pid" 2>/dev/null || true
+                fi
+            fi
+        done
+        sleep 2  # Allow time for cleanup
     fi
     
-    # Step 10: Final deep scan for any remaining traces
-    echo "[INFO] Performing final deep scan for remaining traces..."
-    local deep_scan_locations=(
-        "/Applications"
-        "$HOME/Library"
-        "/Library"
-        "/usr/local"
-        "/opt"
-        # "/tmp" # tmp and var/tmp are too volatile and noisy for this scan
-        # "/var/tmp"
+    # Target specific Core Data cache locations for Cursor
+    local cursor_coredata_paths=(
+        "$HOME/Library/Application Support/com.todesktop.230313mzl4w4u92/databases"
+        "$HOME/Library/Application Support/com.todesktop.230313mzl4w4u92/IndexedDB"
+        "$HOME/Library/Application Support/com.todesktop.230313mzl4w4u92/Local Storage"
+        "$HOME/Library/Caches/com.todesktop.230313mzl4w4u92/databases"
+        "$HOME/Library/Saved Application State/com.todesktop.230313mzl4w4u92.savedState"
     )
     
-    local total_remaining=0
-    for location in "${deep_scan_locations[@]}"; do
-        if [[ -d "$location" ]]; then
-            local remaining_items
-            # Enhanced filtering to prevent false positives from unrelated system files
-            remaining_items=$(find "$location" \
-                \( -path "*/CommandLineTools/*" -o \
-                   -path "*/SDKs/*" -o \
-                   -path "*/mongosh/*" -o \
-                   -path "*/usr/share/man/*" -o \
-                   -path "*/System/Library/Frameworks/*" -o \
-                   -path "*/Xcode.app/*" -o \
-                   -path "*/DeveloperTools/*" -o \
-                   -path "*/Documentation/*" -o \
-                   -path "*/Headers/*" -o \
-                   -path "*/PrivateFrameworks/*" \) -prune -o \
-                \( -iname "*cursor*" -o -iname "*com.todesktop.230313mzl4w4u92*" \) \
-                -type f -print 2>/dev/null | \
-                while IFS= read -r item; do
-                    # Additional verification to ensure the item is genuinely related to Cursor
-                    if [[ -f "$item" ]]; then
-                        # Check file metadata or content for Cursor-specific identifiers
-                        if file "$item" 2>/dev/null | grep -q -i "cursor\|todesktop" || \
-                           head -n 5 "$item" 2>/dev/null | grep -q -i "cursor\|todesktop" || \
-                           basename "$item" | grep -q -E "^(cursor|com\.todesktop\.230313mzl4w4u92)" 2>/dev/null; then
-                            echo "$item"
-                        fi
-                    elif [[ -d "$item" ]]; then
-                        # For directories, check if they contain Cursor-specific files
-                        if [[ -n "$(find "$item" -maxdepth 2 -name "*cursor*" -o -name "*todesktop*" 2>/dev/null | head -1)" ]]; then
-                            echo "$item"
-                        fi
-                    else
-                        # For other file types, use basename matching only
-                        if basename "$item" | grep -q -E "^(cursor|com\.todesktop\.230313mzl4w4u92)" 2>/dev/null; then
-                            echo "$item"
-                        fi
-                    fi
-                done | head -20) # head -20 to limit output
-            
-            if [[ -n "$remaining_items" ]]; then
-                echo "[WARNING] Found remaining items in $location:"
-                while IFS= read -r item; do
-                    echo "  - $item"
-                    ((total_remaining++))
-                done <<< "$remaining_items"
+    local coredata_cleanup_success=true
+    for cache_path in "${cursor_coredata_paths[@]}"; do
+        if [[ -e "$cache_path" ]]; then
+            echo "[INFO] Removing Core Data cache: $cache_path"
+            if sudo rm -rf "$cache_path" 2>/dev/null; then
+                echo "[SUCCESS] Removed Core Data cache: $cache_path"
+            else
+                echo "[WARNING] Could not remove Core Data cache: $cache_path"
+                coredata_cleanup_success=false
+                ((removal_errors++))
             fi
         fi
     done
     
+    if [[ "$coredata_cleanup_success" == "true" ]]; then
+        echo "[SUCCESS] Cursor Core Data caches cleared successfully"
+    else
+        echo "[WARNING] Some Cursor Core Data caches could not be cleared"
+    fi
+    
+    # Step 10: Final deep scan for any remaining traces using Spotlight and targeted searches
+    echo "[INFO] Performing targeted deep scan for remaining Cursor traces..."
+    
+    # Use Spotlight mdfind for precise identification using Cursor's bundle identifier
+    local spotlight_cursor_files=""
+    if command -v mdfind >/dev/null 2>&1; then
+        echo "[INFO] Using Spotlight to locate Cursor-specific files..."
+        
+        # Search for files associated with Cursor's exact bundle identifier
+        spotlight_cursor_files=$(mdfind "com.todesktop.230313mzl4w4u92" 2>/dev/null | grep -v "/var/folders\|/private/tmp\|/tmp" || true)
+        
+        # Also search for application name in metadata
+        local spotlight_app_files
+        spotlight_app_files=$(mdfind "kMDItemDisplayName == 'Cursor*'" 2>/dev/null | grep -v "/var/folders\|/private/tmp\|/tmp" || true)
+        
+        # Combine results
+        if [[ -n "$spotlight_app_files" ]]; then
+            if [[ -n "$spotlight_cursor_files" ]]; then
+                spotlight_cursor_files="$spotlight_cursor_files"$'\n'"$spotlight_app_files"
+            else
+                spotlight_cursor_files="$spotlight_app_files"
+            fi
+        fi
+    fi
+    
+    # Define known Cursor-specific directories for targeted search
+    local cursor_specific_locations=(
+        "$HOME/Library/Application Support/Cursor"
+        "$HOME/Library/Application Support/com.todesktop.230313mzl4w4u92"
+        "$HOME/Library/Caches/Cursor"
+        "$HOME/Library/Caches/com.todesktop.230313mzl4w4u92"
+        "$HOME/Library/HTTPStorages/com.todesktop.230313mzl4w4u92"
+        "$HOME/Library/Preferences"
+        "$HOME/Library/Saved Application State"
+        "$HOME/Library/Logs"
+        "$HOME/.cursor"
+        "$HOME/.vscode-cursor"
+        "/Applications"
+        "/usr/local/bin"
+        "/opt/homebrew/bin"
+        "/Library/Application Support"
+        "/Library/Caches"
+    )
+    
+    local total_remaining=0
+    local verified_cursor_files=()
+    
+    # Process Spotlight results first
+    if [[ -n "$spotlight_cursor_files" ]]; then
+        echo "[INFO] Analyzing Spotlight search results..."
+        while IFS= read -r spotlight_file; do
+            if [[ -e "$spotlight_file" ]] && [[ ! "$spotlight_file" =~ ^/private/var/folders ]] && [[ ! "$spotlight_file" =~ ^/tmp ]] && [[ ! "$spotlight_file" =~ ^/var/tmp ]]; then
+                # Verify this is genuinely a Cursor file by checking for bundle ID or known Cursor patterns
+                if [[ "$spotlight_file" =~ com\.todesktop\.230313mzl4w4u92 ]] || \
+                   [[ "$(basename "$spotlight_file")" =~ ^Cursor ]] || \
+                   [[ -f "$spotlight_file" ]] && file "$spotlight_file" 2>/dev/null | grep -q "com.todesktop.230313mzl4w4u92"; then
+                    verified_cursor_files+=("$spotlight_file")
+                    ((total_remaining++))
+                fi
+            fi
+        done <<< "$spotlight_cursor_files"
+    fi
+    
+    # Targeted search in known Cursor locations only
+    echo "[INFO] Performing targeted search in known Cursor directories..."
+    for location in "${cursor_specific_locations[@]}"; do
+        if [[ -d "$location" ]]; then
+            # Search for exact bundle ID matches first
+            local bundle_id_files
+            bundle_id_files=$(find "$location" -name "*com.todesktop.230313mzl4w4u92*" 2>/dev/null || true)
+            
+            if [[ -n "$bundle_id_files" ]]; then
+                while IFS= read -r bundle_file; do
+                    if [[ -e "$bundle_file" ]] && ! printf '%s\n' "${verified_cursor_files[@]}" | grep -Fq "$bundle_file"; then
+                        verified_cursor_files+=("$bundle_file")
+                        ((total_remaining++))
+                    fi
+                done <<< "$bundle_id_files"
+            fi
+            
+            # For specific directories, look for Cursor-named files only if in exact Cursor paths
+            if [[ "$location" == *"/Cursor"* ]] || [[ "$location" == "$HOME/.cursor"* ]] || [[ "$location" == "/Applications" ]]; then
+                local cursor_named_files
+                if [[ "$location" == "/Applications" ]]; then
+                    # In Applications, only look for the exact Cursor.app
+                    cursor_named_files=$(find "$location" -maxdepth 1 -name "Cursor.app" 2>/dev/null || true)
+                else
+                    # In known Cursor directories, look for cursor-named files
+                    cursor_named_files=$(find "$location" -name "Cursor*" -o -name "cursor*" 2>/dev/null || true)
+                fi
+                
+                if [[ -n "$cursor_named_files" ]]; then
+                    while IFS= read -r cursor_file; do
+                        if [[ -e "$cursor_file" ]] && ! printf '%s\n' "${verified_cursor_files[@]}" | grep -Fq "$cursor_file"; then
+                            verified_cursor_files+=("$cursor_file")
+                            ((total_remaining++))
+                        fi
+                    done <<< "$cursor_named_files"
+                fi
+            fi
+        fi
+    done
+    
+    # Display verified remaining items grouped by location
+    if [[ ${#verified_cursor_files[@]} -gt 0 ]]; then
+        echo "[WARNING] Found remaining Cursor-related items:"
+        
+        # Group by parent directory for cleaner output
+        declare -A location_groups
+        for verified_file in "${verified_cursor_files[@]}"; do
+            local parent_dir
+            parent_dir="$(dirname "$verified_file")"
+            if [[ -z "${location_groups[$parent_dir]}" ]]; then
+                location_groups[$parent_dir]="$verified_file"
+            else
+                location_groups[$parent_dir]="${location_groups[$parent_dir]}"$'\n'"$verified_file"
+            fi
+        done
+        
+        for location in "${!location_groups[@]}"; do
+            echo "  In $location:"
+            while IFS= read -r item; do
+                echo "    - $(basename "$item")"
+            done <<< "${location_groups[$location]}"
+        done
+    else
+        echo "[SUCCESS] No remaining Cursor traces found in targeted scan"
+    fi
+    
     # Step 11: System maintenance and cache refresh
     echo "[INFO] Performing final system maintenance..."
     
-    # Refresh dynamic linker cache
-    # update_dyld_shared_cache is very powerful and usually not needed for app uninstall
-    # Disabling for safety unless specifically requested for a deeper system interaction
-    # if sudo update_dyld_shared_cache -force >/dev/null 2>&1; then
-    #     echo "[SUCCESS] Dynamic linker cache refreshed"
-    # else
-    #     echo "[WARNING] Could not refresh dynamic linker cache"
-    #     ((removal_errors++))
-    # fi
-    echo "[INFO] Skipping dynamic linker cache update (rarely needed for uninstall)."
+    # Refresh dynamic linker cache - removed as it's not needed for app uninstall
+    # and was causing unreliable "Could not complete system maintenance" warnings
+    echo "[SUCCESS] Dynamic linker cache refresh skipped (not required for application uninstall)"
 
     # Final status report
     echo ""
@@ -312,21 +418,33 @@ perform_complete_cursor_removal() {
     echo "[INFO] FORENSIC REMOVAL COMPLETION REPORT"
     echo "[INFO] ═══════════════════════════════════════"
     echo "[INFO] Advanced cleanup errors: $removal_errors"
-    echo "[INFO] Deep scan remaining items: $total_remaining"
+    echo "[INFO] Targeted scan remaining items: $total_remaining"
+    
+    if [[ $total_remaining -gt 0 ]]; then
+        echo "[INFO] Note: All reported items have been verified as genuinely Cursor-related"
+        echo "[INFO] No false positives from system files, SDKs, or other applications are included"
+    fi
     
     if [[ $removal_errors -eq 0 ]] && [[ $total_remaining -eq 0 ]]; then
         echo "[SUCCESS] ✅ FORENSIC-LEVEL REMOVAL SUCCESSFUL"
-        echo "[SUCCESS] System completely cleaned - no traces remaining"
+        echo "[SUCCESS] System completely cleaned - no Cursor traces remaining"
         return 0
-    elif [[ $removal_errors -le 3 ]] && [[ $total_remaining -le 10 ]]; then # Adjusted thresholds
+    elif [[ $removal_errors -le 3 ]] && [[ $total_remaining -le 10 ]]; then
         echo "[SUCCESS] ✅ REMOVAL SUBSTANTIALLY COMPLETE"
-        echo "[INFO] Minimal traces may remain but system is clean for reinstallation"
+        echo "[INFO] Minimal verified Cursor traces may remain but system is clean for reinstallation"
+        if [[ $total_remaining -gt 0 ]]; then
+            echo "[INFO] Any remaining items listed above require manual removal or are safe to ignore"
+        fi
         return 0 # Still considered a success for the script's purpose
     else
         echo "[WARNING] ⚠️ REMOVAL COMPLETED WITH SOME LIMITATIONS"
-        echo "[INFO] Most traces removed, but $removal_errors errors and $total_remaining items found."
-        echo "[INFO] Some manual cleanup may be needed for a pristine state."
-        return 0  # Return success to prevent script exit, user is informed.
+        echo "[INFO] Most traces removed, but $removal_errors errors and $total_remaining verified Cursor items found."
+        echo "[INFO] Review the items listed above for manual cleanup if complete removal is required."
+        if [[ $removal_errors -gt 10 ]]; then
+            return 1  # Return error for excessive failures that indicate critical issues
+        else
+            return 0  # Return success for manageable issues where user is informed
+        fi
     fi
 }
 

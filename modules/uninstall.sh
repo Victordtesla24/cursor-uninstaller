@@ -69,10 +69,14 @@ enhanced_uninstall_cursor() {
     
     # Return proper success/failure status
     if [[ $removal_errors -eq 0 ]]; then
+        echo "[SUCCESS] Enhanced uninstall completed successfully"
         return 0
+    elif [[ $removal_errors -le 3 ]]; then
+        echo "[INFO] Enhanced uninstall completed with $removal_errors minor warnings/errors"
+        return 0  # Return success for minor issues
     else
-        echo "[INFO] Enhanced uninstall completed with $removal_errors warnings/errors"
-        return 0  # Return success even with warnings to prevent script exit
+        echo "[ERROR] Enhanced uninstall completed with $removal_errors significant errors"
+        return 1  # Return error for critical failures
     fi
 }
 

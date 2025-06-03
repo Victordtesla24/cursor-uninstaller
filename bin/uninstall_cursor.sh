@@ -439,7 +439,7 @@ production_main() {
             production_execute_install
             ;;
         "optimize")
-            production_execute_optimize
+            production_execute_optimize "$@"
             ;;
         "check")
             production_execute_check
@@ -457,7 +457,7 @@ production_main() {
             production_execute_system_specs
             ;;
         "menu")
-            production_show_menu
+            production_show_menu "$@"
             ;;
         *)
             production_show_help
@@ -1259,28 +1259,42 @@ production_show_menu() {
         
         case "$choice" in
             1)
-                production_execute_check
+                if ! production_execute_check; then
+                    production_warning_message "The status check operation encountered errors. Please review the output above for details."
+                fi
                 ;;
             2)
-                production_execute_complete_uninstall
+                if ! production_execute_complete_uninstall; then
+                    production_warning_message "The uninstall operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             3)
-                production_execute_optimize
+                if ! production_execute_optimize "$@"; then
+                    production_warning_message "The optimization operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             4)
-                production_execute_git_backup
+                if ! production_execute_git_backup; then
+                    production_warning_message "The git operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             5)
-                production_execute_health_check
+                if ! production_execute_health_check; then
+                    production_warning_message "The health check operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             6)
                 production_show_help
                 ;;
             7)
-                production_execute_git_status
+                if ! production_execute_git_status; then
+                    production_warning_message "The git status operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             8)
-                production_execute_system_specs
+                if ! production_execute_system_specs; then
+                    production_warning_message "The system specs operation encountered errors. Please check logs and review the output above for details."
+                fi
                 ;;
             [Qq]|[Qq][Uu][Ii][Tt])
                 production_info_message "EXITING SCRIPT...GOODBYE!"
@@ -1420,6 +1434,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     else
         # NO ARGUMENTS, START INTERACTIVE MENU
         OPERATION="menu"
-        production_show_menu
+        production_show_menu "$@"
     fi
 fi
