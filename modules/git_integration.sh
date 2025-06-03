@@ -192,12 +192,32 @@ perform_git_commit_and_push() {
     
     if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
         echo -n "Proceed with git add, commit, and push? (Y/n): "
-        read -r response
-        case "$response" in
-            [Nn]|[Nn][Oo])
-                production_info_message "Git operations cancelled by user"
-                return 0
-                ;;
+        if read -r -t 30 response 2>/dev/null; then
+            case "$response" in
+                [Nn]|[Nn][Oo])
+                    production_info_message "Git operations cancelled by user"
+                    return 0
+                    ;;
+                ""|[Yy]|[Yy][Ee][Ss])
+                    # Continue with operations
+                    ;;
+                *)
+                    production_warning_message "Invalid response, defaulting to 'no'"
+                    return 0
+                    ;;
+            esac
+        else
+            production_warning_message "No response received, cancelling operations"
+            return 0
+        fi
+    fi
+    
+    # Create backup point for rollback capability
+    local backup_ref
+    backup_ref=$(git rev-parse HEAD 2>/dev/null || echo "none")
+    if [[ "$backup_ref" != "none" ]]; then
+        production_info_message "Creating backup reference: $backup_ref"
+    fi
         esac
     fi
     

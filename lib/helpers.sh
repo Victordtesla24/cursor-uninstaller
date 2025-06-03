@@ -195,17 +195,34 @@ safe_remove_file() {
         return 1
     fi
     
-    # SECURITY FIX: Comprehensive path traversal prevention
-    local normalized_path
+    # SECURITY FIX: Comprehensive path traversal prevention with realpath validation
+    local normalized_path resolved_path
     
-    # Remove dangerous path components and normalize
-    normalized_path=$(printf '%s' "$file_path" | \
-        # Remove all .. sequences
-        sed 's|\.\./||g; s|\./||g' | \
-        # Remove multiple consecutive slashes
-        sed 's|//\+|/|g' | \
-        # Remove trailing slashes (except for root)
-        sed 's|/\+$||; s|^$|/|')
+    # First, resolve the real path to prevent symlink attacks
+    if command -v realpath >/dev/null 2>&1; then
+        if ! resolved_path=$(realpath -m "$file_path" 2>/dev/null); then
+            log_with_level "ERROR" "Cannot resolve path: $file_path"
+            return 1
+        fi
+        normalized_path="$resolved_path"
+    else
+        # Fallback normalization if realpath not available
+        normalized_path=$(printf '%s' "$file_path" | \
+            # Remove all .. sequences completely
+            sed 's|\.\./\+||g; s|/\.\./\+|/|g; s|\.\.$||; s|^\.\./\+||' | \
+            # Remove ./ sequences
+            sed 's|\./||g; s|/\./|/|g' | \
+            # Remove multiple consecutive slashes
+            sed 's|//\+|/|g' | \
+            # Remove trailing slashes (except for root)
+            sed 's|/\+$||; s|^$|/|')
+    fi
+    
+    # SECURITY: Validate that path doesn't contain any remaining traversal attempts
+    if [[ "$normalized_path" =~ \.\./|\.\. ]]; then
+        log_with_level "ERROR" "SECURITY: Path contains traversal sequences after normalization: $file_path"
+        return 1
+    fi
     
     # SECURITY: Block dangerous path patterns
     case "$normalized_path" in
@@ -573,17 +590,40 @@ terminate_cursor_processes() {
             ((waited++))
         done
         
-        # Step 2: Send TERM signal to remaining processes
+        # Step 2: Send TERM signal to remaining processes with PID verification
         log_with_level "INFO" "Sending TERM signal to remaining processes..."
+        local -a pids_to_terminate=()
         while IFS= read -r process_line; do
             local pid="${process_line%%:*}"
             if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
-                kill -TERM "$pid" 2>/dev/null || true
+                pids_to_terminate+=("$pid")
             fi
         done <<< "$cursor_processes"
         
-        # Wait for TERM to take effect
-        sleep "$force_timeout"
+        # Send TERM signals to validated PIDs
+        for pid in "${pids_to_terminate[@]}"; do
+            # Re-verify PID exists before sending signal
+            if kill -0 "$pid" 2>/dev/null; then
+                kill -TERM "$pid" 2>/dev/null || true
+            fi
+        done
+        
+        # Wait for TERM to take effect with periodic verification
+        local -i term_wait=0
+        while (( term_wait < force_timeout )); do
+            local still_running=false
+            for pid in "${pids_to_terminate[@]}"; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    still_running=true
+                    break
+                fi
+            done
+            if [[ "$still_running" == "false" ]]; then
+                break
+            fi
+            sleep 1
+            ((term_wait++))
+        done
         
         # Step 3: Force kill if necessary
         if check_cursor_processes >/dev/null; then
@@ -818,28 +858,40 @@ verify_file_operation() {
     esac
 }
 
-# Enhanced network connectivity check with multiple validation methods
+# Enhanced network connectivity check with multiple validation methods and proper timeouts
 check_network_connectivity() {
     local -a test_hosts=("8.8.8.8" "1.1.1.1" "apple.com")
-    local -i timeout=5
+    local -i timeout="${NETWORK_TIMEOUT:-10}"
     local -i successful_tests=0
+    local -i max_concurrent_tests=2
     
-    log_with_level "INFO" "Checking network connectivity..."
+    log_with_level "INFO" "Checking network connectivity with ${timeout}s timeout..."
     
+    # Use timeout command to ensure we don't hang
     for host in "${test_hosts[@]}"; do
-        # Use multiple methods for robustness
-        if ping -c 1 -W $timeout "$host" >/dev/null 2>&1; then
+        # Use multiple methods for robustness with proper timeout enforcement
+        if timeout "$timeout" ping -c 1 -W 2 "$host" >/dev/null 2>&1; then
             log_with_level "SUCCESS" "Network connectivity verified (reached $host)"
             ((successful_tests++))
             break
         elif command -v nc >/dev/null 2>&1 && [[ "$host" =~ ^[0-9.]+$ ]]; then
-            # Try with netcat for IP addresses
-            if timeout $timeout nc -z "$host" 53 2>/dev/null; then
+            # Try with netcat for IP addresses with timeout
+            if timeout "$timeout" nc -z -w2 "$host" 53 2>/dev/null; then
                 log_with_level "SUCCESS" "Network connectivity verified via nc (reached $host)"
                 ((successful_tests++))
                 break
             fi
+        elif command -v curl >/dev/null 2>&1 && [[ "$host" =~ ^[a-zA-Z] ]]; then
+            # Try HTTP check for domain names with timeout
+            if timeout "$timeout" curl -s --connect-timeout 2 --max-time "$timeout" "https://$host" >/dev/null 2>&1; then
+                log_with_level "SUCCESS" "Network connectivity verified via curl (reached $host)"
+                ((successful_tests++))
+                break
+            fi
         fi
+        
+        # Add small delay between tests to avoid overwhelming network
+        sleep 0.5
     done
     
     if (( successful_tests > 0 )); then

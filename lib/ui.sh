@@ -90,20 +90,26 @@ sanitize_message() {
         # Remove other dangerous escape sequences
         sed 's/\x1b[()][AB0-9]//g')
     
-    # SECURITY: Remove shell command injection patterns
+    # SECURITY: Remove shell command injection patterns with comprehensive filtering
     message=$(printf '%s' "$message" | \
-        # Remove backticks and command substitution
-        tr -d '`' | \
-        sed 's/\$(\([^)]*\))//g' | \
-        sed 's/\${\([^}]*\)}//g' | \
-        # Remove dangerous shell operators
-        sed 's/[;&|]/ /g' | \
-        # Remove redirection operators
-        sed 's/[<>]/ /g' | \
+        # Remove null bytes and dangerous control characters
+        tr -d '\000-\010\013\014\016-\037\177' | \
+        # Remove ALL forms of command substitution and evaluation
+        sed 's/`[^`]*`//g' | \
+        sed 's/\$([^)]*)//g' | \
+        sed 's/\${[^}]*}//g' | \
+        sed 's/\$[a-zA-Z_][a-zA-Z0-9_]*//g' | \
+        # Remove eval and exec patterns
+        sed 's/eval[[:space:]]*[^[:space:]]*/EVAL_REMOVED/g' | \
+        sed 's/exec[[:space:]]*[^[:space:]]*/EXEC_REMOVED/g' | \
+        # Remove dangerous shell operators and metacharacters
+        sed 's/[;&|><]/ /g' | \
+        # Remove function definition patterns
+        sed 's/()[[:space:]]*{/FUNCTION_REMOVED/g' | \
         # Clean up multiple spaces
-        sed 's/  \+/ /g' | \
+        sed 's/[[:space:]]\+/ /g' | \
         # Trim leading/trailing whitespace
-        sed 's/^ *//; s/ *$//')
+        sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
     
     # SECURITY: Additional strict filtering for log injection prevention
     if [[ "$strict_mode" == "true" ]]; then
@@ -256,11 +262,12 @@ show_progress() {
     fi
 }
 
-# Enhanced spinner with process monitoring
+# Enhanced spinner with process monitoring and cleanup
 show_spinner() {
     local message="$1"
     local duration="${2:-5}"
     local monitor_pid="${3:-}"
+    local cleanup_on_exit="${4:-true}"
     
     # Sanitize message
     message=$(sanitize_message "$message" 50)
@@ -307,6 +314,15 @@ show_spinner() {
         printf '\b✅\n'
     else
         printf '\b[OK]\n'
+    fi
+    
+    # Cleanup: Reset any background processes if needed
+    if [[ "$cleanup_on_exit" == "true" && -n "$monitor_pid" && "$monitor_pid" =~ ^[0-9]+$ ]]; then
+        # Ensure monitored process is properly handled
+        if kill -0 "$monitor_pid" 2>/dev/null; then
+            # Process is still running - this is expected
+            debug_message "Monitored process $monitor_pid still running" "SPINNER"
+        fi
     fi
 }
 

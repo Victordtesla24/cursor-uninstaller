@@ -519,6 +519,7 @@ EOF
 # ENHANCED: Module initialization with failure recovery
 initialize_modules() {
     local -a required_modules=(
+        "$PROJECT_ROOT/lib/error_codes.sh"
         "$PROJECT_ROOT/lib/config.sh"
         "$PROJECT_ROOT/lib/helpers.sh"
         "$PROJECT_ROOT/lib/ui.sh"
@@ -531,6 +532,7 @@ initialize_modules() {
     )
     
     local -a critical_modules=(
+        "$PROJECT_ROOT/lib/error_codes.sh"
         "$PROJECT_ROOT/lib/config.sh"
         "$PROJECT_ROOT/lib/helpers.sh"
     )
@@ -578,16 +580,16 @@ initialize_modules() {
     set -e
     trap 'error_handler $LINENO "$BASH_COMMAND" $?' ERR
     
-    # Report module loading results
+    # Report module loading results with appropriate exit codes
     if [[ $critical_failed -gt 0 ]]; then
         critical_message "Critical modules failed to load - cannot continue" "MODULE_LOADER"
-        return 1
+        return 10  # High exit code for critical failure
     elif [[ $modules_failed -eq 0 ]]; then
         success_message "All $modules_loaded modules loaded successfully" "MODULE_LOADER"
         return 0
     else
         warning_message "$modules_loaded modules loaded, $modules_failed failed (non-critical)" "MODULE_LOADER"
-        return 0  # Continue with reduced functionality
+        return $modules_failed  # Return number of failed modules
     fi
 }
 
@@ -1046,9 +1048,13 @@ basic_health_check() {
     return 0
 }
 
-# ENHANCED: Enhanced interactive menu with security considerations
+# ENHANCED: Enhanced interactive menu with security considerations and loop protection
 show_interactive_menu() {
-    while [[ "$SCRIPT_RUNNING" == "true" ]]; do
+    local -i menu_iterations=0
+    local -i max_menu_iterations=100  # Prevent infinite loops
+    
+    while [[ "$SCRIPT_RUNNING" == "true" ]] && (( menu_iterations < max_menu_iterations )); do
+        ((menu_iterations++))
         clear
         cat << 'EOF'
 ══════════════════════════════════════════════════════════
@@ -1117,6 +1123,13 @@ EOF
         fi
     done
     
+    # Check if we exited due to iteration limit
+    if (( menu_iterations >= max_menu_iterations )); then
+        warning_message "Menu iteration limit reached - exiting for safety"
+        SCRIPT_RUNNING=false
+        SCRIPT_EXITING=true
+    fi
+    
     return 0
 }
 
@@ -1137,10 +1150,20 @@ main() {
     debug_message "Project root: $PROJECT_ROOT"
     debug_message "Non-interactive mode: $NON_INTERACTIVE_MODE"
     
-    # Initialize modules
-    initialize_modules || {
-        warning_message "Some modules failed to load - functionality may be limited"
-    }
+    # Initialize modules with critical error handling
+    local module_init_result=0
+    initialize_modules || module_init_result=$?
+    
+    if (( module_init_result > 0 )); then
+        if (( module_init_result >= 5 )); then
+            # Critical modules failed
+            critical_message "Critical modules failed to load - cannot continue safely"
+            return 1
+        else
+            # Non-critical modules failed
+            warning_message "Some modules failed to load - functionality may be limited"
+        fi
+    fi
     
     # Parse command line arguments
     if ! parse_arguments "$@"; then

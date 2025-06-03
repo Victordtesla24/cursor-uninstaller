@@ -70,8 +70,11 @@ perform_comprehensive_health_check() {
     echo -e "   ${CYAN}Free Memory:${NC} ${memory_free_gb}GB"
     echo -e "   ${CYAN}Memory Pressure:${NC} $memory_pressure_value"
     
-    # Memory scoring
-    if [[ $memory_gb -ge 32 ]]; then
+    # Memory scoring with zero division protection
+    if [[ ! "$memory_gb" =~ ^[0-9]+$ ]] || [[ $memory_gb -eq 0 ]]; then
+        echo -e "   ${RED}❌ Memory: Cannot determine memory size${NC}"
+        ((health_issues += 2))
+    elif [[ $memory_gb -ge 32 ]]; then
         echo -e "   ${GREEN}✅ Memory Capacity: Excellent (32GB+)${NC}"
         ((performance_score += 3))
     elif [[ $memory_gb -ge 16 ]]; then
@@ -129,8 +132,11 @@ perform_comprehensive_health_check() {
     echo -e "   ${CYAN}Used Space:${NC} ${disk_used_gb}GB (${disk_used_percent}%)"
     echo -e "   ${CYAN}Available Space:${NC} $((disk_gb - disk_used_gb))GB"
     
-    # Storage scoring
-    if [[ "$storage_type" == "SSD" ]]; then
+    # Storage scoring with validation
+    if [[ ! "$disk_used_percent" =~ ^[0-9]+$ ]]; then
+        echo -e "   ${YELLOW}⚠️ Disk Usage: Cannot determine usage percentage${NC}"
+        ((health_issues++))
+    elif [[ "$storage_type" == "SSD" ]]; then
         echo -e "   ${GREEN}✅ Storage Type: SSD (Optimal)${NC}"
         ((performance_score += 2))
     else

@@ -165,10 +165,20 @@ validate_dmg_file() {
         install_log "WARNING" "DMG file very large (${file_size_mb}MB) - unusual for Cursor"
     fi
     
-    # Quick DMG integrity check
-    if ! hdiutil imageinfo "$dmg_path" >/dev/null 2>&1; then
-        install_log "ERROR" "DMG file appears to be corrupted or invalid"
+    # Comprehensive DMG integrity check with timeout
+    install_log "DEBUG" "Performing DMG integrity verification..."
+    if ! timeout 30 hdiutil imageinfo "$dmg_path" >/dev/null 2>&1; then
+        install_log "ERROR" "DMG file appears to be corrupted, invalid, or verification timed out"
         return 1
+    fi
+    
+    # Additional file type validation
+    local file_type
+    if command -v file >/dev/null 2>&1; then
+        file_type=$(file "$dmg_path" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        if [[ ! "$file_type" =~ (disk|image|dmg) ]]; then
+            install_log "WARNING" "File may not be a valid DMG: $file_type"
+        fi
     fi
     
     install_log "SUCCESS" "DMG file validation passed (${file_size_mb}MB)"
