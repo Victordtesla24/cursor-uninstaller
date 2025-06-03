@@ -69,16 +69,75 @@ detect_terminal_capabilities() {
     fi
 }
 
-# Secure message sanitization
+# SECURITY ENHANCED: Comprehensive message sanitization with injection prevention
 sanitize_message() {
     local message="$1"
     local max_length="${2:-$UI_MAX_MESSAGE_LENGTH}"
+    local strict_mode="${3:-false}"
     
-    # Remove control characters and limit length
-    message=$(printf '%s' "$message" | tr -cd '[:print:]\n\t' | head -c "$max_length")
+    # Input validation
+    if [[ -z "$message" ]]; then
+        return 0
+    fi
     
-    # Escape special characters for shell safety
-    message=$(printf '%s' "$message" | sed 's/[\[\](){}.*+?^$|\\]/\\&/g')
+    # SECURITY: Remove all control characters and dangerous sequences
+    # First pass: remove null bytes, escape sequences, and control chars
+    message=$(printf '%s' "$message" | \
+        # Remove null bytes and control characters
+        tr -d '\000-\010\013\014\016-\037\177' | \
+        # Remove ANSI escape sequences
+        sed 's/\x1b\[[0-9;]*[mGKHF]//g' | \
+        # Remove other dangerous escape sequences
+        sed 's/\x1b[()][AB0-9]//g')
+    
+    # SECURITY: Remove shell command injection patterns
+    message=$(printf '%s' "$message" | \
+        # Remove backticks and command substitution
+        tr -d '`' | \
+        sed 's/\$(\([^)]*\))//g' | \
+        sed 's/\${\([^}]*\)}//g' | \
+        # Remove dangerous shell operators
+        sed 's/[;&|]/ /g' | \
+        # Remove redirection operators
+        sed 's/[<>]/ /g' | \
+        # Clean up multiple spaces
+        sed 's/  \+/ /g' | \
+        # Trim leading/trailing whitespace
+        sed 's/^ *//; s/ *$//')
+    
+    # SECURITY: Additional strict filtering for log injection prevention
+    if [[ "$strict_mode" == "true" ]]; then
+        message=$(printf '%s' "$message" | \
+            # Allow only alphanumeric, basic punctuation, and safe symbols
+            tr -cd 'a-zA-Z0-9 .,!?:;()\[\]_-' | \
+            # Replace dangerous patterns with safe equivalents
+            sed 's/\.\.\././g')
+    else
+        # Standard mode: allow printable characters but escape dangerous ones
+        message=$(printf '%s' "$message" | \
+            # Keep only printable characters plus newline and tab
+            tr -cd '[:print:]\n\t' | \
+            # Escape shell metacharacters for safe display
+            sed 's/[\[\](){}.*+?^$|\\]/\\&/g' | \
+            # Escape quotes for shell safety
+            sed "s/'/'\\\\''/g" | \
+            sed 's/"/\\"/g')
+    fi
+    
+    # SECURITY: Apply length limitation with safe truncation
+    if [[ -n "$max_length" && "$max_length" -gt 0 ]]; then
+        # Truncate safely without breaking multi-byte characters
+        if (( ${#message} > max_length )); then
+            message="${message:0:$((max_length - 3))}..."
+        fi
+    fi
+    
+    # SECURITY: Final validation - ensure no dangerous content remains
+    if [[ "$message" =~ (\$\(|\$\{|`|;|&|\|) ]]; then
+        # If dangerous patterns still exist, apply strict sanitization
+        message=$(printf '%s' "$message" | tr -cd 'a-zA-Z0-9 .,!?:;()\[\]_-')
+        log_with_level "WARNING" "Applied strict sanitization due to dangerous patterns"
+    fi
     
     printf '%s' "$message"
 }

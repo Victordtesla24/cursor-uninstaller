@@ -195,89 +195,296 @@ safe_remove_file() {
         return 1
     fi
     
-    # Security: Prevent dangerous path operations
-    if [[ "$file_path" =~ ^/+$ ]] || [[ "$file_path" =~ ^/etc|^/usr/bin|^/bin|^/sbin ]]; then
-        log_with_level "ERROR" "Refusing to remove system critical path: $file_path"
-        return 1
+    # SECURITY FIX: Comprehensive path traversal prevention
+    local normalized_path
+    
+    # Remove dangerous path components and normalize
+    normalized_path=$(printf '%s' "$file_path" | \
+        # Remove all .. sequences
+        sed 's|\.\./||g; s|\./||g' | \
+        # Remove multiple consecutive slashes
+        sed 's|//\+|/|g' | \
+        # Remove trailing slashes (except for root)
+        sed 's|/\+$||; s|^$|/|')
+    
+    # SECURITY: Block dangerous path patterns
+    case "$normalized_path" in
+        # System critical directories - absolute protection
+        /|/etc|/etc/*|/usr|/usr/*|/bin|/bin/*|/sbin|/sbin/*|/System|/System/*)
+            log_with_level "ERROR" "SECURITY: Refusing to remove system critical path: $normalized_path"
+            return 1
+            ;;
+        # Root level directories - protection
+        /Applications|/Library|/Users)
+            log_with_level "ERROR" "SECURITY: Refusing to remove root-level directory: $normalized_path"
+            return 1
+            ;;
+        # Prevent accidental /tmp cleaning
+        /tmp|/var/tmp|/private/tmp)
+            log_with_level "ERROR" "SECURITY: Refusing to remove system temp directory: $normalized_path"
+            return 1
+            ;;
+        # Relative paths that could be dangerous
+        ..|../*|*/..|*/../*)
+            log_with_level "ERROR" "SECURITY: Path contains traversal elements: $file_path"
+            return 1
+            ;;
+    esac
+    
+    # SECURITY: Validate path contains only safe characters
+    if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
+        # Allow spaces and common special characters in user directories
+        if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_. -]+$ ]] || [[ "$normalized_path" =~ [[:cntrl:]] ]]; then
+            log_with_level "ERROR" "SECURITY: Path contains dangerous characters: $file_path"
+            return 1
+        fi
     fi
     
-    # Normalize path to prevent directory traversal
-    file_path=$(printf '%s' "$file_path" | sed 's|/\./|/|g; s|//|/|g')
+    # SECURITY: Ensure path is absolute or within allowed directories
+    case "$normalized_path" in
+        /*) 
+            # Absolute path - validate against allowed prefixes
+            local allowed=false
+            local -a allowed_prefixes=(
+                "/Users/$USER"
+                "/Applications/Cursor"
+                "${HOME:-/dev/null}"
+                "${TMPDIR:-/tmp}/cursor"
+                "${CONFIG_DIR:-/dev/null}"
+                "${BACKUP_DIR:-/dev/null}"
+                "${LOG_DIR:-/dev/null}"
+            )
+            
+            for prefix in "${allowed_prefixes[@]}"; do
+                if [[ -n "$prefix" && "$prefix" != "/dev/null" && "$normalized_path" == "$prefix"* ]]; then
+                    allowed=true
+                    break
+                fi
+            done
+            
+            if [[ "$allowed" != "true" ]]; then
+                log_with_level "ERROR" "SECURITY: Path outside allowed directories: $normalized_path"
+                return 1
+            fi
+            ;;
+        *)
+            # Relative path - resolve and revalidate
+            if command -v realpath >/dev/null 2>&1; then
+                local resolved_path
+                if resolved_path=$(realpath "$normalized_path" 2>/dev/null); then
+                    # Recursively validate the resolved absolute path
+                    return $(safe_remove_file "$resolved_path" "$force_remove" "$verify_removal")
+                else
+                    log_with_level "DEBUG" "Cannot resolve relative path, skipping: $normalized_path"
+                    return 0
+                fi
+            else
+                log_with_level "WARNING" "Cannot validate relative path without realpath: $normalized_path"
+                return 1
+            fi
+            ;;
+    esac
     
+    # Use the validated normalized path
+    file_path="$normalized_path"
+    
+    # Check if file/directory exists
     if [[ ! -e "$file_path" ]]; then
         log_with_level "DEBUG" "File does not exist: $file_path"
         return 0
     fi
     
-    # Get file info for logging (with error handling)
-    local file_size file_type
+    # SECURITY: Verify ownership before removal (safety check)
+    local file_owner
+    if file_owner=$(stat -f%u "$file_path" 2>/dev/null); then
+        local current_uid
+        current_uid=$(id -u)
+        
+        # Only proceed if we own the file OR it's in our allowed directories
+        if [[ "$file_owner" != "$current_uid" ]]; then
+            # Check if it's in a directory we can manage
+            case "$file_path" in
+                "$HOME"/*|"${CONFIG_DIR:-/dev/null}"/*|"${BACKUP_DIR:-/dev/null}"/*|"${LOG_DIR:-/dev/null}"/*)
+                    log_with_level "INFO" "File owned by different user but in managed directory: $file_path"
+                    ;;
+                *)
+                    log_with_level "WARNING" "File owned by different user (UID: $file_owner): $file_path"
+                    if [[ "$force_remove" != "true" ]]; then
+                        log_with_level "ERROR" "Refusing to remove file owned by different user without force"
+                        return 1
+                    fi
+                    ;;
+            esac
+        fi
+    fi
+    
+    # Get file info for logging (with comprehensive error handling)
+    local file_size file_type file_permissions
     file_size=$(du -sh "$file_path" 2>/dev/null | cut -f1 || echo "unknown")
+    file_permissions=$(stat -f%p "$file_path" 2>/dev/null | tail -c 4 || echo "unknown")
     
     if [[ -d "$file_path" ]]; then
         file_type="directory"
+        # Count items in directory
+        local item_count
+        item_count=$(find "$file_path" -type f 2>/dev/null | wc -l | tr -d ' ' || echo "unknown")
+        file_size="$file_size ($item_count files)"
     elif [[ -L "$file_path" ]]; then
         file_type="symlink"
+        local link_target
+        link_target=$(readlink "$file_path" 2>/dev/null || echo "unknown")
+        file_size="-> $link_target"
     else
         file_type="file"
     fi
     
+    # Dry-run mode handling
     if [[ "$force_remove" != "true" ]]; then
-        log_with_level "INFO" "Would remove $file_type: $file_path ($file_size)"
+        log_with_level "INFO" "Would remove $file_type: $file_path ($file_size, mode: $file_permissions)"
         return 0
     fi
     
-    log_with_level "INFO" "Removing $file_type: $file_path ($file_size)"
+    log_with_level "INFO" "Removing $file_type: $file_path ($file_size, mode: $file_permissions)"
     
-    # Implement removal strategies with security considerations
+    # ENHANCED: Atomic removal with comprehensive strategies
     local removal_success=false
     local -i attempt=1
-    local -i max_attempts=3
+    local -i max_attempts=4
+    local error_message=""
+    
+    # Create backup if this is an important file and backup is enabled
+    local backup_created=false
+    if [[ "${ENABLE_BACKUPS:-true}" == "true" && -f "$file_path" && "$file_path" =~ \.(plist|config|json)$ ]]; then
+        local backup_path="${BACKUP_DIR:-/tmp}/$(basename "$file_path").backup.$(date +%s)"
+        if [[ -d "$(dirname "$backup_path")" ]] && cp "$file_path" "$backup_path" 2>/dev/null; then
+            log_with_level "INFO" "Created backup: $backup_path"
+            backup_created=true
+        fi
+    fi
     
     while (( attempt <= max_attempts )) && [[ "$removal_success" != "true" ]]; do
         case $attempt in
             1)
-                # Strategy 1: Standard removal
-                if rm -rf "$file_path" 2>/dev/null; then
+                # Strategy 1: Standard removal with error capture
+                if error_message=$(rm -rf "$file_path" 2>&1); then
                     removal_success=true
                 fi
                 ;;
             2)
                 # Strategy 2: Change permissions first (safely)
                 if [[ -e "$file_path" ]]; then
-                    # Only change permissions if we own the file
-                    if [[ "$(stat -f%u "$file_path" 2>/dev/null)" == "$(id -u)" ]]; then
-                        chmod -R u+w "$file_path" 2>/dev/null && rm -rf "$file_path" 2>/dev/null && removal_success=true
+                    error_message=""
+                    # Only change permissions if we own the file or it's in our directory
+                    if [[ "$file_owner" == "$(id -u)" ]] || [[ "$file_path" == "$HOME"/* ]]; then
+                        if chmod -R u+w "$file_path" 2>/dev/null; then
+                            if error_message=$(rm -rf "$file_path" 2>&1); then
+                                removal_success=true
+                            fi
+                        else
+                            error_message="Cannot change permissions"
+                        fi
+                    else
+                        error_message="Insufficient permissions (not owner)"
                     fi
                 fi
                 ;;
             3)
-                # Strategy 3: Use sudo (with confirmation)
-                if [[ -e "$file_path" ]] && command -v sudo >/dev/null 2>&1; then
-                    log_with_level "INFO" "Using elevated privileges for removal"
-                    if sudo rm -rf "$file_path" 2>/dev/null; then
+                # Strategy 3: Process-by-process approach for busy files
+                if [[ -e "$file_path" ]]; then
+                    error_message=""
+                    
+                    # Check if file is in use
+                    local using_processes
+                    if using_processes=$(lsof "$file_path" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u); then
+                        if [[ -n "$using_processes" ]]; then
+                            log_with_level "INFO" "File in use by processes: $using_processes"
+                            
+                            # Try to terminate processes gracefully
+                            echo "$using_processes" | while read -r pid; do
+                                if [[ "$pid" =~ ^[0-9]+$ ]]; then
+                                    log_with_level "INFO" "Requesting process $pid to close file"
+                                    kill -TERM "$pid" 2>/dev/null || true
+                                fi
+                            done
+                            
+                            sleep 2
+                        fi
+                    fi
+                    
+                    # Retry removal
+                    if error_message=$(rm -rf "$file_path" 2>&1); then
                         removal_success=true
                     fi
                 fi
                 ;;
+            4)
+                # Strategy 4: Use sudo with confirmation (last resort)
+                if [[ -e "$file_path" ]] && command -v sudo >/dev/null 2>&1; then
+                    log_with_level "WARNING" "Using elevated privileges for removal (last resort)"
+                    
+                    # Final confirmation for sudo operations
+                    if [[ "${SUDO_REMOVAL_CONFIRMED:-false}" != "true" ]]; then
+                        log_with_level "ERROR" "Sudo removal requires explicit confirmation via SUDO_REMOVAL_CONFIRMED=true"
+                        error_message="Sudo removal not confirmed"
+                    else
+                        # Use sudo with timeout
+                        if timeout 30 sudo rm -rf "$file_path" 2>/dev/null; then
+                            removal_success=true
+                        else
+                            error_message="Sudo removal failed or timed out"
+                        fi
+                    fi
+                fi
+                ;;
         esac
+        
+        # Log attempt results
+        if [[ "$removal_success" != "true" ]]; then
+            log_with_level "WARNING" "Removal attempt $attempt failed: ${error_message:-unknown error}"
+        fi
+        
         ((attempt++))
         
-        # Add small delay between attempts
+        # Add exponential backoff between attempts
         if [[ "$removal_success" != "true" ]] && (( attempt <= max_attempts )); then
-            sleep 1
+            sleep $((attempt - 1))
         fi
     done
     
-    # Verify removal if requested
+    # Final verification and result reporting
     if [[ "$removal_success" == "true" ]]; then
-        if [[ "$verify_removal" == "true" ]] && [[ -e "$file_path" ]]; then
-            log_with_level "ERROR" "File still exists after removal: $file_path"
-            return 1
+        # Verify removal if requested
+        if [[ "$verify_removal" == "true" ]]; then
+            if [[ -e "$file_path" ]]; then
+                log_with_level "ERROR" "CRITICAL: File still exists after successful removal: $file_path"
+                return 1
+            fi
+            
+            # Additional verification: check parent directory doesn't contain traces
+            local parent_dir
+            parent_dir=$(dirname "$file_path")
+            if [[ -d "$parent_dir" ]]; then
+                local basename_file
+                basename_file=$(basename "$file_path")
+                if ls -la "$parent_dir" 2>/dev/null | grep -q "$basename_file"; then
+                    log_with_level "WARNING" "Possible traces remain in parent directory: $parent_dir"
+                fi
+            fi
         fi
-        log_with_level "SUCCESS" "Removed $file_type: $file_path"
+        
+        log_with_level "SUCCESS" "Successfully removed $file_type: $file_path"
         return 0
     else
         log_with_level "ERROR" "Failed to remove $file_type after $max_attempts attempts: $file_path"
+        log_with_level "ERROR" "Final error: ${error_message:-unknown error}"
+        
+        # Restore backup if removal failed and backup exists
+        if [[ "$backup_created" == "true" && -f "$backup_path" ]]; then
+            if cp "$backup_path" "$file_path" 2>/dev/null; then
+                log_with_level "INFO" "Restored backup after failed removal"
+            fi
+        fi
+        
         return 1
     fi
 }
