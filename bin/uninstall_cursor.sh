@@ -515,17 +515,27 @@ production_execute_optimize() {
         export VERBOSE
         
         # Execute the optimization script with all arguments
-        if "$script_path" "$@"; then
+        local opt_result=0
+        "$script_path" "$@" || opt_result=$?
+        
+        if [[ $opt_result -eq 0 ]]; then
             production_success_message "✓ OPTIMIZATION SCRIPT COMPLETED SUCCESSFULLY"
             return 0
+        elif [[ $opt_result -le 2 ]]; then
+            production_warning_message "⚠ OPTIMIZATION SCRIPT COMPLETED WITH MINOR WARNINGS"
+            return 0  # Return success for minor issues
         else
-            production_warning_message "⚠ OPTIMIZATION SCRIPT COMPLETED WITH WARNINGS"
-            return 0  # Return success to prevent menu exit
+            production_error_message "✗ OPTIMIZATION SCRIPT ENCOUNTERED CRITICAL ERRORS (exit code: $opt_result)"
+            return 1  # Return error for critical failures
         fi
     else
         production_warning_message "OPTIMIZATION SCRIPT NOT FOUND - USING FALLBACK"
-        production_basic_optimization_safe
-        return 0
+        if production_basic_optimization_safe; then
+            return 0
+        else
+            production_error_message "✗ BASIC OPTIMIZATION ENCOUNTERED CRITICAL ERRORS"
+            return 1
+        fi
     fi
 }
 
@@ -715,8 +725,9 @@ production_execute_complete_uninstall() {
         production_info_message "SYSTEM HAS BEEN RESTORED TO PRISTINE STATE"
         return 0
     else
-        production_error_message "COMPLETE REMOVAL ENCOUNTERED ERRORS"
+        production_error_message "COMPLETE REMOVAL ENCOUNTERED CRITICAL ERRORS"
         production_error_message "SOME COMPONENTS MAY STILL REMAIN - MANUAL CLEANUP MAY BE REQUIRED"
+        production_error_message "CHECK THE OUTPUT ABOVE FOR SPECIFIC FAILURE DETAILS"
         return 1
     fi
 }
