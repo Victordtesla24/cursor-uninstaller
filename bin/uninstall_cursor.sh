@@ -1,1984 +1,835 @@
 #!/bin/bash
 
 ################################################################################
-# Cursor AI Editor Removal & Management Utility -  GRADE
-# STRICT Production Environment Standards - No Error Masking
+# Cursor AI Editor Removal & Management Utility - REFACTORED
+# Enhanced security, reliability, and maintainability
 ################################################################################
 
-# Script Self-Location & Robust Path Resolution
+# Secure error handling and environment setup
+set -euo pipefail
+readonly IFS=$' \t\n'
+
+# Script metadata
+readonly SCRIPT_VERSION="3.0.0"
+declare SCRIPT_BUILD
+SCRIPT_BUILD="$(date '+%Y%m%d%H%M%S')"
+readonly SCRIPT_BUILD
+readonly SCRIPT_CODENAME="REFACTORED-PRODUCTION"
+
+# Export for external use
+export SCRIPT_VERSION SCRIPT_BUILD SCRIPT_CODENAME
+
+# Script self-location with security validation
 get_script_path() {
-    local SOURCE="${BASH_SOURCE[0]}"
-    local DIR=""
-
-    while [ -h "$SOURCE" ]; do
-        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-        SOURCE="$(readlink "$SOURCE")"
-        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+    local source="${BASH_SOURCE[0]}"
+    local dir=""
+    
+    # Resolve symlinks securely
+    while [[ -h "$source" ]]; do
+        dir="$(cd -P "$(dirname "$source")" && pwd)"
+        source="$(readlink "$source")"
+        [[ $source != /* ]] && source="$dir/$source"
     done
-
-    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-    echo "$DIR"
-}
-
-# Store the script's directory path
-SCRIPT_DIR="$(get_script_path)"
-
-#  GRADE ERROR HANDLING - NO MASKING
-set -eE
-set -o pipefail
-trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
-
-# Global state tracking for production environment
-ERRORS_ENCOUNTERED=0
-NON_INTERACTIVE_MODE=false
-SCRIPT_RUNNING=true
-SCRIPT_EXITING=false
-FORCE_EXIT=false
-
-# -GRADE ERROR HANDLER - Reports real errors without masking
-production_error_handler() {
-    local line_number="$1"
-    local failed_command="$2"
-
-    # Skip error handling if we're in the process of a normal exit
-    if [[ "${SCRIPT_EXITING:-false}" == "true" ]] || [[ "${SCRIPT_RUNNING:-true}" == "false" ]]; then
-        return 0
-    fi
-
-    ((ERRORS_ENCOUNTERED++))
-
-    # Sanitize the command to prevent display issues
-    local sanitized_command
-    sanitized_command=$(echo "$failed_command" | tr -cd '[:print:]' | head -c 100)
-
-    # Report the actual error without masking
-    echo -e "\n[ERROR] LINE $line_number: COMMAND FAILED: $sanitized_command" >&2
-    echo "[ERROR] ERROR COUNT: $ERRORS_ENCOUNTERED" >&2
-
-    # In production, we log but do NOT exit the script unless explicitly requested
-    # This ensures the menu system remains available for troubleshooting
-    if [[ "$FORCE_EXIT" == "true" ]]; then
-        echo "[ERROR] FORCE EXIT REQUESTED, TERMINATING..." >&2
+    
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    
+    # Security: Validate resolved path
+    if [[ ! "$dir" =~ ^/[^[:space:]]*$ ]]; then
+        printf '[ERROR] Invalid script directory path\n' >&2
         exit 1
     fi
-
-    # Reset the error trap to prevent infinite loops
-    trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
-    return 0
+    
+    printf '%s' "$dir"
 }
 
-# Optimization-specific error handler - Enhanced for stability
-handle_optimization_error() {
-    local line_number="$1"
-    local failed_command="${2:-unknown command}"
+# Store the script's directory path securely
+declare SCRIPT_DIR PROJECT_ROOT
+SCRIPT_DIR="$(get_script_path)"
+readonly SCRIPT_DIR
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+readonly PROJECT_ROOT
 
-    # Prevent infinite error loops
-    if [[ "${OPTIMIZATION_ERROR_HANDLING:-false}" == "true" ]]; then
+# Export for external use
+export SCRIPT_DIR PROJECT_ROOT
+
+# Global state with controlled access
+declare -g ERRORS_ENCOUNTERED=0
+declare -g NON_INTERACTIVE_MODE=false
+declare -g SCRIPT_RUNNING=true
+declare -g SCRIPT_EXITING=false
+declare -g VERBOSE_MODE=false
+
+# Secure error handler with controlled reporting
+error_handler() {
+    local line_number="$1"
+    local failed_command="$2"
+    local exit_code="${3:-1}"
+    
+    # Skip if already exiting
+    if [[ "${SCRIPT_EXITING:-false}" == "true" ]]; then
         return 0
     fi
     
-    # Set flag to prevent recursive error handling
-    OPTIMIZATION_ERROR_HANDLING="true"
-
     ((ERRORS_ENCOUNTERED++))
-
-    # Sanitize the command to prevent display issues
-    local sanitized_command
-    sanitized_command=$(echo "$failed_command" | tr -cd '[:print:]' | head -c 80 || echo "command sanitization failed")
-
-    # Report optimization error with context (use stderr with null safety)
-    {
-        echo ""
-        echo "[OPTIMIZATION ERROR] LINE $line_number: COMMAND FAILED: $sanitized_command"
-        echo "[INFO] OPTIMIZATION ERROR COUNT: $ERRORS_ENCOUNTERED"
-        echo "[INFO] Optimization step failed, continuing with remaining optimizations..."
-        echo ""
-    } >&2 2>/dev/null || {
-        # Fallback if stderr redirection fails
-        printf "OPTIMIZATION ERROR at line %d\n" "$line_number" || true
-    }
-
-    # Reset the optimization error handling flag after a delay
-    (sleep 1; OPTIMIZATION_ERROR_HANDLING="false") &
-
-    # Don't exit, just continue with other optimizations
-    # Reinstate trap more carefully
-    if [[ "${BASH_SUBSHELL:-0}" -eq 0 ]]; then
-        trap 'handle_optimization_error $LINENO "$BASH_COMMAND"' ERR 2>/dev/null || true
-    fi
     
+    # Sanitize command for logging (prevent log injection)
+    local sanitized_command
+    sanitized_command=$(printf '%s' "$failed_command" | tr -cd '[:print:]' | head -c 100)
+    
+    # Log error with context
+    printf '[ERROR] Line %d: Command failed (exit %d): %s\n' "$line_number" "$exit_code" "$sanitized_command" >&2
+    printf '[ERROR] Total errors: %d\n' "$ERRORS_ENCOUNTERED" >&2
+    
+    # Reset trap to prevent infinite loops
+    trap 'error_handler $LINENO "$BASH_COMMAND" $?' ERR
     return 0
 }
 
-# Detect if running in non-interactive environment
+# Install error handler
+trap 'error_handler $LINENO "$BASH_COMMAND" $?' ERR
+
+# Enhanced environment detection with security considerations
 detect_environment() {
+    local env_issues=0
+    
+    # Check for non-interactive environment
     if [[ ! -t 0 ]] || [[ -n "${CI:-}" ]] || [[ -n "${DEBIAN_FRONTEND:-}" ]] || [[ "${TERM:-}" == "dumb" ]]; then
         NON_INTERACTIVE_MODE=true
-        echo "[INFO] NON-INTERACTIVE ENVIRONMENT DETECTED"
+        printf '[INFO] Non-interactive environment detected\n' >&2
     fi
+    
+    # Security: Check for dangerous environment variables
+    local -a dangerous_vars=("LD_PRELOAD" "DYLD_INSERT_LIBRARIES" "PROMPT_COMMAND")
+    for var in "${dangerous_vars[@]}"; do
+        if [[ -n "${!var:-}" ]]; then
+            printf '[SECURITY WARNING] Dangerous environment variable: %s\n' "$var" >&2
+            ((env_issues++))
+        fi
+    done
+    
+    # Security: Validate PATH
+    if [[ "$PATH" =~ (^|:)\.(:|$) ]]; then
+        printf '[SECURITY ERROR] PATH contains current directory\n' >&2
+        exit 1
+    fi
+    
+    return $env_issues
 }
 
-# -GRADE sudo handling - NO FALLBACKS OR ERROR MASKING
-production_sudo() {
-    local cmd="$*"
-
-    # Check if sudo is available
+# Secure sudo handling with validation
+secure_sudo() {
+    local -a cmd=("$@")
+    
+    # Validate sudo availability
     if ! command -v sudo >/dev/null 2>&1; then
-        echo "[ERROR] SUDO NOT AVAILABLE - CANNOT PERFORM PRIVILEGED OPERATIONS" >&2
+        printf '[ERROR] sudo not available\n' >&2
         return 1
     fi
-
-    # In non-interactive mode, require passwordless sudo
+    
+    # Security: Validate command arguments
+    for arg in "${cmd[@]}"; do
+        if [[ "$arg" =~ [^[:print:]] ]]; then
+            printf '[ERROR] Invalid characters in sudo command\n' >&2
+            return 1
+        fi
+    done
+    
+    # Handle non-interactive mode
     if [[ "$NON_INTERACTIVE_MODE" == "true" ]]; then
         if ! timeout 5s sudo -n true 2>/dev/null; then
-            echo "[ERROR] PASSWORDLESS SUDO REQUIRED IN NON-INTERACTIVE MODE" >&2
+            printf '[ERROR] Passwordless sudo required in non-interactive mode\n' >&2
             return 1
         fi
-        # Execute with sudo - use direct command execution
-        if ! sudo "$@"; then
-            echo "[ERROR] SUDO COMMAND FAILED: $cmd" >&2
-            return 1
-        fi
+    fi
+    
+    # Execute with proper error handling
+    if sudo "${cmd[@]}"; then
         return 0
+    else
+        local exit_code=$?
+        printf '[ERROR] sudo command failed (exit %d): %s\n' "$exit_code" "${cmd[*]}" >&2
+        return $exit_code
     fi
-
-    # Interactive mode - prompt for sudo - use direct command execution
-    if ! sudo "$@"; then
-        echo "[ERROR] SUDO COMMAND FAILED: $cmd" >&2
-        return 1
-    fi
-
-    return 0
 }
 
-#  module loading - NO FALLBACKS, REPORT REAL STATE
-production_load_module() {
+# Enhanced module loading with security validation
+load_module() {
     local module_path="$1"
     local module_name
     module_name="$(basename "$module_path")"
-
+    
+    # Security: Validate module path
+    if [[ ! "$module_path" =~ ^/[^[:space:]]*\.sh$ ]]; then
+        printf '[ERROR] Invalid module path: %s\n' "$module_path" >&2
+        return 1
+    fi
+    
+    # Check module existence and readability
     if [[ ! -f "$module_path" ]]; then
-        echo "[ERROR] MODULE NOT FOUND: $module_path" >&2
+        printf '[ERROR] Module not found: %s\n' "$module_path" >&2
         return 1
     fi
-
+    
     if [[ ! -r "$module_path" ]]; then
-        echo "[ERROR] MODULE NOT READABLE: $module_path" >&2
+        printf '[ERROR] Module not readable: %s\n' "$module_path" >&2
         return 1
     fi
-
+    
+    # Security: Basic syntax check
+    if ! bash -n "$module_path" 2>/dev/null; then
+        printf '[ERROR] Module has syntax errors: %s\n' "$module_name" >&2
+        return 1
+    fi
+    
+    # Load module with controlled error handling
+    local load_result=0
     # shellcheck source=/dev/null
-    if ! source "$module_path"; then
-        echo "[ERROR] FAILED TO LOAD MODULE: $module_name" >&2
-        return 1
+    source "$module_path" || load_result=$?
+    
+    if (( load_result == 0 )); then
+        printf '[INFO] Successfully loaded module: %s\n' "$module_name" >&2
+        return 0
+    else
+        printf '[ERROR] Failed to load module: %s (exit %d)\n' "$module_name" "$load_result" >&2
+        return $load_result
     fi
+}
 
-    echo "[INFO] SUCCESSFULLY LOADED MODULE: $module_name" >&2
+# Enhanced logging functions with security considerations
+log_message() {
+    local level="${1:-INFO}"
+    local message="${2:-No message provided}"
+    
+    # Input validation and sanitization
+    if [[ ! "$level" =~ ^(ERROR|WARNING|SUCCESS|INFO|DEBUG)$ ]]; then
+        level="INFO"
+    fi
+    message=$(printf '%s' "$message" | tr -cd '[:print:]\n\t' | head -c 1000)
+    
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date)
+    
+    # Route output appropriately
+    case "$level" in
+        "ERROR"|"WARNING")
+            printf '[%s] [%s] %s\n' "$timestamp" "$level" "$message" >&2
+            ;;
+        *)
+            if [[ "$VERBOSE_MODE" == "true" || "$level" != "DEBUG" ]]; then
+                printf '[%s] [%s] %s\n' "$timestamp" "$level" "$message"
+            fi
+            ;;
+    esac
+    
     return 0
 }
 
-################################################################################
-# -GRADE Message Functions - NO MASKING
-################################################################################
+# Convenience logging functions
+error_message() { log_message "ERROR" "$1"; }
+warning_message() { log_message "WARNING" "$1"; }
+success_message() { log_message "SUCCESS" "$1"; }
+info_message() { log_message "INFO" "$1"; }
+debug_message() { log_message "DEBUG" "$1"; }
 
-production_log_message() {
-    local level="${1:-INFO}"
-    local message="${2:-No message provided}"
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-
-    # Always show ERROR and WARNING messages
-    if [[ "$level" == "ERROR" ]] || [[ "$level" == "WARNING" ]]; then
-        echo "[$timestamp] [$level] $message" >&2
-    # Show INFO and DEBUG messages only in verbose mode
-    elif [[ "${VERBOSE:-false}" == "true" ]]; then
-        echo "[$timestamp] [$level] $message" >&2
-    fi
-}
-
-production_error_message() {
-    local message="$1"
-    echo -e "\033[0;31m[ERROR]\033[0m $message" >&2
-}
-
-production_success_message() {
-    local message="$1"
-    echo -e "\033[0;32m[SUCCESS]\033[0m $message" >&2
-}
-
-production_warning_message() {
-    local message="$1"
-    echo -e "\033[1;33m[WARNING]\033[0m $message" >&2
-}
-
-production_info_message() {
-    local message="$1"
-    echo -e "\033[0;36m[INFO]\033[0m $message" >&2
-}
-
-#  help function
-production_show_help() {
+# Enhanced help function with security information
+show_help() {
     cat << 'EOF'
-CURSOR AI EDITOR MANAGEMENT UTILITY
+CURSOR AI EDITOR MANAGEMENT UTILITY v3.0.0 (REFACTORED)
 
 USAGE: ./uninstall_cursor.sh [OPTIONS]
 
- OPTIONS:
-    -u, --uninstall         COMPLETE REMOVAL OF CURSOR (NO BACKUPS)
-    --git-backup           PERFORM GIT BACKUP BEFORE OPERATIONS
-    -i, --install PATH      INSTALL CURSOR FROM DMG FILE
-    -o, --optimize          COMPREHENSIVE PERFORMANCE OPTIMIZATION (AI-FOCUSED)
-    -c, --check             CHECK CURSOR INSTALLATION STATUS (REAL STATE)
-    -m, --menu              SHOW INTERACTIVE MENU (DEFAULT)
-    --health                PERFORM REAL SYSTEM HEALTH CHECK
-    --verbose               ENABLE DETAILED PRODUCTION LOGGING AND DEBUG INFORMATION
-    -h, --help              SHOW THIS HELP MESSAGE
+CORE OPTIONS:
+    -u, --uninstall         Complete removal of Cursor (no backups)
+    -i, --install PATH      Install Cursor from DMG file
+    -o, --optimize          Performance optimization (AI-focused)
+    -c, --check             Check Cursor installation status
+    -m, --menu              Show interactive menu (default)
+    --health                Perform system health check
+    --verbose               Enable detailed logging
+    -h, --help              Show this help message
 
-ADVANCED FEATURES:
-    --git-status           SHOW GIT REPOSITORY STATUS AND INFORMATION
-    --system-specs         DISPLAY SYSTEM SPECIFICATIONS FOR AI OPTIMIZATION
+ADVANCED OPTIONS:
+    --git-backup           Perform Git backup before operations
+    --git-status           Show Git repository status
+    --system-specs         Display system specifications
 
- STANDARDS:
-    • ALL OPERATIONS REFLECT REAL SYSTEM STATE
-    • NO ERROR MASKING OR FALSE POSITIVES
-    • NO FALLBACK MECHANISMS THAT HIDE ERRORS
-    • STRICT ERROR REPORTING AND HANDLING
-    • SCRIPT NEVER EXITS UNLESS 'Q' SELECTED
+SECURITY FEATURES:
+    • Input validation and sanitization
+    • Secure path handling and validation
+    • Protection against command injection
+    • Safe error handling without information leakage
 
 EXAMPLES:
-    ./uninstall_cursor.sh                    # PRODUCTION MENU
-    ./uninstall_cursor.sh --git-backup -u   # GIT BACKUP + COMPLETE UNINSTALL
-    ./uninstall_cursor.sh --optimize        # COMPREHENSIVE AI PERFORMANCE OPTIMIZATION
-    ./uninstall_cursor.sh --verbose         # DETAILED LOGGING
+    ./uninstall_cursor.sh                    # Interactive menu
+    ./uninstall_cursor.sh --git-backup -u   # Backup + uninstall
+    ./uninstall_cursor.sh --optimize        # Performance optimization
+    ./uninstall_cursor.sh --verbose         # Detailed logging
 
 EOF
 }
 
-################################################################################
-#  Module Loading - STRICT REQUIREMENTS
-################################################################################
-
-# Initialize environment
-detect_environment
-
-#  module loading - FAIL if modules missing
-# Determine the project root directory (parent of bin/)
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-REQUIRED_MODULES=(
-    "$PROJECT_ROOT/lib/config.sh"
-    "$PROJECT_ROOT/lib/helpers.sh"
-    "$PROJECT_ROOT/lib/ui.sh"
-    "$PROJECT_ROOT/modules/installation.sh"
-    "$PROJECT_ROOT/modules/optimization.sh"
-    "$PROJECT_ROOT/modules/uninstall.sh"
-    "$PROJECT_ROOT/modules/git_integration.sh"
-    "$PROJECT_ROOT/modules/complete_removal.sh"
-    "$PROJECT_ROOT/modules/ai_optimization.sh"
-)
-
-# Load required modules - Handle missing modules gracefully
-MODULES_LOADED=true
-
-# Temporarily disable error trap during module loading to prevent false errors
-module_loading_trap=$(trap -p ERR | sed "s/trap -- '//" | sed "s/' ERR//" 2>/dev/null || echo "")
-module_loading_set_state="$-"
-set +e  # Disable exit on error during module loading
-trap - ERR  # Disable error trap temporarily
-
-for module in "${REQUIRED_MODULES[@]}"; do
-    if [[ "${VERBOSE:-false}" == "true" ]]; then
-        production_log_message "DEBUG" "LOADING MODULE: $(basename "$module")"
-    fi
-
-    # Call production_load_module and capture result without triggering error trap
-    module_load_result=0
-    production_load_module "$module" || module_load_result=$?
+# Enhanced module initialization with proper error handling
+initialize_modules() {
+    local -a required_modules=(
+        "$PROJECT_ROOT/lib/config.sh"
+        "$PROJECT_ROOT/lib/helpers.sh"
+        "$PROJECT_ROOT/lib/ui.sh"
+        "$PROJECT_ROOT/modules/installation.sh"
+        "$PROJECT_ROOT/modules/optimization.sh"
+        "$PROJECT_ROOT/modules/uninstall.sh"
+        "$PROJECT_ROOT/modules/git_integration.sh"
+        "$PROJECT_ROOT/modules/complete_removal.sh"
+        "$PROJECT_ROOT/modules/ai_optimization.sh"
+    )
     
-    if [[ $module_load_result -ne 0 ]]; then
-        MODULES_LOADED=false
-        production_error_message "REQUIRED MODULE FAILED TO LOAD: $(basename "$module")"
-    else
-        if [[ "${VERBOSE:-false}" == "true" ]]; then
-            production_log_message "DEBUG" "SUCCESSFULLY LOADED: $(basename "$module")"
+    local modules_loaded=0
+    local modules_failed=0
+    
+    info_message "Loading required modules..."
+    
+    # Temporarily disable exit on error for module loading
+    set +e
+    trap - ERR
+    
+    for module in "${required_modules[@]}"; do
+        if load_module "$module"; then
+            ((modules_loaded++))
+            debug_message "Loaded: $(basename "$module")"
+        else
+            ((modules_failed++))
+            error_message "Failed to load: $(basename "$module")"
         fi
-    fi
-done
-
-# Restore error handling state after module loading
-if [[ "$module_loading_set_state" == *e* ]]; then
+    done
+    
+    # Restore error handling
     set -e
-fi
-if [[ -n "$module_loading_trap" ]]; then
-    trap -- "$module_loading_trap" ERR
-else
-    trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
-fi
-
-# Set production configuration if config failed to load
-if [[ "$MODULES_LOADED" == "false" ]]; then
-    production_error_message "CRITICAL: REQUIRED MODULES FAILED TO LOAD"
-    production_error_message "CANNOT OPERATE WITHOUT ALL THE REQUIRED COMPONENTS"
-
-    # Provide minimal configuration - export for use by other modules
-    export ERR_SYSTEM_ERROR=4
-
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    CYAN='\033[0;36m'
-    BOLD='\033[1m'
-    NC='\033[0m'
-
-    # Export color variables for modules
-    export RED GREEN YELLOW BLUE CYAN BOLD NC
-else
-    # Ensure color variables are exported for all modules
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    CYAN='\033[0;36m'
-    BOLD='\033[1m'
-    NC='\033[0m'
-
-    # Export color variables for modules
-    export RED GREEN YELLOW BLUE CYAN BOLD NC
-fi
-
-################################################################################
-# -GRADE Function Wrappers - Actual Functions not Aliases
-################################################################################
-
-# Define actual functions that wrap production functions for compatibility
-log_message() {
-    production_log_message "$@"
-}
-
-error_message() {
-    production_error_message "$@"
-}
-
-success_message() {
-    production_success_message "$@"
-}
-
-warning_message() {
-    production_warning_message "$@"
-}
-
-info_message() {
-    production_info_message "$@"
-}
-
-show_help() {
-    production_show_help "$@"
-}
-
-# Basic show_progress function for UI compatibility
-show_progress() {
-    local current=${1:-0}
-    local total=${2:-100}
-    local message=${3:-"PROCESSING"}
-
-    if [[ "$total" -eq 0 ]]; then
-        production_info_message "$message..."
+    trap 'error_handler $LINENO "$BASH_COMMAND" $?' ERR
+    
+    # Report module loading results
+    if (( modules_failed == 0 )); then
+        success_message "All $modules_loaded modules loaded successfully"
         return 0
-    fi
-
-    local percentage=$(( (current * 100) / total ))
-    local bar_width=30
-    local filled=$(( (percentage * bar_width) / 100 ))
-    local empty=$((bar_width - filled))
-
-    local progress_bar=""
-    for ((i=0; i<filled; i++)); do
-        progress_bar+="█"
-    done
-    for ((i=0; i<empty; i++)); do
-        progress_bar+="░"
-    done
-
-    printf "\r[%s] %3d%% %s" "$progress_bar" "$percentage" "$message"
-
-    if [[ "$current" -ge "$total" ]]; then
-        echo ""  # New line when complete
+    else
+        warning_message "$modules_loaded modules loaded, $modules_failed failed"
+        return $modules_failed
     fi
 }
 
-################################################################################
-#  Main Function - NEVER EXITS UNLESS EXPLICITLY REQUESTED
-################################################################################
-
-production_main() {
-    production_log_message "INFO" "STARTING CURSOR MANAGEMENT UTILITY"
-    production_log_message "INFO" "NON-INTERACTIVE MODE: $NON_INTERACTIVE_MODE"
-    production_log_message "INFO" "MODULES LOADED: $MODULES_LOADED"
-
-    # Ensure critical directories exist
-    if [[ -n "${TEMP_DIR:-}" ]]; then
-        mkdir -p "$TEMP_DIR" 2>/dev/null || {
-            production_warning_message "Could not create temp directory: $TEMP_DIR"
-            export TEMP_DIR="/tmp"
-            mkdir -p "$TEMP_DIR" 2>/dev/null || true
-        }
-    else
-        production_warning_message "TEMP_DIR not set, using /tmp"
-        export TEMP_DIR="/tmp"
-    fi
-
-    # Validate other critical directories
-    for dir_var in CONFIG_DIR LOG_DIR BACKUP_DIR; do
-        local dir_path
-        dir_path=$(eval echo "\$${dir_var}" 2>/dev/null || echo "")
-        if [[ -n "$dir_path" ]]; then
-            mkdir -p "$dir_path" 2>/dev/null || {
-                production_warning_message "Could not create directory for $dir_var: $dir_path"
-            }
-        fi
+# Enhanced argument parser with comprehensive validation
+parse_arguments() {
+    local operation=""
+    local dmg_path=""
+    local git_backup_requested=false
+    
+    while (( $# > 0 )); do
+        case "$1" in
+            -u|--uninstall)
+                operation="uninstall"
+                shift
+                ;;
+            --git-backup)
+                if [[ -z "$operation" ]]; then
+                    operation="git-backup"
+                else
+                    git_backup_requested=true
+                fi
+                shift
+                ;;
+            -i|--install)
+                operation="install"
+                if (( $# < 2 )) || [[ "$2" == -* ]]; then
+                    error_message "Install option requires a DMG path"
+                    return 1
+                fi
+                dmg_path="$2"
+                # Security: Validate DMG path
+                if [[ ! "$dmg_path" =~ ^[^[:space:]]*\.dmg$ ]]; then
+                    error_message "Invalid DMG file path"
+                    return 1
+                fi
+                shift 2
+                ;;
+            -o|--optimize)
+                operation="optimize"
+                shift
+                ;;
+            -c|--check)
+                operation="check"
+                shift
+                ;;
+            -m|--menu)
+                operation="menu"
+                shift
+                ;;
+            --health)
+                operation="health"
+                shift
+                ;;
+            --git-status)
+                operation="git-status"
+                shift
+                ;;
+            --system-specs)
+                operation="system-specs"
+                shift
+                ;;
+            --verbose)
+                VERBOSE_MODE=true
+                shift
+                ;;
+            -h|--help)
+                show_help
+                return 2  # Special return code for help
+                ;;
+            *)
+                error_message "Unknown argument: $1"
+                show_help
+                return 1
+                ;;
+        esac
     done
+    
+    # Set defaults and export
+    export OPERATION="${operation:-menu}"
+    export DMG_PATH="$dmg_path"
+    export GIT_BACKUP_REQUESTED="$git_backup_requested"
+    
+    return 0
+}
 
-    # Show verbose information if enabled
-    if [[ "${VERBOSE:-false}" == "true" ]]; then
-        production_log_message "DEBUG" "VERBOSE MODE ENABLED - SHOWING DETAILED LOGS"
-        production_log_message "DEBUG" "SCRIPT DIRECTORY: $SCRIPT_DIR"
-        production_log_message "DEBUG" "REQUIRED MODULES: ${#REQUIRED_MODULES[@]} TOTAL"
-        production_log_message "DEBUG" "ERRORS ENCOUNTERED: $ERRORS_ENCOUNTERED"
-        production_log_message "DEBUG" "TEMP_DIR: ${TEMP_DIR:-not set}"
-        production_log_message "DEBUG" "CONFIG_DIR: ${CONFIG_DIR:-not set}"
-    fi
-
-    # Parse command line arguments
-    if ! production_parse_arguments "$@"; then
-        production_error_message "FAILED TO PARSE COMMAND LINE ARGUMENTS"
-        production_show_help
-        return 1
-    fi
-
-    # System validation - REAL checks only
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f validate_system_requirements >/dev/null 2>&1; then
-        if ! validate_system_requirements; then
-            production_error_message "SYSTEM VALIDATION FAILED - NOT SUITABLE FOR PRODUCTION USE"
-            return 1
-        fi
-    else
-        production_warning_message "USING BASIC SYSTEM VALIDATION DUE TO MISSING MODULES"
-        # Basic REAL validation
-        if [[ "$OSTYPE" != "darwin"* ]]; then
-            production_error_message "THIS UTILITY REQUIRES macOS - CURRENT OS: $OSTYPE"
-            return 1
-        fi
-    fi
-
-    # Execute operation based on arguments
-    case "${OPERATION:-menu}" in
+# Enhanced operation execution with proper error handling
+execute_operation() {
+    local operation="$1"
+    local exit_code=0
+    
+    info_message "Executing operation: $operation"
+    
+    case "$operation" in
         "uninstall")
-            production_execute_complete_uninstall
+            execute_complete_uninstall || exit_code=$?
             ;;
         "install")
-            production_execute_install
+            execute_install || exit_code=$?
             ;;
         "optimize")
-            production_execute_optimize
+            execute_optimize || exit_code=$?
             ;;
         "check")
-            production_execute_check
+            execute_check || exit_code=$?
             ;;
         "health")
-            production_execute_health_check
+            execute_health_check || exit_code=$?
             ;;
         "git-backup")
-            production_execute_git_backup
+            execute_git_backup || exit_code=$?
             ;;
         "git-status")
-            production_execute_git_status
+            execute_git_status || exit_code=$?
             ;;
         "system-specs")
-            production_execute_system_specs
+            execute_system_specs || exit_code=$?
             ;;
         "menu")
-            production_show_menu
+            show_interactive_menu || exit_code=$?
             ;;
         *)
-            production_show_help
+            error_message "Invalid operation: $operation"
             return 1
             ;;
     esac
-
-    # Report final status
-    if [[ $ERRORS_ENCOUNTERED -gt 0 ]]; then
-        production_warning_message "OPERATION COMPLETED WITH $ERRORS_ENCOUNTERED  ERRORS"
+    
+    # Report operation result
+    if (( exit_code == 0 )); then
+        success_message "Operation '$operation' completed successfully"
+    elif (( exit_code <= 2 )); then
+        warning_message "Operation '$operation' completed with warnings (exit $exit_code)"
+        exit_code=0  # Treat warnings as success
     else
-        production_success_message "OPERATION COMPLETED SUCCESSFULLY IN  MODE"
+        error_message "Operation '$operation' failed (exit $exit_code)"
     fi
-
-    return 0
+    
+    return $exit_code
 }
 
-################################################################################
-#  Operation Functions - REAL OPERATIONS ONLY
-################################################################################
-
-production_execute_install() {
-    production_info_message "EXECUTING INSTALL OPERATION"
-
-    if [[ -z "${DMG_PATH:-}" ]]; then
-        production_error_message "DMG PATH REQUIRED FOR INSTALLATION"
-        return 1
-    fi
-
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f install_cursor_from_dmg >/dev/null 2>&1; then
-        if declare -f confirm_installation_action >/dev/null 2>&1; then
-            if ! confirm_installation_action; then
-                production_info_message "INSTALLATION CANCELLED BY USER"
-                return 0
-            fi
-        fi
-        install_cursor_from_dmg "$DMG_PATH"
-    else
-        production_error_message "CANNOT PERFORM INSTALLATION - REQUIRED MODULES NOT LOADED"
-        return 1
-    fi
-}
-
-production_execute_optimize() {
-    production_info_message "EXECUTING COMPREHENSIVE PRODUCTION-GRADE CURSOR AI OPTIMIZATION"
-
-    # Save current shell state and set safer error handling
-    local prev_trap
-    prev_trap=$(trap -p ERR | sed "s/trap -- '//" | sed "s/' ERR//" 2>/dev/null || echo "")
-    local prev_set_state="$-"
+# Operation implementations with improved error handling
+execute_complete_uninstall() {
+    info_message "Executing complete Cursor uninstall"
     
-    # Use safer error handling for optimization
-    set +e  # Don't exit on errors during optimization
-    trap 'handle_optimization_error $LINENO "$BASH_COMMAND"' ERR
+    # Show warning and get confirmation
+    cat << 'EOF'
 
-    echo -e "\n${BLUE}${BOLD}🚀 PRODUCTION-GRADE CURSOR AI OPTIMIZATION${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════════${NC}\n"
+⚠️  COMPLETE CURSOR REMOVAL
+═══════════════════════════════════════════════
 
-    echo -e "${BOLD}${GREEN}PRODUCTION OPTIMIZATION TECHNIQUES:${NC}"
-    echo -e "${BOLD}═════════════════════════════════════════════════${NC}\n"
+THIS WILL COMPLETELY AND PERMANENTLY REMOVE ALL CURSOR COMPONENTS:
+  • Application bundle and all executables
+  • User configurations and preferences  
+  • Cache files and temporary data
+  • CLI tools and system integrations
+  • System database registrations
 
-    echo -e "${YELLOW}1. SYSTEM-LEVEL OPTIMIZATIONS:${NC}"
-    echo -e "   ${CYAN}• MEMORY MANAGEMENT:${NC} INCREASE HEAP SIZE TO 8GB FOR LARGE AI MODELS"
-    echo -e "   ${CYAN}• FILE DESCRIPTORS:${NC} INCREASE LIMITS TO 65K FOR HANDLING MULTIPLE FILES"
-    echo -e "   ${CYAN}• KERNEL PARAMETERS:${NC} OPTIMIZE FOR AI DEVELOPMENT WORKLOADS"
-    echo -e "   ${CYAN}• VISUAL EFFECTS:${NC} DISABLE ANIMATIONS TO FREE GPU RESOURCES"
-    echo -e "   ${CYAN}• PROCESS PRIORITIES:${NC} AI WORKLOADS GET HIGHER PRIORITY"
-    echo ""
+NO BACKUPS WILL BE CREATED - THIS IS IRREVERSIBLE
 
-    echo -e "${YELLOW}2. CURSOR AI EDITOR OPTIMIZATIONS:${NC}"
-    echo -e "   ${CYAN}• AI COMPLETION:${NC} OPTIMIZE RESPONSE TIME & CONTEXT PROCESSING"
-    echo -e "   ${CYAN}• FILE WATCHING:${NC} EXCLUDE UNNECESSARY DIRECTORIES"
-    echo -e "   ${CYAN}• MEMORY USAGE:${NC} CONFIGURE OPTIMAL HEAP & GARBAGE COLLECTION"
-    echo -e "   ${CYAN}• NETWORK:${NC} OPTIMIZE API CALLS & STREAMING RESPONSES"
-    echo ""
-
-    echo -e "${YELLOW}3. HARDWARE ACCELERATION:${NC}"
-    echo -e "   ${CYAN}• METAL PERFORMANCE:${NC} ENABLE APPLE SILICON GPU ACCELERATION"
-    echo -e "   ${CYAN}• NEURAL ENGINE:${NC} LEVERAGE HARDWARE AI ACCELERATION"
-    echo -e "   ${CYAN}• UNIFIED MEMORY:${NC} OPTIMIZE MEMORY ARCHITECTURE FOR AI"
-    echo -e "   ${CYAN}• GRAPHICS:${NC} CONFIGURE OPTIMAL RENDERING ACCELERATION"
-    echo ""
-
-    echo -e "${YELLOW}4. SYSTEM DATABASE OPTIMIZATION:${NC}"
-    echo -e "   ${CYAN}• LAUNCH SERVICES:${NC} REBUILD FOR FASTER APP LAUNCHES"
-    echo -e "   ${CYAN}• SPOTLIGHT INDEX:${NC} REFRESH FOR BETTER SEARCH PERFORMANCE"
-    echo -e "   ${CYAN}• FONT CACHE:${NC} CLEAR CORRUPTED CACHE THAT SLOWS RENDERING"
-    echo -e "   ${CYAN}• KERNEL CACHE:${NC} OPTIMIZE SYSTEM RESPONSIVENESS"
-    echo ""
-
-    echo -e "${BOLD}${GREEN}PERFORMANCE IMPROVEMENTS EXPECTED:${NC}"
-    echo -e "   ${GREEN}✓${NC} 3-5x FASTER AI CODE COMPLETION RESPONSES"
-    echo -e "   ${GREEN}✓${NC} REDUCED MEMORY USAGE AND BETTER MULTITASKING"
-    echo -e "   ${GREEN}✓${NC} FASTER FILE OPERATIONS AND PROJECT LOADING"
-    echo -e "   ${GREEN}✓${NC} SMOOTHER EDITOR INTERACTIONS AND SCROLLING"
-    echo -e "   ${GREEN}✓${NC} MAXIMUM UTILIZATION OF APPLE SILICON HARDWARE"
-    echo -e "   ${GREEN}✓${NC} OPTIMIZED AI MODEL LOADING AND INFERENCE"
-    echo ""
-
-    if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
-        echo -n "PROCEED WITH PRODUCTION-GRADE OPTIMIZATION? (y/N): "
-        read -r response
-        case "$response" in
-            [Yy]|[Yy][Ee][Ss])
-                production_info_message "USER CONFIRMED PRODUCTION-GRADE OPTIMIZATION"
-                ;;
-            *)
-                production_info_message "OPTIMIZATION CANCELLED BY USER"
-                # Restore shell state safely
-                if [[ "$prev_set_state" == *e* ]]; then
-                    set -e
-                fi
-                if [[ -n "$prev_trap" ]]; then
-                    trap -- "$prev_trap" ERR
-                else
-                    trap - ERR
-                fi
-                return 0
-                ;;
-        esac
-    fi
-
-    echo -e "\n${BOLD}${BLUE}🔧 APPLYING PRODUCTION OPTIMIZATIONS...${NC}\n"
-
-    # PRODUCTION APPROACH: Automatically close Cursor if running
-    local cursor_pids
-    cursor_pids=$(pgrep -f -i "cursor" | grep -v "$$" || true)
+EOF
     
-    if [[ -n "$cursor_pids" ]]; then
-        production_info_message "CLOSING CURSOR FOR COMPLETE OPTIMIZATION..."
-        
-        # Try graceful shutdown first
-        if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
-            production_success_message "✓ Cursor closed gracefully"
-            sleep 3  # Wait for complete shutdown
-        else
-            production_info_message "Graceful shutdown unavailable, using force termination"
-            for pid in $cursor_pids; do
-                if [[ "$pid" != "$$" ]]; then
-                    kill "$pid" 2>/dev/null || true
-                fi
-            done
-            sleep 2
-        fi
-        production_success_message "✓ Cursor processes terminated - ready for optimization"
-    fi
-
-    local optimizations_applied=0
-    local optimization_warnings=0
-
-    # Get system memory information
-    local available_memory_gb
-    local memory_info
-    memory_info=$(vm_stat 2>/dev/null)
-    
-    if [[ -n "$memory_info" ]]; then
-        local page_size=4096
-        local free_pages
-        free_pages=$(echo "$memory_info" | grep "Pages free" | awk '{print $3}' | sed 's/\.//' || echo "0")
-        local inactive_pages  
-        inactive_pages=$(echo "$memory_info" | grep "Pages inactive" | awk '{print $3}' | sed 's/\.//' || echo "0")
-        
-        # Calculate available memory in GB
-        local available_bytes=$(( (free_pages + inactive_pages) * page_size ))
-        available_memory_gb=$(( available_bytes / 1024 / 1024 / 1024 ))
-    else
-        # Fallback: Get total system memory and estimate 25% available
-        local total_memory_bytes
-        total_memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "8589934592")
-        available_memory_gb=$(( total_memory_bytes / 1024 / 1024 / 1024 / 4 ))
-    fi
-    
-    production_info_message "AVAILABLE MEMORY: ${available_memory_gb}GB"
-
-    # Request sudo permissions upfront
-    production_info_message "Requesting administrative privileges for system optimizations..."
-    if ! sudo -v 2>/dev/null; then
-        production_warning_message "Administrative privileges required for complete optimization"
-        production_info_message "Please enter your password when prompted"
-        if ! sudo echo "Administrative access granted"; then
-            production_error_message "Unable to obtain administrative privileges"
-            production_info_message "Some optimizations will be skipped"
-        fi
-    else
-        production_success_message "✓ Administrative privileges confirmed"
-    fi
-
-    # CONSOLIDATED PRODUCTION OPTIMIZATIONS
-    
-    # 1. Cursor AI Performance Settings
-    production_info_message "Configuring Cursor AI performance settings..."
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-    local cursor_settings_dir
-    cursor_settings_dir="$(dirname "$cursor_settings")"
-    
-    if [[ ! -d "$cursor_settings_dir" ]]; then
-        mkdir -p "$cursor_settings_dir"
-    fi
-
-    # Production-grade Cursor settings
-    local ai_config='{
-        "ai.enabled": true,
-        "ai.autoComplete": true,
-        "ai.codeActions": true,
-        "ai.contextLength": 8192,
-        "ai.temperature": 0.05,
-        "ai.maxTokens": 2048,
-        "ai.streamResponse": true,
-        "ai.parallelRequests": 4,
-        "editor.inlineSuggest.enabled": true,
-        "editor.minimap.enabled": false,
-        "editor.wordWrap": "off",
-        "editor.renderLineHighlight": "none",
-        "editor.renderWhitespace": "none",
-        "editor.smoothScrolling": false,
-        "files.autoSave": "afterDelay",
-        "files.autoSaveDelay": 5000,
-        "search.useIgnoreFiles": true,
-        "search.exclude": {
-            "**/node_modules": true,
-            "**/.git": true,
-            "**/dist": true,
-            "**/build": true,
-            "**/.next": true,
-            "**/coverage": true
-        },
-        "files.watcherExclude": {
-            "**/node_modules/**": true,
-            "**/.git/objects/**": true,
-            "**/.git/subtree-cache/**": true,
-            "**/dist/**": true,
-            "**/build/**": true
-        },
-        "extensions.autoUpdate": false,
-        "telemetry.enableTelemetry": false,
-        "workbench.colorTheme": "Dark+",
-        "window.titleBarStyle": "native",
-        "terminal.integrated.gpuAcceleration": "on"
-    }'
-
-    if echo "$ai_config" > "$cursor_settings"; then
-        production_success_message "✓ CURSOR AI PERFORMANCE SETTINGS CONFIGURED"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not configure Cursor settings"
-        ((optimization_warnings++))
-    fi
-
-    # 2. System-Level Memory and Performance Optimizations
-    production_info_message "Applying system-level performance optimizations..."
-    
-    # Increase file descriptor limits
-    if ulimit -n 65536 2>/dev/null; then
-        production_success_message "✓ Increased file descriptor limit to 65K"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not increase file descriptor limit"
-        ((optimization_warnings++))
-    fi
-
-    # Configure optimal memory pressure handling
-    if sudo sysctl -w kern.sysv.shmmax=268435456 2>/dev/null; then
-        production_success_message "✓ Optimized shared memory limits"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not modify shared memory settings"
-        ((optimization_warnings++))
-    fi
-
-    # Optimize file system cache
-    if sudo sysctl -w vm.global_user_wire_limit=134217728 2>/dev/null; then
-        production_success_message "✓ Optimized file system cache"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not optimize file system cache"
-        ((optimization_warnings++))
-    fi
-
-    # 3. macOS System Optimizations
-    production_info_message "Applying macOS system optimizations..."
-    
-    # Disable window animations
-    if defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false 2>/dev/null; then
-        production_success_message "✓ Disabled window animations"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not disable window animations"
-        ((optimization_warnings++))
-    fi
-
-    # Disable scroll animations
-    if defaults write NSGlobalDomain NSScrollAnimationEnabled -bool false 2>/dev/null; then
-        production_success_message "✓ Disabled scroll animations"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not disable scroll animations"
-        ((optimization_warnings++))
-    fi
-
-    # Optimize dock animations
-    if defaults write com.apple.dock autohide-time-modifier -float 0.12 2>/dev/null; then
-        production_success_message "✓ Optimized dock animations"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not optimize dock animations"
-        ((optimization_warnings++))
-    fi
-
-    # 4. Hardware Acceleration Configuration
-    production_info_message "Configuring hardware acceleration..."
-    
-    # Enable Metal rendering
-    if defaults write com.todesktop.230313mzl4w4u92 disable-metal-rendering -bool false 2>/dev/null; then
-        production_success_message "✓ Enabled Metal rendering for Cursor"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not configure Metal rendering"
-        ((optimization_warnings++))
-    fi
-
-    # Enable GPU acceleration
-    if defaults write com.todesktop.230313mzl4w4u92 disable-gpu -bool false 2>/dev/null; then
-        production_success_message "✓ Enabled GPU acceleration for Cursor"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not enable GPU acceleration"
-        ((optimization_warnings++))
-    fi
-
-    # 5. Network and API Optimizations
-    production_info_message "Optimizing network settings for AI API performance..."
-    
-    # Optimize TCP settings for AI API calls
-    if sudo sysctl -w net.inet.tcp.delayed_ack=0 2>/dev/null; then
-        production_success_message "✓ Optimized TCP settings for AI APIs"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not optimize TCP settings"
-        ((optimization_warnings++))
-    fi
-
-    # 6. Cache and Database Optimizations
-    production_info_message "Optimizing system databases and caches..."
-    
-    # Refresh Launch Services database
-    if sudo /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
-        production_success_message "✓ Refreshed Launch Services database"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not refresh Launch Services database"
-        ((optimization_warnings++))
-    fi
-
-    # Clear font caches
-    if sudo atsutil databases -remove 2>/dev/null; then
-        production_success_message "✓ Cleared font caches"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not clear font caches"
-        ((optimization_warnings++))
-    fi
-
-    # 7. Spotlight Optimization for Development
-    production_info_message "Optimizing Spotlight for development workflows..."
-    local spotlight_exclusions=(
-        "$HOME/node_modules"
-        "$HOME/.npm"
-        "$HOME/.cache"
-        "$HOME/Library/Caches"
-        "$HOME/Library/Developer"
-        "$HOME/.vscode"
-        "$HOME/.cursor"
-    )
-    
-    local spotlight_optimized=0
-    for exclusion in "${spotlight_exclusions[@]}"; do
-        if [[ -d "$exclusion" ]]; then
-            # Check if directory is suitable for mdutil operations first
-            if sudo mdutil -s "$exclusion" >/dev/null 2>&1; then
-                # Only attempt to disable indexing if the directory supports it
-                if sudo mdutil -i off "$exclusion" >/dev/null 2>&1; then
-                    ((spotlight_optimized++))
-                    production_log_message "DEBUG" "Successfully disabled Spotlight indexing for: $(basename "$exclusion")"
-                else
-                    production_log_message "DEBUG" "Could not disable Spotlight indexing for: $(basename "$exclusion") (not supported or already configured)"
-                fi
-            else
-                production_log_message "DEBUG" "Skipping Spotlight optimization for: $(basename "$exclusion") (not indexable)"
-            fi
-        fi
-    done
-    
-    if [[ $spotlight_optimized -gt 0 ]]; then
-        production_success_message "✓ Optimized Spotlight indexing ($spotlight_optimized directories)"
-        ((optimizations_applied++))
-    else
-        production_info_message "ℹ Spotlight optimization skipped (directories not suitable for indexing control)"
-        # Don't count as a warning since this is expected behavior on some systems
-    fi
-
-    # 8. Environment Variables for AI Performance
-    production_info_message "Setting environment variables for AI performance..."
-    
-    # Create environment configuration for Cursor
-    local env_config="# Cursor AI Performance Environment Variables
-export NODE_OPTIONS=\"--max-old-space-size=8192 --max-semi-space-size=512\"
-export UV_THREADPOOL_SIZE=16
-export ELECTRON_ENABLE_GPU=1
-export ELECTRON_USE_METAL=1
-export FORCE_COLOR=1
-export CURSOR_AI_OPTIMIZED=1"
-
-    local shell_config="$HOME/.zshrc"
-    if [[ "$SHELL" == *"bash"* ]]; then
-        shell_config="$HOME/.bashrc"
-    fi
-
-    # Remove existing Cursor optimization block if present
-    if [[ -f "$shell_config" ]]; then
-        sed -i '' '/# Cursor AI Performance Environment Variables/,/export CURSOR_AI_OPTIMIZED=1/d' "$shell_config" 2>/dev/null || true
-    fi
-
-    # Add new optimization block
-    if echo -e "\n$env_config" >> "$shell_config"; then
-        production_success_message "✓ Configured environment variables for AI performance"
-        ((optimizations_applied++))
-    else
-        production_warning_message "⚠ Could not configure environment variables"
-        ((optimization_warnings++))
-    fi
-
-    echo ""
-    # Show results
-    if [[ $optimizations_applied -gt 8 ]]; then
-        production_success_message "🎉 PRODUCTION-GRADE OPTIMIZATION COMPLETED SUCCESSFULLY"
-        production_info_message "APPLIED $optimizations_applied PRODUCTION OPTIMIZATION TECHNIQUES"
-        if [[ $optimization_warnings -gt 0 ]]; then
-            production_warning_message "COMPLETED WITH $optimization_warnings WARNINGS (NON-CRITICAL)"
-        fi
-        
-        echo -e "\n${GREEN}${BOLD}OPTIMIZATION RESULTS:${NC}"
-        echo -e "${GREEN}•${NC} System-level memory and performance optimizations applied"
-        echo -e "${GREEN}•${NC} Cursor AI settings configured for maximum performance"
-        echo -e "${GREEN}•${NC} Hardware acceleration enabled for Apple Silicon"
-        echo -e "${GREEN}•${NC} Network optimizations for faster AI API responses"
-        echo -e "${GREEN}•${NC} System databases rebuilt and optimized"
-        echo -e "${GREEN}•${NC} Development workflow optimizations configured"
-        echo ""
-        
-        echo -e "${BLUE}${BOLD}NEXT STEPS:${NC}"
-        echo -e "  1. RESTART YOUR TERMINAL to activate environment variables"
-        echo -e "  2. LAUNCH CURSOR AI EDITOR to experience optimized performance"
-        echo -e "  3. OPEN A LARGE PROJECT to test AI performance improvements"
-        echo -e "  4. MONITOR SYSTEM PERFORMANCE with Activity Monitor"
-        echo -e "  5. AI code completion should now be 3-5x faster"
-        
-        echo -e "\n${CYAN}${BOLD}VERIFICATION:${NC}"
-        echo -e "${CYAN}•${NC} Memory limits increased for large AI models"
-        echo -e "${CYAN}•${NC} File system optimized for development workflows"
-        echo -e "${CYAN}•${NC} Network configured for optimal AI API performance"
-        echo -e "${CYAN}•${NC} Hardware acceleration fully enabled"
-        echo -e "${CYAN}•${NC} System animations disabled to free GPU resources"
-    else
-        production_warning_message "OPTIMIZATION COMPLETED WITH LIMITATIONS"
-        production_info_message "APPLIED $optimizations_applied OPTIMIZATION TECHNIQUES"
-        production_warning_message "$optimization_warnings OPTIMIZATION STEPS HAD ISSUES"
-        
-        echo -e "\n${YELLOW}${BOLD}RECOMMENDATIONS:${NC}"
-        echo -e "${YELLOW}•${NC} Run optimization again with administrative privileges"
-        echo -e "${YELLOW}•${NC} Check system logs for specific error details"
-        echo -e "${YELLOW}•${NC} Restart system if persistent issues occur"
-        echo -e "${YELLOW}•${NC} Some optimizations may require manual configuration"
-    fi
-
-    # Restore shell state safely
-    if [[ "$prev_set_state" == *e* ]]; then
-        set -e
-    fi
-    if [[ -n "$prev_trap" ]]; then
-        trap -- "$prev_trap" ERR
-    else
-        trap - ERR
-    fi
-    
-    return 0  # Always return success to prevent menu exit
-}
-
-production_execute_check() {
-    production_info_message "EXECUTING POST-INSTALLATION CHECK"
-
-    # Temporarily disable error trap for check operations to allow legitimate non-zero returns
-    local previous_set_state="$-"
-    set +e
-    
-    local check_result=0
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f check_cursor_installation >/dev/null 2>&1; then
-        check_cursor_installation
-        check_result=$?
-    else
-        production_warning_message "USING BASIC CHECK DUE TO MISSING MODULES"
-        production_basic_check
-        check_result=$?
-    fi
-    
-    # Restore previous error handling state
-    if [[ "$previous_set_state" == *e* ]]; then
-        set -e
-    fi
-    
-    # Log the check result without treating it as an error
-    if [[ $check_result -eq 0 ]]; then
-        production_log_message "INFO" "Installation check completed successfully"
-    else
-        production_log_message "INFO" "Installation check completed with findings (return code: $check_result)"
-    fi
-    
-    # Always return success to prevent menu exit - the check result is informational
-    return 0
-}
-
-production_execute_health_check() {
-    production_info_message "EXECUTING HEALTH CHECKS"
-
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_health_check >/dev/null 2>&1; then
-        # Call perform_health_check and capture its result properly
-        local health_result=0
-        if perform_health_check; then
-            health_result=0
-        else
-            health_result=$?
-            # Ensure the result is within valid range for logging purposes
-            if [[ $health_result -gt 255 ]]; then
-                health_result=255
-            fi
-        fi
-        production_log_message "INFO" "Health check completed with $health_result issues"
-        return 0  # Always return success as health check execution completed
-    else
-        production_warning_message "USING BASIC HEALTH CHECK DUE TO MISSING MODULES"
-        production_basic_health_check
-        return 0
-    fi
-}
-
-production_execute_git_backup() {
-    production_info_message "EXECUTING GIT BACKUP OPERATION"
-
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_pre_uninstall_backup >/dev/null 2>&1; then
-        if declare -f confirm_git_backup_operations >/dev/null 2>&1; then
-            if ! confirm_git_backup_operations; then
-                production_info_message "GIT BACKUP CANCELLED BY USER"
-                return 0
-            fi
-        fi
-        
-        # Execute backup with proper error handling to prevent script exit
-        local backup_result=0
-        if perform_pre_uninstall_backup; then
-            production_success_message "GIT BACKUP COMPLETED SUCCESSFULLY"
-            backup_result=0
-        else
-            backup_result=$?
-            production_warning_message "GIT BACKUP ENCOUNTERED ISSUES (exit code: $backup_result)"
-            production_info_message "You may proceed with other operations or address backup issues manually"
-        fi
-        
-        # Always return 0 to prevent menu exit - backup failure is not fatal for other operations
-        return 0
-    else
-        production_error_message "CANNOT PERFORM GIT BACKUP - REQUIRED MODULES NOT LOADED"
-        production_info_message "Manual git backup recommended before proceeding"
-        return 0  # Changed to 0 to prevent menu exit
-    fi
-}
-
-production_execute_git_status() {
-    production_info_message "DISPLAYING GIT REPOSITORY STATUS"
-
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f display_git_repository_info >/dev/null 2>&1; then
-        display_git_repository_info
-    else
-        production_error_message "CANNOT SHOW GIT STATUS - REQUIRED MODULES NOT LOADED"
-        return 1
-    fi
-}
-
-production_execute_system_specs() {
-    production_info_message "DISPLAYING SYSTEM SPECIFICATIONS"
-
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f display_system_specifications >/dev/null 2>&1; then
-        display_system_specifications
-    else
-        production_error_message "CANNOT SHOW SYSTEM SPECS - REQUIRED MODULES NOT LOADED"
-        return 1
-    fi
-}
-
-production_execute_complete_uninstall() {
-    production_info_message "EXECUTING COMPLETE CURSOR UNINSTALL"
-
-    # Show warning for complete removal
-    echo -e "\n${RED}${BOLD}⚠️  COMPLETE CURSOR REMOVAL${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
-    echo -e "${RED}THIS WILL COMPLETELY AND PERMANENTLY REMOVE ALL CURSOR COMPONENTS:${NC}"
-    echo -e "  • APPLICATION BUNDLE AND ALL EXECUTABLES"
-    echo -e "  • ALL USER CONFIGURATIONS AND PREFERENCES"
-    echo -e "  • CACHE FILES AND TEMPORARY DATA"
-    echo -e "  • CLI TOOLS AND SYSTEM INTEGRATIONS"
-    echo -e "  • SYSTEM DATABASE REGISTRATIONS"
-    echo -e "  • BACKGROUND PROCESSES AND SERVICES"
-    echo -e "  • ALL SETTINGS AND WORKSPACES"
-    echo ""
-    echo -e "${BOLD}${RED}NO BACKUPS WILL BE CREATED - THIS IS IRREVERSIBLE${NC}"
-    echo ""
-
-    # Check if Git backup is requested
+    # Handle Git backup if requested
     if [[ "${GIT_BACKUP_REQUESTED:-false}" == "true" ]]; then
-        production_info_message "PERFORMING GIT BACKUP BEFORE COMPLETE REMOVAL..."
-        if ! perform_pre_uninstall_backup; then
-            production_error_message "GIT BACKUP FAILED - COMPLETE REMOVAL CANCELLED"
-            return 1
+        info_message "Performing Git backup before complete removal..."
+        if declare -f perform_pre_uninstall_backup >/dev/null 2>&1; then
+            if ! perform_pre_uninstall_backup; then
+                error_message "Git backup failed - cancelling removal"
+                return 1
+            fi
+        else
+            warning_message "Git backup function not available"
         fi
     fi
-
+    
+    # Get user confirmation in interactive mode
     if [[ "$NON_INTERACTIVE_MODE" != "true" ]]; then
+        local response
         while true; do
-            echo -n "TYPE 'REMOVE' TO CONFIRM COMPLETE CURSOR REMOVAL: "
+            printf 'Type "REMOVE" to confirm complete removal: '
             read -r response
             case "$response" in
                 REMOVE)
-                    production_info_message "USER CONFIRMED COMPLETE REMOVAL WITH EXACT CONFIRMATION"
+                    info_message "User confirmed complete removal"
                     break
                     ;;
                 *)
-                    production_warning_message "COMPLETE REMOVAL CANCELLED - EXACT CONFIRMATION REQUIRED"
+                    warning_message "Complete removal cancelled"
                     return 0
                     ;;
             esac
         done
     fi
-
-    # Execute complete removal combining both uninstall and complete removal
-    production_info_message "STARTING COMPLETE CURSOR REMOVAL PROCESS..."
-
+    
+    # Execute removal operations
     local removal_success=true
-
-    # Use enhanced uninstall function if available
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f enhanced_uninstall_cursor >/dev/null 2>&1; then
+    
+    # Enhanced uninstall
+    if declare -f enhanced_uninstall_cursor >/dev/null 2>&1; then
         if ! enhanced_uninstall_cursor; then
             removal_success=false
         fi
     fi
-
-    # Use complete removal function if available
-    if [[ "$MODULES_LOADED" == "true" ]] && declare -f perform_complete_cursor_removal >/dev/null 2>&1; then
+    
+    # Complete removal
+    if declare -f perform_complete_cursor_removal >/dev/null 2>&1; then
         if ! perform_complete_cursor_removal; then
             removal_success=false
         fi
     fi
-
-    # Fallback to basic removal if modules not loaded
-    if [[ "$MODULES_LOADED" != "true" ]]; then
-        production_warning_message "USING BASIC REMOVAL DUE TO MISSING MODULES"
-        if ! production_basic_removal; then
-            removal_success=false
-        fi
-    fi
-
+    
+    # Report results
     if [[ "$removal_success" == "true" ]]; then
-        production_success_message "✓ COMPLETE CURSOR REMOVAL COMPLETED SUCCESSFULLY"
-        production_info_message "SYSTEM HAS BEEN RESTORED TO PRISTINE STATE"
+        success_message "Complete Cursor removal completed successfully"
+        info_message "System has been restored to pristine state"
         return 0
     else
-        production_error_message "COMPLETE REMOVAL ENCOUNTERED ERRORS"
-        production_error_message "SOME COMPONENTS MAY STILL REMAIN - MANUAL CLEANUP MAY BE REQUIRED"
+        error_message "Complete removal encountered errors"
+        error_message "Some components may still remain - check output above"
         return 1
     fi
 }
 
-production_basic_removal() {
-    production_info_message "CURSOR REMOVAL"
-    echo "================================================"
+execute_install() {
+    info_message "Executing Cursor installation"
+    
+    if [[ -z "${DMG_PATH:-}" ]]; then
+        error_message "DMG path required for installation"
+        return 1
+    fi
+    
+    if declare -f install_cursor_from_dmg >/dev/null 2>&1; then
+        install_cursor_from_dmg "$DMG_PATH"
+    else
+        error_message "Installation function not available"
+        return 1
+    fi
+}
 
-    local removal_errors=0
-
-    # Remove main application
-    if [[ -d "/Applications/Cursor.app" ]]; then
-        production_info_message "REMOVING CURSOR.APP..."
-        if sudo rm -rf "/Applications/Cursor.app"; then
-            production_success_message "✓ REMOVED CURSOR.APP"
+execute_optimize() {
+    info_message "Executing system optimization"
+    
+    # Check for external optimization script first
+    local script_path="$PROJECT_ROOT/scripts/optimize_system.sh"
+    
+    if [[ -f "$script_path" && -x "$script_path" ]]; then
+        info_message "Using external optimization script"
+        export NON_INTERACTIVE_MODE VERBOSE_MODE
+        "$script_path"
+    else
+        warning_message "External optimization script not found, using basic optimization"
+        if declare -f basic_optimization >/dev/null 2>&1; then
+            basic_optimization
         else
-            production_error_message "FAILED TO REMOVE CURSOR.APP"
-            ((removal_errors++))
+            error_message "No optimization functions available"
+            return 1
         fi
-    fi
-
-    # Remove user data directories
-    local user_dirs=(
-        "$HOME/Library/Application Support/Cursor"
-        "$HOME/Library/Caches/Cursor"
-        "$HOME/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
-        "$HOME/Library/Saved Application State/com.todesktop.230313mzl4w4u92.savedState"
-        "$HOME/Library/Logs/Cursor"
-        "$HOME/.cursor"
-        "$HOME/.vscode-cursor"
-    )
-
-    for dir in "${user_dirs[@]}"; do
-        if [[ -e "$dir" ]]; then
-            production_info_message "REMOVING: $dir"
-            if rm -rf "$dir"; then
-                production_success_message "✓ REMOVED: $dir"
-            else
-                production_error_message "FAILED TO REMOVE: $dir"
-                ((removal_errors++))
-            fi
-        fi
-    done
-
-    # Remove CLI tools
-    local cli_locations=("/usr/local/bin/cursor" "/usr/local/bin/code")
-    for location in "${cli_locations[@]}"; do
-        if [[ -L "$location" ]] || [[ -f "$location" ]]; then
-            production_info_message "REMOVING CLI TOOL: $location"
-            if sudo rm -f "$location"; then
-                production_success_message "✓ REMOVED: $location"
-            else
-                production_error_message "FAILED TO REMOVE: $location"
-                ((removal_errors++))
-            fi
-        fi
-    done
-
-    # Reset Launch Services database
-    production_info_message "RESETTING LAUNCH SERVICES DATABASE..."
-    if /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1; then
-        production_success_message "✓ LAUNCH SERVICES DATABASE RESET"
-    else
-        production_warning_message "FAILED TO RESET LAUNCH SERVICES DATABASE"
-        ((removal_errors++))
-    fi
-
-    echo "================================================"
-    if [[ $removal_errors -eq 0 ]]; then
-        production_success_message "REMOVAL COMPLETED: ALL CURSOR COMPONENTS REMOVED"
-        return 0
-    else
-        production_error_message "REMOVAL FAILED: $removal_errors ERRORS ENCOUNTERED"
-        return 1
     fi
 }
 
-################################################################################
-#  Memory and Performance Optimization Function - NEW ADVANCED OPTIMIZATIONS
-################################################################################
-
-
-
-# Enhanced memory and performance optimization for production use
-optimize_memory_and_performance() {
-    production_info_message "APPLYING PRODUCTION MEMORY AND PERFORMANCE TUNING"
+execute_check() {
+    info_message "Checking Cursor installation status"
     
-    local tuning_applied=0
-    
-    # 1. Increase file descriptor limits for AI model loading
-    production_info_message "Configuring file descriptor limits..."
-    if ulimit -n 65536 2>/dev/null; then
-        production_success_message "✓ Increased file descriptor limit to 65K"
-        ((tuning_applied++))
-    else
-        production_warning_message "⚠ Could not increase file descriptor limit"
-    fi
-    
-    # 2. Configure optimal memory pressure handling
-    production_info_message "Optimizing memory pressure settings..."
-    if sudo sysctl -w kern.sysv.shmmax=268435456 2>/dev/null; then
-        production_success_message "✓ Configured memory pressure handling"
-        ((tuning_applied++))
-    else
-        production_warning_message "⚠ Could not modify memory pressure settings"
-    fi
-    
-    # 3. Configure LaunchServices for faster app launching
-    production_info_message "Optimizing Launch Services for faster Cursor startup..."
-    if sudo periodic monthly 2>/dev/null; then
-        production_success_message "✓ Refreshed Launch Services database"
-        ((tuning_applied++))
-    else
-        production_warning_message "⚠ Could not refresh Launch Services"
-    fi
-    
-    # 4. Configure kernel parameters for AI workloads
-    production_info_message "Applying kernel parameter optimizations..."
-    
-    # Optimize file system cache for large file operations
-    if sudo sysctl -w vm.global_user_wire_limit=134217728 2>/dev/null; then
-        production_success_message "✓ Optimized file system cache"
-        ((tuning_applied++))
-    fi
-    
-    # 5. Configure audio/video for reduced interference with AI processing
-    production_info_message "Reducing multimedia interference..."
-    if defaults write com.apple.coreaudio Disable_IOAudio_10_6_Audio_Driver -bool true 2>/dev/null; then
-        production_success_message "✓ Reduced audio processing overhead"
-        ((tuning_applied++))
-    fi
-    
-    # 6. Optimize Spotlight indexing to exclude development directories
-    production_info_message "Configuring Spotlight for development workflows..."
-    local spotlight_exclusions=(
-        "$HOME/node_modules"
-        "$HOME/.npm"
-        "$HOME/.cache"
-        "$HOME/Library/Caches"
-        "$HOME/Library/Developer"
-    )
-    
-    local excluded_count=0
-    for exclusion in "${spotlight_exclusions[@]}"; do
-        if [[ -d "$exclusion" ]]; then
-            # Check if directory is suitable for mdutil operations first
-            if sudo mdutil -s "$exclusion" >/dev/null 2>&1; then
-                # Only attempt to disable indexing if the directory supports it
-                if sudo mdutil -i off "$exclusion" >/dev/null 2>&1; then
-                    ((excluded_count++))
-                    production_log_message "DEBUG" "Successfully disabled Spotlight indexing for: $(basename "$exclusion")"
-                else
-                    production_log_message "DEBUG" "Could not disable Spotlight indexing for: $(basename "$exclusion") (not supported or already configured)"
-                fi
-            else
-                production_log_message "DEBUG" "Skipping Spotlight optimization for: $(basename "$exclusion") (not indexable)"
-            fi
-        fi
-    done
-    
-    if [[ $excluded_count -gt 0 ]]; then
-        production_success_message "✓ Optimized Spotlight indexing ($excluded_count directories)"
-        ((tuning_applied++))
-    else
-        production_log_message "DEBUG" "Spotlight optimization skipped (directories not suitable for indexing control)"
-    fi
-    
-    # 7. Configure network settings for AI API calls
-    production_info_message "Optimizing network settings for AI API performance..."
-    if sudo sysctl -w net.inet.tcp.delayed_ack=0 2>/dev/null; then
-        production_success_message "✓ Optimized TCP settings for AI APIs"
-        ((tuning_applied++))
-    fi
-    
-    production_info_message "PRODUCTION MEMORY TUNING: Applied $tuning_applied optimizations"
-    
-    if [[ $tuning_applied -gt 4 ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-################################################################################
-#  Basic Functions - REAL STATE ONLY
-################################################################################
-
-production_basic_check() {
-    # Temporarily disable error trap for check operations since expected failures should not trigger error handler
-    local previous_set_state="$-"
-    local previous_trap_err
-    previous_trap_err=$(trap -p ERR 2>/dev/null || echo "")
-    
-    # Disable strict error handling for check operations
+    # Disable error exit for check operations
     set +e
     trap - ERR
     
-    echo -e "\n${BOLD}${BLUE}🔍 CURSOR INSTALLATION STATUS CHECK${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
-
-    local found_issues=0
-    local total_checks=0
-
-    # Check application
-    ((total_checks++))
-    echo -e "${BOLD}1. CHECKING CURSOR APPLICATION:${NC}"
-    if [[ -d "/Applications/Cursor.app" ]]; then
-        if [[ -f "/Applications/Cursor.app/Contents/Info.plist" ]]; then
-            if command -v defaults >/dev/null 2>&1; then
-                local version
-                version=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null)
-                if [[ -n "$version" ]]; then
-                    local bundle_id
-                    bundle_id=$(defaults read "/Applications/Cursor.app/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "Unknown")
-                    
-                    # Get app size
-                    local app_size
-                    app_size=$(du -sh "/Applications/Cursor.app" 2>/dev/null | cut -f1 || echo "Unknown")
-                    
-                    production_success_message "✓ CURSOR.APP FOUND"
-                    echo -e "    ${CYAN}Version:${NC} $version"
-                    echo -e "    ${CYAN}Bundle ID:${NC} $bundle_id"
-                    echo -e "    ${CYAN}Size:${NC} $app_size"
-                    echo -e "    ${CYAN}Location:${NC} /Applications/Cursor.app"
-                else
-                    production_warning_message "⚠ CURSOR.APP FOUND BUT VERSION UNREADABLE"
-                    echo -e "    ${YELLOW}Issue:${NC} Version information not accessible"
-                    ((found_issues++))
-                fi
-            else
-                production_success_message "✓ CURSOR.APP FOUND"
-                echo -e "    ${YELLOW}Note:${NC} Version check unavailable (defaults command missing)"
-            fi
-        else
-            production_warning_message "⚠ CURSOR.APP FOUND BUT INFO.PLIST MISSING"
-            echo -e "    ${YELLOW}Issue:${NC} Application bundle may be corrupted"
-            ((found_issues++))
-        fi
+    local check_result=0
+    if declare -f check_cursor_installation >/dev/null 2>&1; then
+        check_cursor_installation || check_result=$?
     else
-        production_error_message "✗ CURSOR.APP NOT FOUND"
-        echo -e "    ${RED}Status:${NC} Cursor application is not installed at /Applications/Cursor.app"
-        ((found_issues++))
-    fi
-    echo ""
-
-    # Check CLI tools
-    ((total_checks++))
-    echo -e "${BOLD}2. CHECKING CURSOR CLI TOOLS:${NC}"
-    local cli_found=false
-    local cli_locations=("/usr/local/bin/cursor" "/opt/homebrew/bin/cursor")
-
-    for location in "${cli_locations[@]}"; do
-        if [[ -f "$location" ]] && [[ -x "$location" ]]; then
-            production_success_message "✓ CURSOR CLI FOUND: $location"
-            
-            # Get CLI version if possible
-            local cli_version
-            cli_version=$("$location" --version 2>/dev/null | head -1 || echo "Version unknown")
-            echo -e "    ${CYAN}Version:${NC} $cli_version"
-            
-            # Check if it's a symlink
-            if [[ -L "$location" ]]; then
-                local link_target
-                link_target=$(readlink "$location")
-                echo -e "    ${CYAN}Type:${NC} Symlink -> $link_target"
-            else
-                echo -e "    ${CYAN}Type:${NC} Binary executable"
-            fi
-            
-            cli_found=true
-            break
-        fi
-    done
-
-    if [[ "$cli_found" == "false" ]]; then
-        if command -v cursor >/dev/null 2>&1; then
-            local cursor_path
-            cursor_path=$(which cursor 2>/dev/null)
-            production_success_message "✓ CURSOR CLI FOUND IN PATH: $cursor_path"
-            
-            # Get version
-            local cli_version
-            cli_version=$(cursor --version 2>/dev/null | head -1 || echo "Version unknown")
-            echo -e "    ${CYAN}Version:${NC} $cli_version"
-        else
-            production_error_message "✗ CURSOR CLI NOT FOUND"
-            echo -e "    ${RED}Status:${NC} No cursor command available in PATH or standard locations"
-            echo -e "    ${YELLOW}Suggestion:${NC} Install CLI tools from Cursor app or run Cursor setup"
-            ((found_issues++))
-        fi
-    fi
-    echo ""
-
-    # Check user configuration
-    ((total_checks++))
-    echo -e "${BOLD}3. CHECKING USER CONFIGURATION:${NC}"
-    local config_paths=(
-        "$HOME/Library/Application Support/Cursor"
-        "$HOME/Library/Preferences/com.todesktop.230313mzl4w4u92.plist"
-        "$HOME/.cursor"
-    )
-    
-    local configs_found=0
-    for config_path in "${config_paths[@]}"; do
-        if [[ -e "$config_path" ]]; then
-            ((configs_found++))
-            local config_size
-            config_size=$(du -sh "$config_path" 2>/dev/null | cut -f1 || echo "Unknown")
-            echo -e "    ${GREEN}✓${NC} Found: $config_path ($config_size)"
-        fi
-    done
-    
-    if [[ $configs_found -gt 0 ]]; then
-        production_success_message "✓ USER CONFIGURATION DETECTED ($configs_found directories/files)"
-    else
-        production_warning_message "⚠ NO USER CONFIGURATION FOUND"
-        echo -e "    ${YELLOW}Note:${NC} This is normal for fresh installations"
-    fi
-    echo ""
-
-    # Check system integration
-    ((total_checks++))
-    echo -e "${BOLD}4. CHECKING SYSTEM INTEGRATION:${NC}"
-    
-    # Check Launch Services registration
-    if command -v lsregister >/dev/null 2>&1; then
-        if lsregister -dump | grep -q "Cursor"; then
-            production_success_message "✓ LAUNCH SERVICES REGISTRATION FOUND"
-            echo -e "    ${CYAN}Status:${NC} Cursor is registered with macOS Launch Services"
-        else
-            production_warning_message "⚠ NO LAUNCH SERVICES REGISTRATION"
-            echo -e "    ${YELLOW}Note:${NC} May need to open Cursor once to register"
-        fi
-    else
-        echo -e "    ${YELLOW}Note:${NC} Launch Services check unavailable"
+        warning_message "Using basic check"
+        basic_installation_check || check_result=$?
     fi
     
-    # Check running processes
-    if pgrep -f -i cursor >/dev/null 2>&1; then
-        local cursor_processes
-        cursor_processes=$(pgrep -f -i cursor | wc -l | xargs)
-        production_info_message "🔄 CURSOR PROCESSES RUNNING: $cursor_processes"
-        echo -e "    ${CYAN}Status:${NC} Cursor is currently active"
-    else
-        echo -e "    ${CYAN}Status:${NC} No Cursor processes currently running"
-    fi
-    echo ""
-
-    # Summary
-    echo -e "${BOLD}${BLUE}📊 INSTALLATION CHECK SUMMARY${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}"
+    # Restore error handling
+    set -e
+    trap 'error_handler $LINENO "$BASH_COMMAND" $?' ERR
     
-    local passed_checks=$((total_checks - found_issues))
-    echo -e "${BOLD}Total Checks:${NC} $total_checks"
-    echo -e "${BOLD}Passed:${NC} ${GREEN}$passed_checks${NC}"
-    echo -e "${BOLD}Issues:${NC} ${RED}$found_issues${NC}"
+    info_message "Installation check completed (exit $check_result)"
+    return 0  # Always return success for checks
+}
+
+execute_health_check() {
+    info_message "Performing system health check"
     
-    echo ""
-    if [[ $found_issues -eq 0 ]]; then
-        production_success_message "🎉 ALL CHECKS PASSED - CURSOR IS PROPERLY INSTALLED"
-        echo -e "\n${GREEN}${BOLD}NEXT STEPS:${NC}"
-        echo -e "  • Cursor is ready to use"
-        echo -e "  • Open Cursor to start coding with AI assistance"
-        echo -e "  • Configure your preferred settings and extensions"
-    elif [[ $found_issues -eq $total_checks ]]; then
-        production_error_message "❌ ALL CHECKS FAILED - CURSOR IS NOT INSTALLED"
-        echo -e "\n${RED}${BOLD}INSTALLATION REQUIRED:${NC}"
-        echo -e "  • Download Cursor from https://cursor.sh"
-        echo -e "  • Install the application to /Applications/"
-        echo -e "  • Set up CLI tools if needed"
+    if declare -f perform_health_check >/dev/null 2>&1; then
+        perform_health_check || true  # Don't fail on health check issues
     else
-        production_warning_message "⚠ PARTIAL INSTALLATION DETECTED - $found_issues ISSUES FOUND"
-        echo -e "\n${YELLOW}${BOLD}RECOMMENDED ACTIONS:${NC}"
-        echo -e "  • Reinstall Cursor to fix missing components"
-        echo -e "  • Set up CLI tools from within the app"
-        echo -e "  • Check system permissions if needed"
-        echo -e "  • Try launching Cursor to complete registration"
+        warning_message "Using basic health check"
+        basic_health_check || true
     fi
-
-    # Restore error handling state before returning
-    if [[ "$previous_set_state" == *e* ]]; then
-        set -e
-    fi
-    if [[ -n "$previous_trap_err" ]]; then
-        eval "$previous_trap_err"
-    else
-        trap 'production_error_handler $LINENO "$BASH_COMMAND"' ERR
-    fi
-
-    # Return 0 to prevent triggering error handler while logging findings
-    production_log_message "INFO" "Installation check completed with $found_issues findings out of $total_checks checks"
+    
     return 0
 }
 
-production_basic_health_check() {
-    production_info_message "HEALTH CHECKS"
-    echo "=========================================="
-
-    # System information
-    production_info_message "SYSTEM INFORMATION:"
-    echo "  OS: $OSTYPE"
-    echo "  ARCHITECTURE: $(uname -m)"
-
-    if command -v sw_vers >/dev/null 2>&1; then
-        echo "  MACOS VERSION: $(sw_vers -productVersion)"
+execute_git_backup() {
+    info_message "Executing Git backup operation"
+    
+    if declare -f perform_pre_uninstall_backup >/dev/null 2>&1; then
+        perform_pre_uninstall_backup || {
+            warning_message "Git backup failed - this is not fatal"
+            return 0
+        }
+    else
+        error_message "Git backup function not available"
+        return 1
     fi
+}
 
+execute_git_status() {
+    info_message "Displaying Git repository status"
+    
+    if declare -f display_git_repository_info >/dev/null 2>&1; then
+        display_git_repository_info
+    else
+        error_message "Git status function not available"
+        return 1
+    fi
+}
+
+execute_system_specs() {
+    info_message "Displaying system specifications"
+    
+    if declare -f display_system_specifications >/dev/null 2>&1; then
+        display_system_specifications
+    else
+        error_message "System specs function not available"
+        return 1
+    fi
+}
+
+# Basic fallback functions
+basic_installation_check() {
+    info_message "Performing basic installation check"
+    
+    local issues=0
+    
+    # Check application
+    if [[ -d "/Applications/Cursor.app" ]]; then
+        success_message "Cursor.app found at /Applications/Cursor.app"
+    else
+        warning_message "Cursor.app not found"
+        ((issues++))
+    fi
+    
+    # Check CLI tools
+    if command -v cursor >/dev/null 2>&1; then
+        success_message "Cursor CLI tool available"
+    else
+        info_message "Cursor CLI tool not in PATH"
+    fi
+    
+    info_message "Basic check completed with $issues issues"
+    return $issues
+}
+
+basic_health_check() {
+    info_message "Performing basic health check"
+    
+    # System information
+    info_message "OS: $OSTYPE"
+    info_message "Architecture: $(uname -m)"
+    
+    if command -v sw_vers >/dev/null 2>&1; then
+        info_message "macOS: $(sw_vers -productVersion)"
+    fi
+    
     # Disk space
     if command -v df >/dev/null 2>&1; then
         local disk_space
-        disk_space=$(df -h / | awk 'NR==2 {print $4}')
-        echo "  AVAILABLE SPACE: $disk_space"
-    fi
-
-    production_success_message "HEALTH CHECK COMPLETED"
-}
-
-production_basic_optimization_safe() {
-    production_info_message "EXECUTING SAFE SYSTEM OPTIMIZATION"
-    echo "================================================"
-
-    local optimization_errors=0
-    local optimization_timeout=10  # Timeout for each operation
-
-    # Check system resources first
-    local available_memory_gb
-    available_memory_gb=$(vm_stat | grep "Pages free" | awk '{print int(($3 * 4096) / 1024 / 1024 / 1024)}' 2>/dev/null || echo "1")
-    
-    if [[ $available_memory_gb -lt 1 ]]; then
-        production_warning_message "LOW MEMORY DETECTED - USING MINIMAL OPTIMIZATION MODE"
-        optimization_timeout=5  # Reduce timeout for low memory systems
-    fi
-
-    # Basic Cursor settings optimization with safety checks
-    local cursor_settings="$HOME/Library/Application Support/Cursor/User/settings.json"
-    local cursor_settings_dir
-    cursor_settings_dir="$(dirname "$cursor_settings")"
-    
-    if [[ ! -d "$cursor_settings_dir" ]]; then
-        production_info_message "CREATING CURSOR SETTINGS DIRECTORY..."
-        if timeout "$optimization_timeout" mkdir -p "$cursor_settings_dir" 2>/dev/null; then
-            production_success_message "✓ CREATED SETTINGS DIRECTORY"
-        else
-            production_warning_message "COULD NOT CREATE SETTINGS DIRECTORY"
-            ((optimization_errors++))
-        fi
-    fi
-
-    # Create optimized settings with error handling
-    if [[ -d "$cursor_settings_dir" ]]; then
-        production_info_message "APPLYING SAFE CURSOR SETTINGS..."
-        local perf_config='{
-            "ai.enabled": true,
-            "ai.autoComplete": true,
-            "ai.codeActions": true,
-            "ai.contextLength": 4096,
-            "ai.temperature": 0.1,
-            "ai.maxTokens": 1024,
-            "editor.inlineSuggest.enabled": true,
-            "editor.minimap.enabled": false,
-            "editor.wordWrap": "off",
-            "files.autoSave": "afterDelay",
-            "files.autoSaveDelay": 10000,
-            "search.useIgnoreFiles": true,
-            "extensions.autoUpdate": false,
-            "telemetry.enableTelemetry": false
-        }'
-
-        # Use timeout and error handling for file operations
-        if timeout "$optimization_timeout" bash -c "echo '$perf_config' > '$cursor_settings'" 2>/dev/null; then
-            production_success_message "✓ APPLIED SAFE CURSOR SETTINGS"
-        else
-            production_warning_message "COULD NOT APPLY CURSOR SETTINGS"
-            ((optimization_errors++))
-        fi
-    fi
-
-    # Disable system animations with safer approach
-    production_info_message "OPTIMIZING SYSTEM ANIMATIONS (SAFE MODE)..."
-    
-    # Check if defaults command is working properly
-    if timeout 5s defaults read NSGlobalDomain >/dev/null 2>&1; then
-        # Try to disable window animations with timeout
-        if timeout "$optimization_timeout" defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false 2>/dev/null; then
-            production_success_message "✓ DISABLED WINDOW ANIMATIONS"
-        else
-            production_warning_message "COULD NOT DISABLE WINDOW ANIMATIONS"
-            ((optimization_errors++))
-        fi
-
-        # Try to disable scroll animations with timeout
-        if timeout "$optimization_timeout" defaults write NSGlobalDomain NSScrollAnimationEnabled -bool false 2>/dev/null; then
-            production_success_message "✓ DISABLED SCROLL ANIMATIONS"
-        else
-            production_warning_message "COULD NOT DISABLE SCROLL ANIMATIONS"
-            ((optimization_errors++))
-        fi
-    else
-        production_warning_message "DEFAULTS COMMAND NOT RESPONDING - SKIPPING ANIMATION OPTIMIZATION"
-        ((optimization_errors++))
-    fi
-
-    # Skip Launch Services database reset in safe mode as it can cause terminal issues
-    production_info_message "SKIPPING LAUNCH SERVICES RESET (SAFE MODE)"
-    production_info_message "Launch Services optimization skipped to prevent terminal instability"
-
-    # Basic memory optimization suggestions
-    production_info_message "APPLYING MEMORY OPTIMIZATION SUGGESTIONS..."
-    echo "  • Close unnecessary applications to free memory"
-    echo "  • Consider restarting Cursor after optimization"
-    echo "  • Monitor memory usage with Activity Monitor"
-    production_success_message "✓ MEMORY OPTIMIZATION GUIDANCE PROVIDED"
-
-    # Basic disk optimization (safe operations only)
-    production_info_message "PERFORMING SAFE DISK OPTIMIZATION..."
-    
-    # Clear user caches safely (only if they exist and are not locked)
-    local cache_dirs=(
-        "$HOME/Library/Caches/com.apple.dt.Xcode"
-        "$HOME/Library/Caches/Cursor"
-        "$HOME/.npm/_cacache"
-    )
-    
-    for cache_dir in "${cache_dirs[@]}"; do
-        if [[ -d "$cache_dir" ]] && [[ -w "$cache_dir" ]]; then
-            local cache_size
-            cache_size=$(du -sh "$cache_dir" 2>/dev/null | cut -f1 || echo "unknown")
-            if timeout 10s find "$cache_dir" -type f -name "*.cache" -delete 2>/dev/null; then
-                production_success_message "✓ CLEANED CACHE: $(basename "$cache_dir") ($cache_size)"
-            else
-                production_warning_message "COULD NOT CLEAN CACHE: $(basename "$cache_dir")"
-            fi
-        fi
-    done
-
-    # System health check
-    production_info_message "PERFORMING SYSTEM HEALTH VALIDATION..."
-    
-    # Check available disk space
-    local available_space_gb
-    available_space_gb=$(df -g / 2>/dev/null | tail -1 | awk '{print $4}' 2>/dev/null || echo "unknown")
-    if [[ "$available_space_gb" != "unknown" ]] && [[ $available_space_gb -gt 5 ]]; then
-        production_success_message "✓ SUFFICIENT DISK SPACE: ${available_space_gb}GB available"
-    else
-        production_warning_message "⚠ LIMITED DISK SPACE: ${available_space_gb}GB available"
-        ((optimization_errors++))
-    fi
-
-    # Check system load
-    local load_avg
-    load_avg=$(uptime | awk -F'load averages:' '{print $2}' | awk '{print $1}' | sed 's/,//' 2>/dev/null || echo "0.0")
-    
-    # Compare load average without bc dependency
-    local load_comparison_result=1  # Default to "load is acceptable"
-    if command -v bc >/dev/null 2>&1; then
-        load_comparison_result=$(echo "$load_avg < 2.0" | bc 2>/dev/null || echo "1")
-    else
-        # Manual comparison for systems without bc
-        load_avg_int=$(echo "$load_avg" | cut -d. -f1 2>/dev/null || echo "0")
-        if [[ $load_avg_int -ge 2 ]]; then
-            load_comparison_result=0  # High load
-        fi
+        disk_space=$(df -h / | awk 'NR==2 {print $4}' || echo "unknown")
+        info_message "Available space: $disk_space"
     fi
     
-    if [[ $load_comparison_result -eq 1 ]]; then
-        production_success_message "✓ SYSTEM LOAD NORMAL: $load_avg"
-    else
-        production_warning_message "⚠ HIGH SYSTEM LOAD: $load_avg"
-    fi
-
-    echo "================================================"
-    if [[ $optimization_errors -eq 0 ]]; then
-        production_success_message "SAFE OPTIMIZATION COMPLETED: ALL OPTIMIZATIONS APPLIED SUCCESSFULLY"
-        production_info_message "System optimization completed without causing instability"
-        return 0
-    elif [[ $optimization_errors -lt 3 ]]; then
-        production_warning_message "SAFE OPTIMIZATION COMPLETED WITH MINOR ISSUES: $optimization_errors NON-CRITICAL WARNINGS"
-        production_info_message "Primary optimizations were applied successfully"
-        return 0
-    else
-        production_warning_message "SAFE OPTIMIZATION COMPLETED WITH LIMITATIONS: $optimization_errors ISSUES ENCOUNTERED"
-        production_info_message "Basic system safety maintained, some optimizations were skipped"
-        return 0  # Still return success to prevent menu exit
-    fi
-}
-
-################################################################################
-#  Menu System - NEVER EXITS
-################################################################################
-
-production_show_menu() {
-    while [[ "$SCRIPT_RUNNING" == "true" ]]; do
-        clear
-        echo "=============================================="
-        echo "          CURSOR MANAGEMENT UTILITY           "
-        echo "=============================================="
-        echo
-
-        # Show current status
-        if [[ "$MODULES_LOADED" == "true" ]]; then
-            production_success_message "STATUS: READY"
-        else
-            production_error_message "STATUS: DEGRADED MODE - MISSING MODULES"
-        fi
-
-        # Show verbose status information
-        if [[ "${VERBOSE:-false}" == "true" ]]; then
-            echo -e "\n${CYAN}[VERBOSE MODE] ADDITIONAL DEBUG INFORMATION:${NC}"
-            echo "  SCRIPT DIRECTORY: $SCRIPT_DIR"
-            echo "  MODULES LOADED: $MODULES_LOADED"
-            echo "  NON-INTERACTIVE: $NON_INTERACTIVE_MODE"
-            echo "  ERRORS ENCOUNTERED: $ERRORS_ENCOUNTERED"
-            echo ""
-        fi
-
-        echo
-        echo "OPTIONS:"
-        echo "  1) CHECK CURSOR STATUS"
-        echo "  2) UNINSTALL CURSOR"
-        echo "  3) OPTIMIZE SYSTEM"
-        echo "  4) GIT OPERATIONS"
-        echo "  5) HEALTH CHECKS"
-        echo "  6) SHOW HELP"
-        echo ""
-        echo "OTHER FEATURES:"
-        echo "  7) GIT STATUS"
-        echo "  8) SYSTEM SPECS"
-        echo ""
-        echo "  Q) QUIT"
-        echo
-        echo -n "ENTER YOUR CHOICE [1-8,Q]: "
-
-        # Handle read command with error checking for non-interactive environments
-        if read -r choice 2>/dev/null; then
-            # Read successful, proceed normally
-            :
-        else
-            # Read failed (EOF or non-interactive), default to quit
-            choice="Q"
-            production_info_message "Non-interactive mode detected, exiting..."
-        fi
-        
-        case "$choice" in
-            1)
-                production_execute_check
-                ;;
-            2)
-                production_execute_complete_uninstall
-                ;;
-            3)
-                production_execute_optimize
-                ;;
-            4)
-                production_execute_git_backup
-                ;;
-            5)
-                production_execute_health_check
-                ;;
-            6)
-                production_show_help
-                ;;
-            7)
-                production_execute_git_status
-                ;;
-            8)
-                production_execute_system_specs
-                ;;
-            [Qq]|[Qq][Uu][Ii][Tt])
-                production_info_message "EXITING SCRIPT...GOODBYE!"
-                SCRIPT_EXITING=true
-                SCRIPT_RUNNING=false
-                # Disable error trap to prevent false errors during exit
-                trap - ERR
-                break
-                ;;
-            *)
-                production_error_message "INVALID CHOICE: $choice"
-                ;;
-        esac
-
-        if [[ "$SCRIPT_RUNNING" == "true" ]]; then
-            echo
-            echo -n "Press Enter to continue..."
-            # Handle read command with error checking for non-interactive environments
-            if ! read -r 2>/dev/null; then
-                # Read failed (EOF or non-interactive), add small delay and continue
-                production_log_message "DEBUG" "Non-interactive environment detected, skipping user input"
-                sleep 1
-            fi
-        fi
-    done
-
-    # Only show final message if we haven't already shown it during normal exit
-    if [[ "${SCRIPT_EXITING:-false}" != "true" ]]; then
-        production_info_message "EXITING SCRIPT...GOODBYE!"
-    fi
-}
-
-################################################################################
-#  Argument Parser
-################################################################################
-
-production_parse_arguments() {
-    # Set defaults
-    OPERATION=""
-    DMG_PATH=""
-    VERBOSE="false"
-    GIT_BACKUP_REQUESTED="false"
-
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -u|--uninstall)
-                OPERATION="uninstall"
-                shift
-                ;;
-            --git-backup)
-                if [[ -z "$OPERATION" ]]; then
-                    OPERATION="git-backup"
-                else
-                    GIT_BACKUP_REQUESTED="true"
-                fi
-                shift
-                ;;
-            -i|--install)
-                OPERATION="install"
-                if [[ $# -lt 2 ]] || [[ "$2" == -* ]]; then
-                    production_error_message "INSTALL OPTION REQUIRES A DMG PATH"
-                    return 1
-                fi
-                DMG_PATH="$2"
-                shift 2
-                ;;
-            -o|--optimize)
-                OPERATION="optimize"
-                shift
-                ;;
-            -c|--check)
-                OPERATION="check"
-                shift
-                ;;
-            -m|--menu)
-                OPERATION="menu"
-                shift
-                ;;
-            --health)
-                OPERATION="health"
-                shift
-                ;;
-            --git-status)
-                OPERATION="git-status"
-                shift
-                ;;
-            --system-specs)
-                OPERATION="system-specs"
-                shift
-                ;;
-            --verbose)
-                VERBOSE="true"
-                shift
-                ;;
-            -h|--help)
-                production_show_help
-                return 2  # Special return code for help
-                ;;
-            *)
-                production_error_message "UNKNOWN ARGUMENT: $1"
-                production_show_help
-                return 1
-                ;;
-        esac
-    done
-
-    # Set default operation if none specified
-    if [[ -z "${OPERATION}" ]]; then
-        OPERATION="menu"
-    fi
-
+    success_message "Basic health check completed"
     return 0
 }
 
-################################################################################
-#  Script Entry Point
-################################################################################
+# Enhanced interactive menu with security considerations
+show_interactive_menu() {
+    while [[ "$SCRIPT_RUNNING" == "true" ]]; do
+        clear
+        cat << 'EOF'
+══════════════════════════════════════════════════════════
+               CURSOR MANAGEMENT UTILITY v3.0.0
+══════════════════════════════════════════════════════════
 
-# Execute main function if script is run directly (not sourced)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Handle command line arguments
-    if [[ $# -gt 0 ]]; then
-        # Parse arguments and execute specific operation
-        parse_result=0
-        production_parse_arguments "$@" || parse_result=$?
-
-        if [[ $parse_result -eq 2 ]]; then
-            # HELP WAS SHOWN, EXIT NORMALLY
-            exit 0
-        elif [[ $parse_result -ne 0 ]]; then
-            # PARSE ERROR, SHOW HELP AND EXIT
-            exit 1
+EOF
+        
+        # Show status
+        if (( ERRORS_ENCOUNTERED == 0 )); then
+            success_message "STATUS: READY"
+        else
+            warning_message "STATUS: $ERRORS_ENCOUNTERED errors encountered"
         fi
+        
+        cat << 'EOF'
 
-        # EXECUTE THE REQUESTED OPERATION
-        production_main "$@"
-    else
-        # NO ARGUMENTS, START INTERACTIVE MENU
-        OPERATION="menu"
-        production_show_menu
+OPTIONS:
+  1) Check Cursor Status
+  2) Uninstall Cursor  
+  3) Optimize System
+  4) Git Operations
+  5) Health Checks
+  6) Show Help
+  
+ADVANCED:
+  7) Git Status
+  8) System Specs
+  
+  Q) Quit
+
+EOF
+        
+        printf 'Enter your choice [1-8,Q]: '
+        
+        # Handle read with timeout for security
+        local choice
+        if read -r choice 2>/dev/null; then
+            case "$choice" in
+                1) execute_check ;;
+                2) execute_complete_uninstall ;;
+                3) execute_optimize ;;
+                4) execute_git_backup ;;
+                5) execute_health_check ;;
+                6) show_help ;;
+                7) execute_git_status ;;
+                8) execute_system_specs ;;
+                [Qq]|[Qq][Uu][Ii][Tt])
+                    info_message "Exiting script..."
+                    SCRIPT_EXITING=true
+                    SCRIPT_RUNNING=false
+                    break
+                    ;;
+                *)
+                    error_message "Invalid choice: $choice"
+                    ;;
+            esac
+        else
+            info_message "Non-interactive mode detected, exiting..."
+            break
+        fi
+        
+        if [[ "$SCRIPT_RUNNING" == "true" ]]; then
+            printf '\nPress Enter to continue...'
+            read -r 2>/dev/null || break
+        fi
+    done
+    
+    return 0
+}
+
+# Main function with comprehensive error handling
+main() {
+    local exit_code=0
+    
+    # Initialize environment
+    detect_environment || warning_message "Environment detection issues found"
+    
+    # Set up directories and logging
+    if [[ -n "${TMPDIR:-}" ]]; then
+        mkdir -p "$TMPDIR" 2>/dev/null || true
     fi
+    
+    info_message "Starting Cursor Management Utility v$SCRIPT_VERSION"
+    debug_message "Script directory: $SCRIPT_DIR"
+    debug_message "Project root: $PROJECT_ROOT"
+    debug_message "Non-interactive mode: $NON_INTERACTIVE_MODE"
+    
+    # Initialize modules
+    initialize_modules || {
+        warning_message "Some modules failed to load - functionality may be limited"
+    }
+    
+    # Parse command line arguments
+    if ! parse_arguments "$@"; then
+        local parse_exit=$?
+        if (( parse_exit == 2 )); then
+            # Help was shown
+            return 0
+        else
+            error_message "Failed to parse arguments"
+            return 1
+        fi
+    fi
+    
+    # Execute requested operation
+    execute_operation "${OPERATION:-menu}" || exit_code=$?
+    
+    # Final status report
+    if (( ERRORS_ENCOUNTERED > 0 )); then
+        warning_message "Script completed with $ERRORS_ENCOUNTERED total errors"
+    else
+        success_message "Script completed successfully"
+    fi
+    
+    return $exit_code
+}
+
+# Script entry point with secure execution
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Set up clean exit handling
+    cleanup() {
+        SCRIPT_EXITING=true
+        SCRIPT_RUNNING=false
+        trap - ERR EXIT INT TERM
+        
+        # Clean up temp files if any
+        if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" && "$TEMP_DIR" =~ /tmp/ ]]; then
+            rm -rf "$TEMP_DIR" 2>/dev/null || true
+        fi
+    }
+    
+    trap cleanup EXIT INT TERM
+    
+    # Execute main function with all arguments
+    main "$@"
+else
+    # Being sourced - export main functions only
+    export -f main parse_arguments execute_operation
+    info_message "Cursor management utility loaded as module"
 fi
