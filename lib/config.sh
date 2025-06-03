@@ -32,6 +32,8 @@ readonly NETWORK_TIMEOUT=30
 readonly PROCESS_TIMEOUT=60
 readonly DMG_MOUNT_TIMEOUT=30
 readonly FILE_OPERATION_TIMEOUT=120
+readonly SPOTLIGHT_OPERATION_TIMEOUT=30  # For Spotlight reindex/search operations
+readonly PROCESS_TERMINATION_GRACE_TIMEOUT=15 # Graceful termination period for processes
 
 # Directory configurations
 readonly TEMP_DIR="${TMPDIR:-/tmp}/cursor_uninstaller_$$"
@@ -106,6 +108,8 @@ validate_configuration() {
         "PROCESS_TIMEOUT:$PROCESS_TIMEOUT"
         "DMG_MOUNT_TIMEOUT:$DMG_MOUNT_TIMEOUT"
         "FILE_OPERATION_TIMEOUT:$FILE_OPERATION_TIMEOUT"
+        "SPOTLIGHT_OPERATION_TIMEOUT:$SPOTLIGHT_OPERATION_TIMEOUT"
+        "PROCESS_TERMINATION_GRACE_TIMEOUT:$PROCESS_TERMINATION_GRACE_TIMEOUT"
     )
     
     for timeout_var in "${timeout_vars[@]}"; do
@@ -202,19 +206,44 @@ initialize_configuration() {
         return 1
     fi
     
-    # Create required directories
+    # Create required directories securely
     local dirs_to_create=("$TEMP_DIR" "$LOG_DIR" "$CONFIG_DIR" "$BACKUP_DIR")
+    local current_user_id
+    current_user_id=$(id -u)
     
     for dir in "${dirs_to_create[@]}"; do
-        if [[ ! -d "$dir" ]]; then
-            if ! mkdir -p "$dir" 2>/dev/null; then
+        if [[ -d "$dir" ]]; then
+            # Directory exists, check ownership and permissions
+            local dir_owner_id
+            dir_owner_id=$(stat -f "%u" "$dir" 2>/dev/null || echo "-1")
+            
+            if [[ "$dir_owner_id" == "$current_user_id" ]]; then
+                if ! chmod 700 "$dir" 2>/dev/null; then
+                    printf '[CONFIG WARNING] Cannot set permissions for existing directory: %s\n' "$dir" >&2
+                fi
+            else
+                printf '[CONFIG WARNING] Directory exists but is not owned by current user: %s\n' "$dir" >&2
+                # Consider not using this directory or failing if ownership is critical
+            fi
+        else
+            # Directory does not exist, create it
+            if mkdir -p "$dir" 2>/dev/null; then
+                if ! chmod 700 "$dir" 2>/dev/null; then
+                    printf '[CONFIG WARNING] Cannot set permissions for new directory: %s\n' "$dir" >&2
+                fi
+                # Double check ownership after creation (especially if running as root then sudoing)
+                local new_dir_owner_id
+                new_dir_owner_id=$(stat -f "%u" "$dir" 2>/dev/null || echo "-1")
+                if [[ "$new_dir_owner_id" != "$current_user_id" ]]; then
+                    if ! chown "$current_user_id" "$dir" 2>/dev/null; then
+                         printf '[CONFIG WARNING] Cannot set ownership for new directory: %s\n' "$dir" >&2
+                    fi
+                fi
+            else
                 printf '[CONFIG WARNING] Cannot create directory: %s\n' "$dir" >&2
             fi
         fi
     done
-    
-    # Set secure permissions
-    chmod 700 "$LOG_DIR" "$CONFIG_DIR" "$BACKUP_DIR" 2>/dev/null || true
     
     return 0
 }

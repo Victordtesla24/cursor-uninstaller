@@ -218,8 +218,6 @@ perform_git_commit_and_push() {
     if [[ "$backup_ref" != "none" ]]; then
         production_info_message "Creating backup reference: $backup_ref"
     fi
-        esac
-    fi
     
     # Add only the filtered files
     production_info_message "Adding relevant changes to staging area..."
@@ -263,14 +261,16 @@ perform_git_commit_and_push() {
         # Push to remote
         local current_branch
         current_branch=$(git branch --show-current)
+        local git_push_timeout=120 # 120 seconds timeout for git push
         
-        production_info_message "Pushing changes to remote repository..."
-        if git push origin "$current_branch"; then
+        production_info_message "Pushing changes to remote repository (timeout: ${git_push_timeout}s)..."
+        if timeout "${git_push_timeout}" git push origin "$current_branch"; then
             production_success_message "✓ Changes pushed to remote repository successfully"
         else
-            production_warning_message "⚠ Failed to push to remote - you may need to set up authentication"
-            production_info_message "Commit was successful, but push failed"
-            production_info_message "You can push manually later with: git push origin $current_branch"
+            local push_exit_code=$?
+            production_warning_message "⚠ Failed to push to remote (exit code: $push_exit_code)"
+            production_info_message "Commit was successful. If needed, you can reset to the state before this commit using: git reset --hard $backup_ref"
+            production_info_message "You can try pushing manually later with: git push origin $current_branch"
         fi
         
         # Show final status

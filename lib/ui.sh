@@ -216,21 +216,31 @@ show_progress() {
     fi
     
     # ETA calculation with overflow protection
-    if [[ "$show_eta" == "true" && current -gt 0 ]]; then
-        local -i elapsed=$(( $(date +%s) - start_time ))
+    if [[ "$show_eta" == "true" && "$current" -gt 0 && "$total" -gt "$current" ]]; then
+        local elapsed=$(( $(date +%s) - start_time ))
         if (( elapsed > 0 )); then
-            local -i rate=$(( current / elapsed ))
-            if (( rate > 0 )); then
-                local -i remaining=$(( (total - current) / rate ))
-                
-                if (( remaining > 3600 )); then
-                    local -i hours=$(( remaining / 3600 ))
+            # Calculate rate safely, ensure current is not zero (already checked)
+            local rate_numerator=$current
+            local rate_denominator=$elapsed
+            
+            # Avoid division by zero for rate, though elapsed > 0 is checked.
+            # rate calculation is items/sec
+            # For remaining time: (total_items - current_items) / (items/sec)
+            local remaining_items=$((total - current))
+            
+            if (( rate_denominator > 0 && remaining_items > 0 )); then # rate_denominator is elapsed
+                # Calculate remaining time in seconds, avoiding intermediate large numbers if possible
+                # remaining_seconds = remaining_items * elapsed_seconds / current_items
+                local remaining_seconds=$(( (remaining_items * rate_denominator) / rate_numerator ))
+
+                if (( remaining_seconds > 3600 )); then
+                    local hours=$(( remaining_seconds / 3600 ))
                     output+=$(printf ' ETA: %dh' "$hours")
-                elif (( remaining > 60 )); then
-                    local -i minutes=$(( remaining / 60 ))
+                elif (( remaining_seconds > 60 )); then
+                    local minutes=$(( remaining_seconds / 60 ))
                     output+=$(printf ' ETA: %dm' "$minutes")
-                elif (( remaining > 0 )); then
-                    output+=$(printf ' ETA: %ds' "$remaining")
+                elif (( remaining_seconds > 0 )); then
+                    output+=$(printf ' ETA: %ds' "$remaining_seconds")
                 fi
             fi
         fi

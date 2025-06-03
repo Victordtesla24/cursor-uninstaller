@@ -11,9 +11,9 @@ set -euo pipefail
 # Module configuration and constants
 readonly MODULE_NAME="complete_removal"
 readonly MODULE_VERSION="2.0.0"
-readonly SPOTLIGHT_TIMEOUT=30
-readonly MAX_REMOVAL_ATTEMPTS=3
-readonly PROCESS_TERMINATION_TIMEOUT=15
+# readonly SPOTLIGHT_TIMEOUT=30 # Now in config.sh as SPOTLIGHT_OPERATION_TIMEOUT
+# readonly MAX_REMOVAL_ATTEMPTS=3 # This can remain local if not shared
+# readonly PROCESS_TERMINATION_TIMEOUT=15 # Now in config.sh as PROCESS_TERMINATION_GRACE_TIMEOUT
 
 # Enhanced logging for this module
 module_log() {
@@ -255,6 +255,15 @@ attempt_cache_removal() {
     while [[ $attempt -le $MAX_REMOVAL_ATTEMPTS ]]; do
         module_log "DEBUG" "Removal attempt $attempt for: $cache_path"
         
+        if is_dry_run; then
+            module_log "INFO" "[DRY RUN] Would attempt to remove cache: $cache_path (attempt $attempt)"
+            # In dry run, we assume it would succeed for the purpose of attempt logic, 
+            # or rather, we don't try further attempts.
+            # However, to accurately reflect what safe_remove_file would do, let's simulate one dry-run call to it.
+            safe_remove_file "$cache_path" false true 
+            return 0 # Indicate success for dry run for this attempt path
+        fi
+
         # Strategy 1: Standard removal
         if [[ $attempt -eq 1 ]]; then
             if rm -rf "$cache_path" 2>/dev/null; then
@@ -331,7 +340,7 @@ perform_system_maintenance() {
     
     # Spotlight Reindexing (selective)
     show_progress "$current_op" "$total_ops" "Rebuilding Spotlight index" true true
-    if timeout "$SPOTLIGHT_TIMEOUT" sudo mdutil -i on / 2>/dev/null; then
+    if timeout "$SPOTLIGHT_OPERATION_TIMEOUT" sudo mdutil -i on / 2>/dev/null; then
         module_log "SUCCESS" "Spotlight reindexing initiated"
     else
         module_log "WARNING" "Spotlight reindexing failed or timed out (non-critical)"
@@ -620,16 +629,31 @@ remove_categorized_items() {
     
     local success_count=0
     local failure_count=0
-    
+    local actual_force_remove=true
+
+    if is_dry_run; then
+        actual_force_remove=false
+        module_log "INFO" "[DRY RUN] Simulating removal of ${#items[@]} items in category: $category"
+    fi
+
     for item in "${items[@]}"; do
-        if safe_remove_file "$item" true true; then
-            ((success_count++))
+        # safe_remove_file will log its own dry run message if actual_force_remove is false
+        if safe_remove_file "$item" "$actual_force_remove" true; then
+            if ! is_dry_run; then # Only log success if not a dry run, as safe_remove_file handles dry run logging
+                ((success_count++))
+            fi
         else
-            ((failure_count++))
+            if ! is_dry_run; then # Only count failures if not a dry run (unless safe_remove_file itself errored)
+                ((failure_count++))
+            fi
         fi
     done
     
-    module_log "INFO" "Removal completed: $success_count successful, $failure_count failed"
+    if ! is_dry_run; then
+        module_log "INFO" "Removal completed: $success_count successful, $failure_count failed"
+    else
+        module_log "INFO" "[DRY RUN] Finished simulating removal of items in category: $category"
+    fi
     return 0
 }
 
@@ -673,7 +697,7 @@ perform_complete_cursor_removal() {
     
     # Step 2: Terminate processes  
     show_progress $((++completed_steps)) $total_steps "Terminating Cursor processes"
-    if ! terminate_all_cursor_processes 3 "$PROCESS_TERMINATION_TIMEOUT"; then
+    if ! terminate_all_cursor_processes 3 "$PROCESS_TERMINATION_GRACE_TIMEOUT"; then
         module_log "ERROR" "Process termination failed"
         ((errors++))
     fi
@@ -681,11 +705,21 @@ perform_complete_cursor_removal() {
     # Step 3: Remove main application
     show_progress $((++completed_steps)) $total_steps "Removing main application"
     if [[ -d "$CURSOR_APP_PATH" ]]; then
-        if safe_remove_file "$CURSOR_APP_PATH" true true; then
-            module_log "SUCCESS" "Main application removed"
+        local actual_force_remove=true
+        if is_dry_run; then
+            actual_force_remove=false
+        fi
+        if safe_remove_file "$CURSOR_APP_PATH" "$actual_force_remove" true; then
+            if ! is_dry_run; then 
+                 module_log "SUCCESS" "Main application removed"
+            fi # else safe_remove_file already logged the dry run action
         else
-            module_log "ERROR" "Failed to remove main application"
-            ((errors++))
+            # If safe_remove_file returns error, it means an actual error occurred even in dry run (e.g. path validation)
+            # or the removal failed in non-dry run mode.
+            if ! is_dry_run; then
+                module_log "ERROR" "Failed to remove main application"
+                ((errors++))
+            fi # No need to increment errors for dry run if it was just a simulation log by safe_remove_file
         fi
     else
         module_log "INFO" "Main application not found"
@@ -699,11 +733,19 @@ perform_complete_cursor_removal() {
     
     while IFS= read -r dir; do
         if [[ -e "$dir" ]]; then
-            if safe_remove_file "$dir" true true; then
-                module_log "SUCCESS" "Removed user data: $dir"
+            local actual_force_remove_user_dir=true
+            if is_dry_run; then
+                actual_force_remove_user_dir=false
+            fi
+            if safe_remove_file "$dir" "$actual_force_remove_user_dir" true; then
+                if ! is_dry_run; then
+                    module_log "SUCCESS" "Removed user data: $dir"
+                fi            
             else
-                module_log "ERROR" "Failed to remove user data: $dir"
-                ((user_data_errors++))
+                if ! is_dry_run; then
+                    module_log "ERROR" "Failed to remove user data: $dir"
+                    ((user_data_errors++))
+                fi
             fi
         fi
     done <<< "$user_dirs"
@@ -716,11 +758,19 @@ perform_complete_cursor_removal() {
     show_progress $((++completed_steps)) $total_steps "Removing CLI tools"
     for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
         if [[ -x "$cli_path" ]]; then
-            if safe_remove_file "$cli_path" true true; then
-                module_log "SUCCESS" "Removed CLI tool: $cli_path"
+            local actual_force_remove_cli=true
+            if is_dry_run; then
+                actual_force_remove_cli=false
+            fi
+            if safe_remove_file "$cli_path" "$actual_force_remove_cli" true; then
+                if ! is_dry_run; then
+                    module_log "SUCCESS" "Removed CLI tool: $cli_path"
+                fi
             else
-                module_log "ERROR" "Failed to remove CLI tool: $cli_path"
-                ((errors++))
+                if ! is_dry_run; then
+                    module_log "ERROR" "Failed to remove CLI tool: $cli_path"
+                    ((errors++))
+                fi
             fi
         fi
     done

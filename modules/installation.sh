@@ -209,7 +209,14 @@ mount_dmg_with_retry() {
         
         install_log "WARNING" "Mount attempt $attempt failed, retrying..."
         ((attempt++))
-        sleep 2
+        if [[ $attempt -le $max_attempts ]]; then
+            local sleep_duration=$((2 ** (attempt - 2))) # 1, 2, 4, 8 seconds for attempts 2,3,4,5 if max_attempts is high enough
+            if [[ $sleep_duration -gt 15 ]]; then # Cap sleep duration to avoid very long waits
+                sleep_duration=15
+            fi
+            install_log "DEBUG" "Sleeping for ${sleep_duration}s before next mount attempt."
+            sleep "$sleep_duration"
+        fi
     done
     
     install_log "ERROR" "Failed to mount DMG after $max_attempts attempts"

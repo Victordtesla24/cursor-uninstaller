@@ -12,6 +12,13 @@ readonly IFS=$' \t\n'
 # Helper module configuration
 readonly HELPERS_MODULE_VERSION="3.0.0"
 
+# Function to check if dry run mode is active
+is_dry_run() {
+    [[ "${DRY_RUN_MODE:-false}" == "true" ]]
+}
+# Export is_dry_run so it can be used by modules
+export -f is_dry_run
+
 # Enhanced logging with structured output and security considerations
 log_with_level() {
     local level="$1"
@@ -290,7 +297,8 @@ safe_remove_file() {
                 local resolved_path
                 if resolved_path=$(realpath "$normalized_path" 2>/dev/null); then
                     # Recursively validate the resolved absolute path
-                    return $(safe_remove_file "$resolved_path" "$force_remove" "$verify_removal")
+                    safe_remove_file "$resolved_path" "$force_remove" "$verify_removal"
+                    return $?
                 else
                     log_with_level "DEBUG" "Cannot resolve relative path, skipping: $normalized_path"
                     return 0

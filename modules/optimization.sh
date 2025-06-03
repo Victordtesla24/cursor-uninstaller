@@ -438,16 +438,28 @@ test_network_speed() {
     
     # Try to download a test file and measure speed
     if command -v curl >/dev/null 2>&1; then
-        local test_url="http://speedtest.wdc01.softlayer.com/downloads/test1.zip"
+        local test_url="http://speedtest.wdc01.softlayer.com/downloads/test1.zip" # Consider a more reliable/official test file source
         local start_time end_time duration bytes_downloaded
         
         start_time=$(date +%s)
-        bytes_downloaded=$(timeout 10 curl -o /dev/null -s -w '%{size_download}' --max-time 10 "$test_url" 2>/dev/null || echo "0")
+        # Use -L to follow redirects, --connect-timeout for connection phase
+        bytes_downloaded=$(timeout 10 curl -L -o /dev/null -s -w '%{size_download}' --connect-timeout 5 --max-time 10 "$test_url" 2>/dev/null || echo "0")
         end_time=$(date +%s)
         duration=$((end_time - start_time))
         
-        if [[ $duration -gt 0 ]] && [[ $bytes_downloaded -gt 0 ]]; then
+        if [[ "$bytes_downloaded" =~ ^[0-9]+$ && $bytes_downloaded -gt 0 && $duration -gt 0 ]]; then
             speed_mb=$((bytes_downloaded / duration / 1024 / 1024))
+        elif [[ $duration -eq 0 && $bytes_downloaded -gt 0 ]]; then
+            # If duration is 0 but bytes were downloaded (very fast connection / small file for timer resolution)
+            # Assign a high speed or indicate very fast, rather than 0 or error.
+            # This is a rough approximation for very fast cases.
+            speed_mb=$((bytes_downloaded / 1024 / 1024)) # Effectively speed in MBps if duration < 1s
+            if [[ $speed_mb -eq 0 && $bytes_downloaded -gt 0 ]]; then # if still 0 due to integer division for <1MB
+                speed_mb=1 # Indicate at least 1MB/s if any bytes were downloaded very quickly
+            fi
+            opt_log "DEBUG" "Network speed test completed very quickly (<1s duration). Approximated speed."
+        else
+            opt_log "WARNING" "Network speed test failed or no data downloaded (Duration: ${duration}s, Bytes: ${bytes_downloaded})"
         fi
     fi
     
@@ -597,21 +609,18 @@ optimize_finder_performance() {
 optimize_memory_management_advanced() {
     opt_log "DEBUG" "Applying advanced memory management optimizations..."
     
-    # Increase file descriptor limits
+    # Increase file descriptor limits for the current session and its children
+    # For persistent changes, this should be configured in shell startup files or launchd.
     if ulimit -n 65536 2>/dev/null; then
-        opt_log "DEBUG" "Increased file descriptor limit"
+        opt_log "DEBUG" "Increased file descriptor limit for current session to 65536"
+    else
+        opt_log "WARNING" "Failed to increase file descriptor limit"
     fi
     
-    # Configure swap usage based on available memory
-    local memory_gb
-    memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo "8")
-    
-    if [[ $memory_gb -ge 16 ]]; then
-        # Reduce swap usage on high-memory systems
-        if sudo sysctl vm.swappiness=10 2>/dev/null; then
-            opt_log "DEBUG" "Reduced swap usage for high-memory system"
-        fi
-    fi
+    # macOS uses a different memory management system than Linux; vm.swappiness is not applicable.
+    # Consider other macOS-specific optimizations if available and safe.
+    # For now, this section primarily relies on the OS's default advanced memory management.
+    opt_log "DEBUG" "macOS manages virtual memory dynamically. No direct swappiness tuning available."
     
     return 0
 }
