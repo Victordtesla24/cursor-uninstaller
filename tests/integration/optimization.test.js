@@ -102,8 +102,9 @@ describe('Optimization Feature Validation', () => {
     // Should have exactly one production optimization function
     expect(productionOptimizeMatches.length).toBeGreaterThan(0);
     
-    // Should not have conflicting safe mode functions
+    // Should not have conflicting safe mode functions or unused legacy functions
     expect(scriptContent).not.toMatch(/optimize_memory_and_performance_safe/);
+    expect(scriptContent).not.toMatch(/optimize_memory_and_performance\(\)/); // Legacy function should be removed
   });
 
   test('Dependencies in target directory are deployable', () => {

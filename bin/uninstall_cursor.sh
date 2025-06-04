@@ -7,7 +7,8 @@
 
 # SECURITY HARDENING: Strict error handling and secure environment
 set -euo pipefail
-readonly IFS=$' \t\n'
+IFS=$' \t\n'  # Set secure IFS but allow modules to temporarily modify it
+readonly SECURE_IFS=$' \t\n'  # Store secure IFS for restoration
 
 # Script metadata with build information
 readonly SCRIPT_VERSION="4.0.0"
@@ -80,19 +81,19 @@ fi
 export SCRIPT_DIR PROJECT_ROOT
 
 # ENHANCED: Global state management with proper synchronization
-declare -g ERRORS_ENCOUNTERED=0
-declare -g NON_INTERACTIVE_MODE=false
-declare -g VERBOSE_MODE=false
-declare -g SCRIPT_RUNNING=true
-declare -g SCRIPT_EXITING=false
-declare -g CLEANUP_PERFORMED=false
-declare -g PID_FILE=""
+ERRORS_ENCOUNTERED=0
+NON_INTERACTIVE_MODE=false
+VERBOSE_MODE=false
+SCRIPT_RUNNING=true
+SCRIPT_EXITING=false
+CLEANUP_PERFORMED=false
+PID_FILE=""
 
 # SECURITY: Process isolation and tracking
 readonly SCRIPT_PID=$$
-declare -g CHILD_PIDS=()
-declare -g TEMP_FILES=()
-declare -g MOUNTED_VOLUMES=()
+CHILD_PIDS=()
+TEMP_FILES=()
+MOUNTED_VOLUMES=()
 
 # ENHANCED: Runtime timeout enforcement
 start_timeout_enforcement() {
@@ -193,8 +194,8 @@ validate_execution_environment() {
     
     # SECURITY: Validate shell and version
     if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
-        printf '[ERROR] Bash 4.0+ required, found: %s\n' "$BASH_VERSION" >&2
-        ((validation_errors++))
+        printf '[WARNING] Bash 4.0+ recommended for optimal functionality, found: %s\n' "$BASH_VERSION" >&2
+        printf '[INFO] Running in compatibility mode for Bash 3.2+\n' >&2
     fi
     
     # Check for non-interactive environment indicators
@@ -388,6 +389,9 @@ load_module() {
     local load_result=0
     # shellcheck source=/dev/null
     source "$real_path" || load_result=$?
+    
+    # Restore secure IFS after module loading
+    IFS="$SECURE_IFS"
     
     if [[ $load_result -eq 0 ]]; then
         # Verify module loaded correctly
@@ -1137,22 +1141,26 @@ EOF
 main() {
     local exit_code=0
     
-    # Initialize environment
-    detect_environment || warning_message "Environment detection issues found"
-    
-    # Set up directories and logging
-    if [[ -n "${TMPDIR:-}" ]]; then
-        mkdir -p "$TMPDIR" 2>/dev/null || true
-    fi
-    
     info_message "Starting Cursor Management Utility v$SCRIPT_VERSION"
     debug_message "Script directory: $SCRIPT_DIR"
     debug_message "Project root: $PROJECT_ROOT"
     debug_message "Non-interactive mode: $NON_INTERACTIVE_MODE"
     
-    # Initialize modules with critical error handling
+    # Initialize modules with critical error handling first
     local module_init_result=0
     initialize_modules || module_init_result=$?
+    
+    # Initialize environment after modules are loaded
+    if declare -f detect_environment >/dev/null 2>&1; then
+        detect_environment || warning_message "Environment detection issues found"
+    else
+        warning_message "Environment detection function not available"
+    fi
+    
+    # Set up directories and logging
+    if [[ -n "${TMPDIR:-}" ]]; then
+        mkdir -p "$TMPDIR" 2>/dev/null || true
+    fi
     
     if (( module_init_result > 0 )); then
         if (( module_init_result >= 5 )); then

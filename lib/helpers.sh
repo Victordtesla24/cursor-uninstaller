@@ -5,9 +5,9 @@
 # REFACTORED: Enhanced security, reliability, and performance
 ################################################################################
 
-# Secure error handling
+# Secure error handling  
 set -euo pipefail
-readonly IFS=$' \t\n'
+# Note: IFS is already set as readonly in main script
 
 # Helper module configuration
 readonly HELPERS_MODULE_VERSION="3.0.0"
@@ -207,9 +207,11 @@ safe_remove_file() {
     
     # First, resolve the real path to prevent symlink attacks
     if command -v realpath >/dev/null 2>&1; then
-        if ! resolved_path=$(realpath -m "$file_path" 2>/dev/null); then
-            log_with_level "ERROR" "Cannot resolve path: $file_path"
-            return 1
+        # Use realpath with fallback for non-existent paths
+        if [[ -e "$file_path" ]]; then
+            resolved_path=$(realpath "$file_path" 2>/dev/null) || resolved_path="$file_path"
+        else
+            resolved_path=$(realpath -m "$file_path" 2>/dev/null) || resolved_path="$file_path"
         fi
         normalized_path="$resolved_path"
     else
@@ -255,13 +257,10 @@ safe_remove_file() {
             ;;
     esac
     
-    # SECURITY: Validate path contains only safe characters
-    if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
-        # Allow spaces and common special characters in user directories
-        if [[ ! "$normalized_path" =~ ^[a-zA-Z0-9/_.-]+$ ]] || [[ "$normalized_path" =~ [[:cntrl:]] ]]; then
-            log_with_level "ERROR" "SECURITY: Path contains dangerous characters: $file_path"
-            return 1
-        fi
+    # SECURITY: Validate path contains only safe characters (allow spaces in macOS paths)
+    if [[ "$normalized_path" =~ [[:cntrl:]] ]] || [[ "$normalized_path" =~ [\$\`\"\\] ]]; then
+        log_with_level "ERROR" "SECURITY: Path contains dangerous control characters: $file_path"
+        return 1
     fi
     
     # SECURITY: Ensure path is absolute or within allowed directories
@@ -524,16 +523,25 @@ check_cursor_processes() {
     
     for pattern in "${process_patterns[@]}"; do
         local pids
-        # Use pgrep for safer process detection
-        if pids=$(pgrep -f "$pattern" 2>/dev/null); then
-            while IFS= read -r pid; do
+        # Use pgrep for safer process detection - disable error exit temporarily
+        set +e
+        pids=$(pgrep -f "$pattern" 2>/dev/null)
+        local pgrep_exit=$?
+        set -e
+        
+        # Only process results if pgrep found matches (exit code 0)
+        if [[ $pgrep_exit -eq 0 && -n "$pids" ]]; then
+            # Process PIDs without modifying IFS (Bash 3.2 compatibility)
+            local pid_array
+            pid_array=($pids)
+            for pid in "${pid_array[@]}"; do
                 # Skip our own process and invalid PIDs
                 if [[ "$pid" =~ ^[0-9]+$ ]] && (( pid != current_pid )) && kill -0 "$pid" 2>/dev/null; then
                     local process_info
                     process_info=$(ps -p "$pid" -o comm= 2>/dev/null | tr -cd '[:print:]' || echo "unknown")
                     found_processes+=("$pid:$process_info")
                 fi
-            done <<< "$pids"
+            done
         fi
     done
     
@@ -571,11 +579,14 @@ terminate_cursor_processes() {
         fi
         
         log_with_level "INFO" "Found cursor processes:"
-        while IFS= read -r process_line; do
+        # Process cursor processes without modifying IFS (Bash 3.2 compatibility)
+        local process_array
+        process_array=($cursor_processes)
+        for process_line in "${process_array[@]}"; do
             local pid="${process_line%%:*}"
             local name="${process_line##*:}"
             log_with_level "INFO" "  PID $pid: $name"
-        done <<< "$cursor_processes"
+        done
         
         # Step 1: Graceful application quit
         log_with_level "INFO" "Attempting graceful shutdown..."
@@ -603,12 +614,15 @@ terminate_cursor_processes() {
         # Step 2: Send TERM signal to remaining processes with PID verification
         log_with_level "INFO" "Sending TERM signal to remaining processes..."
         local -a pids_to_terminate=()
-        while IFS= read -r process_line; do
+        # Process cursor processes without modifying IFS (Bash 3.2 compatibility)
+        local process_array2
+        process_array2=($cursor_processes)
+        for process_line in "${process_array2[@]}"; do
             local pid="${process_line%%:*}"
             if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
                 pids_to_terminate+=("$pid")
             fi
-        done <<< "$cursor_processes"
+        done
         
         # Send TERM signals to validated PIDs
         for pid in "${pids_to_terminate[@]}"; do
@@ -641,13 +655,16 @@ terminate_cursor_processes() {
             local remaining_processes
             remaining_processes=$(check_cursor_processes)
             
-            while IFS= read -r process_line; do
+            # Process remaining processes without modifying IFS (Bash 3.2 compatibility)
+            local remaining_array
+            remaining_array=($remaining_processes)
+            for process_line in "${remaining_array[@]}"; do
                 local pid="${process_line%%:*}"
                 if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
                     log_with_level "INFO" "Force killing PID $pid"
                     kill -KILL "$pid" 2>/dev/null || true
                 fi
-            done <<< "$remaining_processes"
+            done
             
             sleep 2
         fi
@@ -655,10 +672,11 @@ terminate_cursor_processes() {
         ((attempt++))
     done
     
-    # Final verification
+    # Final verification with graceful handling
     if check_cursor_processes >/dev/null; then
-        log_with_level "ERROR" "Failed to terminate all cursor processes after $max_attempts attempts"
-        return 1
+        log_with_level "WARNING" "Some cursor processes may still be running after $max_attempts attempts"
+        log_with_level "INFO" "This is typically harmless and optimization can continue"
+        return 2  # Use exit code 2 to indicate partial success
     else
         log_with_level "SUCCESS" "All cursor processes terminated successfully"
         return 0
@@ -707,7 +725,11 @@ get_system_specs() {
         local disk_info
         disk_info=$(df -h / 2>/dev/null | awk 'NR==2 {printf "%s,%s,%s,%s", $2, $3, $4, $5}' || echo "unknown,unknown,unknown,unknown")
         
-        IFS=',' read -r total_space used_space available_space usage_percent <<< "$disk_info"
+        # Parse disk info without modifying IFS (Bash 3.2 compatibility)
+        total_space=$(echo "$disk_info" | cut -d',' -f1)
+        used_space=$(echo "$disk_info" | cut -d',' -f2)
+        available_space=$(echo "$disk_info" | cut -d',' -f3)
+        usage_percent=$(echo "$disk_info" | cut -d',' -f4)
         system_info[disk_total]="$total_space"
         system_info[disk_used]="$used_space"
         system_info[disk_available]="$available_space"

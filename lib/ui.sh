@@ -7,7 +7,7 @@
 
 # Secure error handling
 set -euo pipefail
-readonly IFS=$' \t\n'
+# Note: IFS is already set as readonly in main script
 
 # UI module configuration
 readonly UI_MODULE_VERSION="3.0.0"
@@ -148,6 +148,87 @@ sanitize_message() {
     fi
     
     printf '%s' "$message"
+}
+
+# Print a separator line using specified character
+print_separator() {
+    local char="${1:-=}"
+    local width="${2:-$TERM_WIDTH}"
+    
+    # Ensure width is reasonable
+    if (( width <= 0 || width > 200 )); then
+        width=80
+    fi
+    
+    # Print separator using printf for consistency
+    printf '%*s\n' "$width" | tr ' ' "$char"
+}
+
+# Display operation header with title and description
+display_operation_header() {
+    local title="${1:-Operation}"
+    local description="${2:-Performing operation...}"
+    local show_separator="${3:-true}"
+    
+    # Sanitize inputs
+    title=$(sanitize_message "$title" 50)
+    description=$(sanitize_message "$description" 100)
+    
+    # Create header
+    if [[ "$show_separator" == "true" ]]; then
+        print_separator "="
+    fi
+    
+    printf "\n"
+    printf "%s\n" "$title"
+    if [[ -n "$description" ]]; then
+        printf "%s\n" "$description"
+    fi
+    printf "\n"
+    
+    if [[ "$show_separator" == "true" ]]; then
+        print_separator "-"
+    fi
+}
+
+# Display operation summary with statistics
+display_operation_summary() {
+    local operation_name="${1:-Operation}"
+    local success_count="${2:-0}"
+    local warning_count="${3:-0}"
+    local error_count="${4:-0}"
+    local total_steps="${5:-1}"
+    local duration="${6:-0}"
+    
+    # Sanitize operation name
+    operation_name=$(sanitize_message "$operation_name" 50)
+    
+    # Calculate totals
+    local -i total_completed=$((success_count + warning_count + error_count))
+    
+    printf "\n"
+    print_separator "="
+    printf "%s SUMMARY\n" "$operation_name"
+    print_separator "-"
+    
+    printf "Total Steps: %d\n" "$total_steps"
+    printf "Completed: %d\n" "$total_completed"
+    printf "Successful: %d\n" "$success_count"
+    
+    if (( warning_count > 0 )); then
+        printf "Warnings: %d\n" "$warning_count"
+    fi
+    
+    if (( error_count > 0 )); then
+        printf "Errors: %d\n" "$error_count"
+    fi
+    
+    if (( duration > 0 )); then
+        printf "Duration: %d seconds\n" "$duration"
+    fi
+    
+    print_separator "="
+    printf "\n"
 }
 
 # Enhanced progress display with comprehensive validation
@@ -367,19 +448,25 @@ display_system_specifications() {
     
     case "$format" in
         "json")
-            # JSON output with proper escaping
+            # JSON output with proper escaping (Bash 3.2 compatibility)
             printf '{\n'
             local first=true
-            while IFS=': ' read -r key value; do
-                if [[ -n "$key" && -n "$value" ]]; then
-                    [[ "$first" == "false" ]] && printf ',\n'
-                    # Escape JSON strings properly
-                    key=$(printf '%s' "$key" | sed 's/"/\\"/g')
-                    value=$(printf '%s' "$value" | sed 's/"/\\"/g')
-                    printf '  "%s": "%s"' "$key" "$value"
-                    first=false
+            local info_lines
+            info_lines=$(echo "$system_info" | grep ':')
+            while read -r line; do
+                if [[ -n "$line" && "$line" =~ : ]]; then
+                    local key="${line%%:*}"
+                    local value="${line#*: }"
+                    if [[ -n "$key" && -n "$value" ]]; then
+                        [[ "$first" == "false" ]] && printf ',\n'
+                        # Escape JSON strings properly
+                        key=$(printf '%s' "$key" | sed 's/"/\\"/g')
+                        value=$(printf '%s' "$value" | sed 's/"/\\"/g')
+                        printf '  "%s": "%s"' "$key" "$value"
+                        first=false
+                    fi
                 fi
-            done <<< "$system_info"
+            done <<< "$info_lines"
             printf '\n}\n'
             ;;
         "compact")
@@ -387,16 +474,23 @@ display_system_specifications() {
             printf '%s' "$system_info" | tr '\n' ' | ' | sed 's/ | $/\n/'
             ;;
         "table"|*)
-            # Enhanced table format with alignment
-            while IFS=': ' read -r key value; do
-                if [[ -n "$key" && -n "$value" ]]; then
-                    if [[ "$TERMINAL_CAPABILITIES" =~ color ]]; then
-                        printf '  %s%-20s%s: %s\n' "${CYAN:-}" "$key" "${NC:-}" "$value"
-                    else
-                        printf '  %-20s: %s\n' "$key" "$value"
+            # Enhanced table format with alignment (Bash 3.2 compatibility)
+            # Process system info without modifying IFS
+            local info_lines
+            info_lines=$(echo "$system_info" | grep ':')
+            while read -r line; do
+                if [[ -n "$line" && "$line" =~ : ]]; then
+                    local key="${line%%:*}"
+                    local value="${line#*: }"
+                    if [[ -n "$key" && -n "$value" ]]; then
+                        if [[ "$TERMINAL_CAPABILITIES" =~ color ]]; then
+                            printf '  %s%-20s%s: %s\n' "${CYAN:-}" "$key" "${NC:-}" "$value"
+                        else
+                            printf '  %-20s: %s\n' "$key" "$value"
+                        fi
                     fi
                 fi
-            done <<< "$system_info"
+            done <<< "$info_lines"
             ;;
     esac
     

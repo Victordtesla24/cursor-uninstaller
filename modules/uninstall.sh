@@ -42,7 +42,7 @@ prepare_uninstall() {
     user_dirs=$(get_cursor_user_dirs)
     local user_data_found=0
     
-    while IFS= read -r dir; do
+    while read -r dir; do
         if [[ -e "$dir" ]]; then
             cursor_found=true
             ((user_data_found++))
@@ -55,7 +55,14 @@ prepare_uninstall() {
     
     # Check CLI installations
     local cli_found=0
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -x "$cli_path" ]]; then
             cursor_found=true
             ((cli_found++))
@@ -139,7 +146,7 @@ enhanced_uninstall_cursor() {
     local user_data_errors=0
     local user_data_removed=0
     
-    while IFS= read -r dir; do
+    while read -r dir; do
         if [[ -e "$dir" ]]; then
             local dir_size
             dir_size=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "unknown")
@@ -172,7 +179,14 @@ enhanced_uninstall_cursor() {
     local cli_errors=0
     local cli_removed=0
     
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -x "$cli_path" ]]; then
             uninstall_log "INFO" "Removing CLI tool: $cli_path"
             
@@ -305,7 +319,7 @@ verify_uninstall_completion() {
     local user_dirs
     user_dirs=$(get_cursor_user_dirs)
     
-    while IFS= read -r dir; do
+    while read -r dir; do
         if [[ -e "$dir" ]]; then
             uninstall_log "WARNING" "User data still exists: $dir"
             ((verification_issues++))
@@ -313,7 +327,14 @@ verify_uninstall_completion() {
     done <<< "$user_dirs"
     
     # Check CLI tools
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -x "$cli_path" ]]; then
             uninstall_log "WARNING" "CLI tool still exists: $cli_path"
             ((verification_issues++))
@@ -337,31 +358,28 @@ verify_uninstall_completion() {
 
 # Provide helpful post-uninstall guidance
 provide_post_uninstall_guidance() {
-    echo -e "\n${BOLD}${GREEN}📋 POST-UNINSTALL INFORMATION${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    uninstall_log "INFO" "📋 POST-UNINSTALL INFORMATION"
+    uninstall_log "INFO" "═══════════════════════════════════════════════"
     
-    echo -e "${BOLD}What was removed:${NC}"
-    echo "• Cursor application bundle"
-    echo "• User preferences and settings"
-    echo "• Application caches and temporary files"
-    echo "• CLI tools and system integrations"
-    echo "• Launch Services registrations"
-    echo ""
+    uninstall_log "INFO" "What was removed:"
+    uninstall_log "INFO" "• Cursor application bundle"
+    uninstall_log "INFO" "• User preferences and settings"
+    uninstall_log "INFO" "• Application caches and temporary files"
+    uninstall_log "INFO" "• CLI tools and system integrations"
+    uninstall_log "INFO" "• Launch Services registrations"
     
-    echo -e "${BOLD}Additional cleanup (optional):${NC}"
-    echo "• Check Keychain Access for any saved Cursor passwords"
-    echo "• Review browser bookmarks for Cursor-related sites"
-    echo "• Clear any custom aliases or PATH modifications"
-    echo ""
+    uninstall_log "INFO" "Additional cleanup (optional):"
+    uninstall_log "INFO" "• Check Keychain Access for any saved Cursor passwords"
+    uninstall_log "INFO" "• Review browser bookmarks for Cursor-related sites"
+    uninstall_log "INFO" "• Clear any custom aliases or PATH modifications"
     
-    echo -e "${BOLD}Reinstallation:${NC}"
-    echo "• Download fresh copy from: https://cursor.sh"
-    echo "• Previous settings will not be restored automatically"
-    echo "• Extensions and customizations will need to be reconfigured"
-    echo ""
+    uninstall_log "INFO" "Reinstallation:"
+    uninstall_log "INFO" "• Download fresh copy from: https://cursor.sh"
+    uninstall_log "INFO" "• Previous settings will not be restored automatically"
+    uninstall_log "INFO" "• Extensions and customizations will need to be reconfigured"
     
-    if check_network_connectivity >/dev/null 2>&1; then
-        echo -e "${CYAN}💡 Consider upgrading to the latest version when reinstalling${NC}"
+    if command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1; then
+        uninstall_log "INFO" "💡 Consider upgrading to the latest version when reinstalling"
     fi
 }
 

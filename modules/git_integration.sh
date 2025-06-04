@@ -168,7 +168,7 @@ perform_git_commit_and_push() {
            [[ "$file_path" =~ \.log$ ]] || \
            [[ "$file_path" =~ \.tmp$ ]] || \
            [[ "$file_path" =~ ^tmp/ ]]; then
-            production_log_message "DEBUG" "Skipping generated file: $file_path"
+            log_with_level "DEBUG" "Skipping generated file: $file_path"
             continue
         fi
         
@@ -346,4 +346,4 @@ confirm_git_backup_operations() {
 
 # Git integration module loaded
 export GIT_INTEGRATION_LOADED=true
-production_log_message "DEBUG" "Simple git integration module loaded" 
+log_with_level "DEBUG" "Simple git integration module loaded" 

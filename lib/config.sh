@@ -48,6 +48,12 @@ readonly MAX_LOG_FILE_SIZE=10485760  # 10MB
 readonly ENABLE_BACKUPS=true
 readonly SUDO_REMOVAL_CONFIRMED=false
 
+# Optimization configurations
+readonly FILE_DESCRIPTOR_LIMIT=65536  # Increased limit for AI model loading and multiple files
+readonly AI_MEMORY_LIMIT_GB=8  # Memory limit for Node.js/Electron AI processing
+readonly MAX_OPEN_FILES=65536  # Maximum open files for large projects
+readonly PROCESS_NICE_LEVEL=0  # Process priority adjustment
+
 # Color definitions for UI
 if [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]]; then
     readonly RED='\033[0;31m'
@@ -256,6 +262,7 @@ export NETWORK_TIMEOUT PROCESS_TIMEOUT DMG_MOUNT_TIMEOUT FILE_OPERATION_TIMEOUT
 export TEMP_DIR LOG_DIR CONFIG_DIR BACKUP_DIR
 export MAX_PATH_LENGTH MAX_MESSAGE_LENGTH MAX_LOG_FILE_SIZE
 export ENABLE_BACKUPS SUDO_REMOVAL_CONFIRMED
+export FILE_DESCRIPTOR_LIMIT AI_MEMORY_LIMIT_GB MAX_OPEN_FILES PROCESS_NICE_LEVEL
 export RED GREEN YELLOW BLUE CYAN BOLD NC
 export LAUNCH_SERVICES_CMD
 

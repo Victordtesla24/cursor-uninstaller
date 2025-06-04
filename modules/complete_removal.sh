@@ -38,15 +38,26 @@ validate_cursor_installation() {
     local user_dirs
     user_dirs=$(get_cursor_user_dirs)
     
-    while IFS= read -r dir; do
+    # Process each directory without modifying IFS
+    local OLDIFS="$IFS"
+    IFS=$'\n'
+    for dir in $user_dirs; do
         if [[ -e "$dir" ]]; then
             module_log "INFO" "Found user data: $dir"
             ((found_components++))
         fi
-    done <<< "$user_dirs"
+    done
+    IFS="$OLDIFS"
     
     # Check CLI installations
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -x "$cli_path" ]]; then
             module_log "INFO" "Found CLI installation: $cli_path"
             ((found_components++))
@@ -113,8 +124,21 @@ cleanup_coredata_caches() {
     # Remove duplicates and invalid paths from cache_locations
     local validated_locations=()
     for location in "${cache_locations[@]}"; do
-        if [[ -d "$location" ]] && [[ ! " ${validated_locations[*]} " =~ \ $location\  ]]; then
-            validated_locations+=("$location")
+        if [[ -d "$location" ]]; then
+            # Check for duplicates only if array has elements
+            local is_duplicate=false
+            if [[ ${#validated_locations[@]} -gt 0 ]]; then
+                for existing in "${validated_locations[@]}"; do
+                    if [[ "$existing" == "$location" ]]; then
+                        is_duplicate=true
+                        break
+                    fi
+                done
+            fi
+            
+            if [[ "$is_duplicate" == "false" ]]; then
+                validated_locations+=("$location")
+            fi
         fi
     done
     
@@ -140,7 +164,10 @@ cleanup_coredata_caches() {
             local cache_paths
             cache_paths=$(find "$location" -maxdepth 3 -name "$pattern" 2>/dev/null | head -50)
             
-            while IFS= read -r cache_path; do
+            # Process each cache path without modifying IFS
+            local OLDIFS="$IFS"
+            IFS=$'\n'
+            for cache_path in $cache_paths; do
                 if [[ -n "$cache_path" && -e "$cache_path" ]]; then
                     ((current_operation++))
                     
@@ -167,7 +194,8 @@ cleanup_coredata_caches() {
                         module_log "DEBUG" "Skipped non-Cursor cache: $cache_path"
                     fi
                 fi
-            done <<< "$cache_paths"
+            done
+            IFS="$OLDIFS"
         done
     done
     
@@ -222,19 +250,22 @@ validate_cursor_cache_path() {
         # Additional validation for actual Cursor content
         if [[ -d "$cache_path" ]]; then
             # Check for Cursor-specific files or bundle identifiers
-            if find "$cache_path" -name "*.plist" -exec grep -l "todesktop\|Cursor" {} \; 2>/dev/null | grep -q .; then
+            local plist_check
+            if plist_check=$(find "$cache_path" -name "*.plist" -exec grep -l "todesktop\|Cursor" {} \; 2>&1) && [[ -n "$plist_check" ]]; then
                 return 0
             fi
             
             # Check for Cursor executable or app structure
-            if find "$cache_path" -name "*Cursor*" -o -name "*.app" 2>/dev/null | grep -q .; then
+            local app_check
+            if app_check=$(find "$cache_path" -name "*Cursor*" -o -name "*.app" 2>&1) && [[ -n "$app_check" ]]; then
                 return 0
             fi
         fi
         
         # For files, check if they contain Cursor-specific content
         if [[ -f "$cache_path" ]] && [[ -r "$cache_path" ]]; then
-            if head -100 "$cache_path" 2>/dev/null | grep -qi "cursor\|todesktop"; then
+            local content_check
+            if content_check=$(head -100 "$cache_path" 2>&1) && echo "$content_check" | grep -qi "cursor\|todesktop"; then
                 return 0
             fi
         fi
@@ -257,34 +288,40 @@ attempt_cache_removal() {
         
         if is_dry_run; then
             module_log "INFO" "[DRY RUN] Would attempt to remove cache: $cache_path (attempt $attempt)"
-            # In dry run, we assume it would succeed for the purpose of attempt logic, 
-            # or rather, we don't try further attempts.
-            # However, to accurately reflect what safe_remove_file would do, let's simulate one dry-run call to it.
-            safe_remove_file "$cache_path" false true 
-            return 0 # Indicate success for dry run for this attempt path
+            return 0 # Dry run mode
         fi
 
         # Strategy 1: Standard removal
         if [[ $attempt -eq 1 ]]; then
-            if rm -rf "$cache_path" 2>/dev/null; then
+            local error_msg
+            if error_msg=$(rm -rf "$cache_path" 2>&1); then
                 module_log "SUCCESS" "Removed with standard permissions: $cache_path"
                 return 0
+            else
+                module_log "DEBUG" "Standard removal failed: $error_msg"
             fi
         fi
         
         # Strategy 2: Change permissions first
         if [[ $attempt -eq 2 ]]; then
-            if chmod -R 755 "$cache_path" 2>/dev/null && rm -rf "$cache_path" 2>/dev/null; then
+            local chmod_result rm_result
+            chmod_result=$(chmod -R 755 "$cache_path" 2>&1) && rm_result=$(rm -rf "$cache_path" 2>&1)
+            if [[ $? -eq 0 ]]; then
                 module_log "SUCCESS" "Removed after permission change: $cache_path"
                 return 0
+            else
+                module_log "DEBUG" "Permission change removal failed: chmod=$chmod_result, rm=$rm_result"
             fi
         fi
         
         # Strategy 3: Use sudo
         if [[ $attempt -eq 3 ]]; then
-            if sudo rm -rf "$cache_path" 2>/dev/null; then
+            local sudo_result
+            if sudo_result=$(sudo rm -rf "$cache_path" 2>&1); then
                 module_log "SUCCESS" "Removed with elevated permissions: $cache_path"
                 return 0
+            else
+                module_log "DEBUG" "Sudo removal failed: $sudo_result"
             fi
         fi
         
@@ -307,43 +344,48 @@ perform_system_maintenance() {
     
     # DNS Cache Clearing
     show_progress "$current_op" "$total_ops" "Clearing DNS cache" true true
-    if dscacheutil -flushcache 2>/dev/null && sudo dscacheutil -flushcache 2>/dev/null; then
+    local dns_user_result dns_sudo_result
+    dns_user_result=$(dscacheutil -flushcache 2>&1) && dns_sudo_result=$(sudo dscacheutil -flushcache 2>&1)
+    if [[ $? -eq 0 ]]; then
         module_log "SUCCESS" "DNS cache cleared successfully"
     else
-        module_log "WARNING" "DNS cache clearing encountered issues (non-critical)"
+        module_log "WARNING" "DNS cache clearing failed: user=$dns_user_result, sudo=$dns_sudo_result"
     fi
     ((current_op++))
     
     # Font Cache Clearing  
     show_progress "$current_op" "$total_ops" "Clearing font cache" true true
-    if sudo atsutil databases -remove 2>/dev/null; then
+    local font_result
+    if font_result=$(sudo atsutil databases -remove 2>&1); then
         module_log "SUCCESS" "Font cache cleared successfully"
     else
-        module_log "WARNING" "Font cache clearing failed (non-critical)"
+        module_log "WARNING" "Font cache clearing failed: $font_result"
     fi
     ((current_op++))
     
     # Launch Services Registration Update
     show_progress "$current_op" "$total_ops" "Updating Launch Services" true true
     if [[ -x "$LAUNCH_SERVICES_CMD" ]]; then
-        if "$LAUNCH_SERVICES_CMD" -kill -r -domain local -domain system -domain user 2>/dev/null; then
+        local ls_result
+        if ls_result=$("$LAUNCH_SERVICES_CMD" -kill -r -domain local -domain system -domain user 2>&1); then
             module_log "SUCCESS" "Launch Services database updated"
         else
-            module_log "WARNING" "Launch Services update encountered issues"
+            module_log "WARNING" "Launch Services update failed: $ls_result"
             maintenance_success=false
         fi
     else
-        module_log "WARNING" "Launch Services command not available"
+        module_log "WARNING" "Launch Services command not available: $LAUNCH_SERVICES_CMD"
         maintenance_success=false
     fi
     ((current_op++))
     
     # Spotlight Reindexing (selective)
     show_progress "$current_op" "$total_ops" "Rebuilding Spotlight index" true true
-    if timeout "$SPOTLIGHT_OPERATION_TIMEOUT" sudo mdutil -i on / 2>/dev/null; then
+    local spotlight_result
+    if spotlight_result=$(timeout "$SPOTLIGHT_OPERATION_TIMEOUT" sudo mdutil -i on / 2>&1); then
         module_log "SUCCESS" "Spotlight reindexing initiated"
     else
-        module_log "WARNING" "Spotlight reindexing failed or timed out (non-critical)"
+        module_log "WARNING" "Spotlight reindexing failed or timed out: $spotlight_result"
     fi
     
     # Clear progress
@@ -369,8 +411,8 @@ perform_deep_system_scan() {
     
     # Spotlight search with exact bundle identifier
     module_log "INFO" "Performing Spotlight search with bundle identifier..."
-    local spotlight_results
-    if spotlight_results=$(mdfind "kMDItemCFBundleIdentifier == 'com.todesktop.230313mzl4w4u92'" 2>/dev/null); then
+    local spotlight_results spotlight_error
+    if spotlight_results=$(mdfind "kMDItemCFBundleIdentifier == 'com.todesktop.230313mzl4w4u92'" 2>&1); then
         while IFS= read -r result; do
             if [[ -n "$result" && -e "$result" ]]; then
                 if validate_spotlight_result "$result"; then
@@ -400,8 +442,11 @@ perform_deep_system_scan() {
             module_log "DEBUG" "Scanning: $target_dir"
             
             # Search for Cursor-specific patterns with depth limits
-            local found_items
-            found_items=$(find "$target_dir" -maxdepth 3 \( -name "*Cursor*" -o -name "*cursor*" -o -name "*todesktop*" \) 2>/dev/null | head -20)
+            local found_items find_errors
+            if ! found_items=$(find "$target_dir" -maxdepth 3 \( -name "*Cursor*" -o -name "*cursor*" -o -name "*todesktop*" \) 2>&1 | head -20); then
+                module_log "DEBUG" "Find command failed in $target_dir: $found_items"
+                continue
+            fi
             
             while IFS= read -r item; do
                 if [[ -n "$item" && -e "$item" ]]; then
@@ -756,7 +801,14 @@ perform_complete_cursor_removal() {
     
     # Step 5: Remove CLI tools
     show_progress $((++completed_steps)) $total_steps "Removing CLI tools"
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -x "$cli_path" ]]; then
             local actual_force_remove_cli=true
             if is_dry_run; then

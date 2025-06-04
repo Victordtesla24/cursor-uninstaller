@@ -12,7 +12,7 @@ set -euo pipefail
 readonly INSTALL_MODULE_NAME="installation"
 readonly INSTALL_MODULE_VERSION="2.0.0"
 # readonly CURSOR_DOWNLOAD_URL="https://cursor.sh"  # Reserved for future use
-readonly DMG_MOUNT_TIMEOUT=30
+# DMG_MOUNT_TIMEOUT is defined in config.sh
 readonly COPY_TIMEOUT=300
 
 # Enhanced logging for this module
@@ -518,7 +518,14 @@ check_cursor_installation() {
     echo -e "\n${BOLD}2. COMMAND LINE TOOLS:${NC}"
     local cli_found=false
     
-    for cli_path in "${CURSOR_CLI_PATHS[@]}"; do
+    # Define CLI paths locally for Bash 3.2 compatibility
+    local cli_paths=(
+        "/usr/local/bin/cursor"
+        "/opt/homebrew/bin/cursor"
+        "$HOME/.local/bin/cursor"
+    )
+    
+    for cli_path in "${cli_paths[@]}"; do
         if [[ -f "$cli_path" ]] && [[ -x "$cli_path" ]]; then
             local cli_version target_path
             cli_version=$("$cli_path" --version 2>/dev/null | head -1 || echo "Version unknown")
