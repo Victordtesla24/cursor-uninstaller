@@ -134,7 +134,7 @@ describe('AI System Integration', () => {
       expect(result).toBeDefined();
       expect(result.metadata.model).toBeDefined();
       // Should use a powerful model for complex instructions
-      expect(['claude-3.5', 'gpt-4']).toContain(result.metadata.model);
+      expect(['claude-4-opus-thinking', 'claude-4-sonnet-thinking', 'gpt-4.1']).toContain(result.metadata.model);
     });
   });
 
@@ -149,7 +149,7 @@ describe('AI System Integration', () => {
       const result = await aiSystem.requestCompletion(request);
 
       // Simple requests should use fast models
-      expect(['o3-mini', 'claude-3.5-haiku']).toContain(result.metadata.model);
+      expect(['o3', 'claude-3.7-sonnet-thinking', 'claude-4-sonnet-thinking']).toContain(result.metadata.model);
     });
 
     test('should provide model performance data', () => {

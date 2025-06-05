@@ -21,6 +21,8 @@ describe('6-Model System Integration', () => {
         mockCache = {
             get: jest.fn(),
             set: jest.fn(),
+            getUnlimited: jest.fn(),
+            setUnlimited: jest.fn(),
             clear: jest.fn(),
             getStats: jest.fn(() => ({
                 hits: 100,
@@ -103,7 +105,7 @@ describe('6-Model System Integration', () => {
                 }
             });
 
-            const result = await controller.processRequest(request);
+            const result = await controller.requestCompletion(request);
 
             expect(result.success).toBe(true);
             expect(result.completion).toContain('Hello, World!');
@@ -159,7 +161,7 @@ function processData(data) {
                 }
             });
 
-            const result = await controller.processRequest(request);
+            const result = await controller.requestCompletion(request);
 
             expect(result.success).toBe(true);
             expect(result.refactoredCode).toContain('filter');
@@ -218,7 +220,7 @@ function processData(data) {
                 }
             });
 
-            const result = await controller.processRequest(request);
+            const result = await controller.executeInstruction(request);
 
             expect(result.success).toBe(true);
             expect(result.analysis.architecture).toBeDefined();
@@ -245,7 +247,7 @@ function processData(data) {
             }));
 
             const startTime = Date.now();
-            const result = await controller.processRequest(unlimitedRequest);
+            const result = await controller.executeInstruction(unlimitedRequest);
             const endTime = Date.now();
 
             expect(result.success).toBe(true);
@@ -292,7 +294,7 @@ function processData(data) {
                 return responses[modelName];
             });
 
-            const result = await controller.processRequest(complexRequest);
+            const result = await controller.executeInstruction(complexRequest);
 
             expect(result.success).toBe(true);
             expect(result.multiModelResults).toBeDefined();
@@ -326,7 +328,7 @@ function processData(data) {
                 }
             });
 
-            const result = await controller.processRequest(multimodalRequest);
+            const result = await controller.executeInstruction(multimodalRequest);
 
             expect(result.success).toBe(true);
             expect(result.visualAnalysis).toBeDefined();
@@ -354,7 +356,7 @@ function processData(data) {
                 success: true
             }));
 
-            const firstResult = await controller.processRequest(request);
+            const firstResult = await controller.requestCompletion(request);
 
             expect(firstResult.success).toBe(true);
             expect(firstResult.cached).toBeFalsy();
@@ -368,7 +370,7 @@ function processData(data) {
                 timestamp: Date.now()
             });
 
-            const secondResult = await controller.processRequest(request);
+            const secondResult = await controller.requestCompletion(request);
 
             expect(secondResult.success).toBe(true);
             expect(secondResult.cached).toBe(true);
@@ -407,7 +409,7 @@ function processData(data) {
                 }
             });
 
-            const result = await controller.processRequest(request);
+            const result = await controller.requestCompletion(request);
 
             expect(result.success).toBe(true);
             expect(result.fallback).toBe(true);
@@ -428,7 +430,7 @@ function processData(data) {
                 throw new Error('Intentional test failure');
             });
 
-            await controller.processRequest(failingRequest);
+            await controller.executeInstruction(failingRequest);
 
             expect(errorEvents.length).toBeGreaterThan(0);
             expect(errorEvents[0]).toMatchObject({
@@ -460,7 +462,7 @@ function processData(data) {
             }));
 
             const startTime = Date.now();
-            const result = await controller.processRequest(performanceRequest);
+            const result = await controller.executeInstruction(performanceRequest);
             const endTime = Date.now();
 
             expect(result.success).toBe(true);
@@ -479,9 +481,9 @@ function processData(data) {
                 success: true
             }));
 
-            await controller.processRequest(request);
+            await controller.executeInstruction(request);
 
-            const metrics = controller.getMetrics();
+            const metrics = controller.getRevolutionaryStats();
 
             expect(metrics).toMatchObject({
                 totalRequests: expect.any(Number),
@@ -522,7 +524,7 @@ function processData(data) {
                 success: true
             }));
 
-            const result = await controller.processRequest(revolutionaryRequest);
+            const result = await controller.executeInstruction(revolutionaryRequest);
 
             expect(result.success).toBe(true);
             expect(result.unlimited).toBe(true);
