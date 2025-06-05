@@ -74,6 +74,9 @@ describe('6-Model System Integration', () => {
 
     afterAll(async () => {
         await controller.shutdown();
+        if (orchestrator && typeof orchestrator.shutdown === 'function') {
+            await orchestrator.shutdown();
+        }
     });
 
     beforeEach(() => {
@@ -414,6 +417,7 @@ function processData(data) {
                 expect(request).toBeDefined();
                 return [{
                     modelName: 'claude-3.7-sonnet-thinking',
+                    model: 'claude-3.7-sonnet-thinking', // Add model property for compatibility
                     result: 'fallback success',
                     confidence: 0.9,
                     success: true,
@@ -468,14 +472,16 @@ function processData(data) {
                 revolutionaryMode: true
             };
 
-            jest.spyOn(orchestrator, '_executeModel').mockImplementation(async () => ({
-                modelName: 'claude-4-sonnet-thinking',
-                result: 'High performance result',
-                confidence: 0.985,
-                latency: 150,
-                accuracy: 0.985,
-                success: true
-            }));
+            jest.spyOn(orchestrator, 'executeParallel').mockImplementation(async () => {
+                return [{
+                    modelName: 'claude-4-sonnet-thinking',
+                    result: 'High performance result',
+                    confidence: 0.985,
+                    latency: 150,
+                    accuracy: 0.985,
+                    success: true
+                }];
+            });
 
             const startTime = Date.now();
             const result = await controller.executeInstruction(performanceRequest);
@@ -490,12 +496,14 @@ function processData(data) {
         test('should provide comprehensive metrics reporting', async () => {
             const request = { type: 'metrics-test' };
 
-            jest.spyOn(orchestrator, '_executeModel').mockImplementation(async () => ({
-                modelName: 'o3',
-                result: 'metrics test result',
-                confidence: 0.95,
-                success: true
-            }));
+            jest.spyOn(orchestrator, 'executeParallel').mockImplementation(async () => {
+                return [{
+                    modelName: 'o3',
+                    result: 'metrics test result',
+                    confidence: 0.95,
+                    success: true
+                }];
+            });
 
             await controller.executeInstruction(request);
 
