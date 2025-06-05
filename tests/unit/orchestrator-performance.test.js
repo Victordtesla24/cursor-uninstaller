@@ -5,7 +5,7 @@
  * @version 2.0.0 - Revolutionary Enhancement
  */
 
-const { describe, test, expect, beforeEach, jest } = require('@jest/globals');
+const { describe, test, expect, beforeEach } = require('@jest/globals');
 const { SixModelOrchestrator } = require('../../lib/ai/6-model-orchestrator');
 const { performance } = require('perf_hooks');
 

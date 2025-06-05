@@ -14,8 +14,8 @@
  * @version 2.0.0 - Revolutionary Enhancement
  */
 
-const { describe, test, expect, beforeEach, afterEach, jest } = require('@jest/globals');
-const SixModelOrchestrator = require('../../lib/ai/6-model-orchestrator');
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
+const { SixModelOrchestrator } = require('../../lib/ai/6-model-orchestrator');
 const { performance } = require('perf_hooks');
 
 describe('Revolutionary 6-Model Orchestrator', () => {
@@ -63,13 +63,13 @@ describe('Revolutionary 6-Model Orchestrator', () => {
                 latencyRequirement: 50
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const selection = orchestrator.selectModels(request);
 
-            expect(selectedModels).toHaveLength(2);
-            expect(selectedModels[0].name).toBe('o3');
-            expect(selectedModels[0].role).toBe('primary');
-            expect(selectedModels[0].weight).toBe(1.0);
-            expect(selectedModels[0].reasoning).toContain('Ultra-fast');
+            expect(selection.modelDetails).toHaveLength(2);
+            expect(selection.modelDetails[0].name).toBe('o3');
+            expect(selection.modelDetails[0].role).toBe('primary');
+            expect(selection.modelDetails[0].weight).toBe(1.0);
+            expect(selection.modelDetails[0].reasoning).toContain('Ultra-fast');
         });
 
         test('should select Claude-4-Sonnet-Thinking for complex tasks', () => {
@@ -80,9 +80,9 @@ describe('Revolutionary 6-Model Orchestrator', () => {
                 requiresReasoning: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const selection = orchestrator.selectModels(request);
 
-            const primaryModel = selectedModels.find(m => m.role === 'primary');
+            const primaryModel = selection.modelDetails.find(m => m.role === 'primary');
             expect(primaryModel.name).toBe('claude-4-sonnet-thinking');
             expect(primaryModel.reasoning).toContain('Advanced reasoning');
         });
@@ -95,9 +95,9 @@ describe('Revolutionary 6-Model Orchestrator', () => {
                 requiresDeepReasoning: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const selection = orchestrator.selectModels(request);
 
-            const primaryModel = selectedModels.find(m => m.role === 'primary');
+            const primaryModel = selection.modelDetails.find(m => m.role === 'primary');
             expect(primaryModel.name).toBe('claude-4-opus-thinking');
             expect(primaryModel.reasoning).toContain('Ultimate intelligence');
         });
@@ -111,9 +111,9 @@ describe('Revolutionary 6-Model Orchestrator', () => {
                 hasVisualContent: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const selection = orchestrator.selectModels(request);
 
-            const multimodalModel = selectedModels.find(m => m.role === 'multimodal');
+            const multimodalModel = selection.modelDetails.find(m => m.role === 'multimodal');
             expect(multimodalModel).toBeDefined();
             expect(multimodalModel.name).toBe('gemini-2.5-pro');
             expect(multimodalModel.reasoning).toContain('Multimodal');
@@ -126,11 +126,10 @@ describe('Revolutionary 6-Model Orchestrator', () => {
                 requiresMultiplePerspectives: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const selection = orchestrator.selectModels(request);
 
-            expect(selectedModels.length).toBeGreaterThan(1);
-            const modelNames = selectedModels.map(m => m.name);
-            expect(modelNames).toContain('claude-4-sonnet-thinking');
+            expect(selection.modelDetails.length).toBeGreaterThan(1);
+            const modelNames = selection.modelDetails.map(m => m.name);
             expect(modelNames).toContain('gpt-4.1');
         });
     });

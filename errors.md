@@ -1,0 +1,12 @@
+
+> cursor-uninstaller@1.0.0 revolutionary:test
+> jest --config jest.config.revolutionary.js errors.md
+
+[1mNo tests found, exiting with code 1[22m
+Run with `--passWithNoTests` to exit with code 0
+In [1m/Users/Shared/cursor/cursor-uninstaller[22m
+  22 files checked.
+  testMatch: [33m**/tests/**/*.test.(ts|js), **/tests/**/revolutionary-*.js[39m - 12 matches
+  testPathIgnorePatterns: [33m/node_modules/[39m - 22 matches
+  testRegex:  - 0 matches
+Pattern: [33merrors.md[39m - 0 matches

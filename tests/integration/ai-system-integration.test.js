@@ -13,7 +13,7 @@ describe('AI System Integration', () => {
     aiSystem = new AISystem({
       enableCaching: true,
       enableMetrics: true,
-      quietMode: process.env.JEST_SILENT === 'true', // Use quiet mode if Jest is in silent mode
+      quietMode: true, // Always use quiet mode in tests
       resultCaching: {
         maxSize: 100,
         maxMemoryMB: 10,
@@ -316,7 +316,7 @@ describe('Performance Requirements', () => {
 
   beforeAll(async () => {
     aiSystem = new AISystem({
-      quietMode: process.env.JEST_SILENT === 'true' // Use quiet mode if Jest is in silent mode
+      quietMode: true // Always use quiet mode in tests
     });
     await aiSystem.initialize();
   });
