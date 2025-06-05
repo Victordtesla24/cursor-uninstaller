@@ -145,37 +145,46 @@ discover_files() {
     # Scan each directory type separately for better control
     local file_count=0
     
-    # Simplified file discovery using single find commands
+    # Simplified file discovery using single find commands with path normalization
     log_info "Scanning for shell scripts..."
     while IFS= read -r -d '' file; do
+        # Normalize path to remove leading ./
+        file="${file#./}"
         SHELL_SCRIPTS+=("$file")
         ALL_FILES+=("$file")
         ((file_count++))
     done < <(find "${existing_dirs[@]}" -type f \( -name "*.sh" -o -name "*.bash" \) \
         ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/coverage/*" \
         ! -path "*/.venv/*" ! -path "*/build/*" ! -path "*/dist/*" \
+        ! -path "*/.cursor/*" ! -path "*/.clinerules/*" \
         -print0 2>/dev/null)
     
     # Scan for JavaScript files
     log_info "Scanning for JavaScript files..."
     while IFS= read -r -d '' file; do
+        # Normalize path to remove leading ./
+        file="${file#./}"
         JS_FILES+=("$file")
         ALL_FILES+=("$file")
         ((file_count++))
     done < <(find "${existing_dirs[@]}" -type f -name "*.js" \
         ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/coverage/*" \
         ! -path "*/.venv/*" ! -path "*/build/*" ! -path "*/dist/*" \
+        ! -path "*/.cursor/*" ! -path "*/.clinerules/*" \
         -print0 2>/dev/null)
     
     # Scan for JSON files
     log_info "Scanning for JSON files..."
     while IFS= read -r -d '' file; do
+        # Normalize path to remove leading ./
+        file="${file#./}"
         JSON_FILES+=("$file")
         ALL_FILES+=("$file")
         ((file_count++))
     done < <(find "${existing_dirs[@]}" -type f -name "*.json" \
         ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/coverage/*" \
         ! -path "*/.venv/*" ! -path "*/build/*" ! -path "*/dist/*" \
+        ! -path "*/.cursor/*" ! -path "*/.clinerules/*" \
         -print0 2>/dev/null)
     
     # Discover configuration files separately
@@ -184,13 +193,38 @@ discover_files() {
         CONFIG_FILES+=("$file")
     done < <(find . -maxdepth 2 -type f \( -name ".eslintrc*" -o -name "tsconfig.json" -o -name ".shellcheckrc" -o -name ".gitignore" \) -print0 2>/dev/null)
     
-    # Remove duplicates from ALL_FILES array (cross-platform compatible)
+    # Remove duplicates from ALL_FILES array and individual arrays (cross-platform compatible)
     if [[ ${#ALL_FILES[@]} -gt 0 ]]; then
         local -a unique_files=()
         while IFS= read -r file; do
             [[ -n "$file" ]] && unique_files+=("$file")
         done < <(printf '%s\n' "${ALL_FILES[@]}" | sort | uniq)
         ALL_FILES=("${unique_files[@]}")
+    fi
+    
+    # Deduplicate individual arrays too
+    if [[ ${#SHELL_SCRIPTS[@]} -gt 0 ]]; then
+        local -a unique_shell=()
+        while IFS= read -r file; do
+            [[ -n "$file" ]] && unique_shell+=("$file")
+        done < <(printf '%s\n' "${SHELL_SCRIPTS[@]}" | sort | uniq)
+        SHELL_SCRIPTS=("${unique_shell[@]}")
+    fi
+    
+    if [[ ${#JS_FILES[@]} -gt 0 ]]; then
+        local -a unique_js=()
+        while IFS= read -r file; do
+            [[ -n "$file" ]] && unique_js+=("$file")
+        done < <(printf '%s\n' "${JS_FILES[@]}" | sort | uniq)
+        JS_FILES=("${unique_js[@]}")
+    fi
+    
+    if [[ ${#JSON_FILES[@]} -gt 0 ]]; then
+        local -a unique_json=()
+        while IFS= read -r file; do
+            [[ -n "$file" ]] && unique_json+=("$file")
+        done < <(printf '%s\n' "${JSON_FILES[@]}" | sort | uniq)
+        JSON_FILES=("${unique_json[@]}")
     fi
     
     TOTAL_FILES=$((${#SHELL_SCRIPTS[@]} + ${#JS_FILES[@]} + ${#JSON_FILES[@]}))
@@ -654,10 +688,48 @@ validate_runtime_errors() {
     if find . -name "*.ts" -type f -print -quit | grep -q .; then
         log_info "TypeScript files detected"
         if command -v tsc >/dev/null 2>&1; then
-            if ! run_with_timeout 60 tsc --noEmit 2>/dev/null; then
-                log_warning "TypeScript compilation issues detected"
-                ((runtime_issues++))
+            # Check if tsconfig.json exists, if not, create a minimal one temporarily
+            local temp_tsconfig=""
+            if [[ ! -f "tsconfig.json" ]]; then
+                temp_tsconfig="$TEMP_DIR/tsconfig.json"
+                cat > "$temp_tsconfig" << 'EOF'
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "commonjs",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "build"]
+}
+EOF
             fi
+            
+            # Run TypeScript compilation check and capture actual errors
+            local tsc_output tsc_exit_code
+            if [[ -n "$temp_tsconfig" ]]; then
+                tsc_output=$(run_with_timeout 60 tsc --project "$temp_tsconfig" 2>&1)
+                tsc_exit_code=$?
+            else
+                tsc_output=$(run_with_timeout 60 tsc --noEmit 2>&1)
+                tsc_exit_code=$?
+            fi
+            
+            # Only report issues if there are actual compilation errors (not help text)
+            if [[ $tsc_exit_code -ne 0 ]] && [[ "$tsc_output" != *"COMMON COMMANDS"* ]] && [[ -n "$tsc_output" ]]; then
+                log_warning "TypeScript compilation issues detected:"
+                echo "$tsc_output" | head -10
+                ((runtime_issues++))
+            elif [[ "$tsc_output" == *"COMMON COMMANDS"* ]]; then
+                log_info "TypeScript compiler available but no valid project configuration"
+            else
+                log_info "TypeScript validation passed"
+            fi
+            
+            # Clean up temporary tsconfig if created
+            [[ -n "$temp_tsconfig" ]] && rm -f "$temp_tsconfig"
         else
             log_warning "TypeScript files found but tsc not available"
             log_info "Install with: npm install -g typescript"
@@ -828,9 +900,11 @@ detect_meaningful_duplicates() {
                 [[ -z "$func_name" ]] && continue
                 local duplicate_count
                 duplicate_count=$(grep -c "$func_name" "$filtered_functions" 2>/dev/null || echo "0")
+                # Strip whitespace and newlines to prevent bash syntax errors
+                duplicate_count=$(echo "$duplicate_count" | tr -d '\n\r' | tr -d ' ')
                 
                 # Only report if there are multiple meaningful occurrences
-                if [[ $duplicate_count -gt 2 ]]; then
+                if [[ "$duplicate_count" -gt 2 ]]; then
                     log_warning "Meaningful duplicate detected: function/class '$func_name' (${duplicate_count} occurrences)"
                     grep "$func_name" "$filtered_functions" 2>/dev/null | head -3 | sed 's/^/  • /' || true
                     ((meaningful_duplicates++))
@@ -896,17 +970,21 @@ validate_directory_structure() {
     # Check for misplaced files
     local -a misplaced_files=()
     
-    # Shell scripts should be in scripts/, bin/, or root
+    # Shell scripts should be in scripts/, bin/, or root (allow single-level files ending in .sh)
     for script in "${SHELL_SCRIPTS[@]}"; do
+        # Normalize script path and check if it's in an acceptable location
         if [[ ! "$script" =~ ^(scripts/|bin/|[^/]+\.sh$) ]]; then
-            misplaced_files+=("$script (shell script in unexpected location)")
-            ((structure_issues++))
+            # Skip reporting .cursor and .clinerules directories as misplaced since they're development tools
+            if [[ ! "$script" =~ ^\.cursor/ ]] && [[ ! "$script" =~ ^\.clinerules/ ]]; then
+                misplaced_files+=("$script (shell script in unexpected location)")
+                ((structure_issues++))
+            fi
         fi
     done
     
-    # JavaScript files structure validation
+    # JavaScript files structure validation  
     for jsfile in "${JS_FILES[@]}"; do
-        # Check if test files are in appropriate directories
+        # Check if test files are in appropriate directories (fix regex to handle normalized paths)
         if [[ "$jsfile" =~ \.(test|spec)\.js$ ]] && [[ ! "$jsfile" =~ ^tests/ ]]; then
             misplaced_files+=("$jsfile (test file outside tests/ directory)")
             ((structure_issues++))
