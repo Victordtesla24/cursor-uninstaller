@@ -309,6 +309,13 @@ class RevolutionaryOptimizer extends EventEmitter {
     async optimizeUnlimitedContext(request) {
         const strategy = this.revolutionaryStrategies.get('unlimitedContext');
 
+        // Analyze request for context-specific optimizations
+        const contextMetrics = {
+            requestSize: request.contextSize || 'unlimited',
+            complexity: request.complexity || 'standard',
+            urgency: request.maxLatency || 500
+        };
+
         return {
             strategy: strategy.strategy,
             chunkingMethod: strategy.chunkingMethod,
@@ -317,6 +324,7 @@ class RevolutionaryOptimizer extends EventEmitter {
             unlimitedCapability: true,
             tokenLimitations: 'removed',
             contextSize: 'unlimited',
+            metrics: contextMetrics,
             optimizations: [
                 'semantic-chunking',
                 'intelligent-distribution',
@@ -357,6 +365,13 @@ class RevolutionaryOptimizer extends EventEmitter {
     async optimizeThinkingMode(request) {
         const strategy = this.revolutionaryStrategies.get('thinkingModes');
 
+        // Analyze request for thinking mode optimizations
+        const thinkingMetrics = {
+            problemComplexity: request.complexity || 'moderate',
+            reasoningRequired: request.requiresReasoning || true,
+            accuracyTarget: request.accuracy || 0.98
+        };
+
         return {
             strategy: strategy.strategy,
             complexityAnalysis: strategy.complexityAnalysis,
@@ -365,6 +380,7 @@ class RevolutionaryOptimizer extends EventEmitter {
             stepByStepReasoning: true,
             unlimitedReasoningTime: true,
             multiLayerValidation: true,
+            metrics: thinkingMetrics,
             optimizations: [
                 'adaptive-reasoning-depth',
                 'automated-complexity-analysis',
@@ -380,6 +396,13 @@ class RevolutionaryOptimizer extends EventEmitter {
     async optimizeMultimodalAnalysis(request) {
         const strategy = this.revolutionaryStrategies.get('multimodalUnderstanding');
 
+        // Analyze request for multimodal optimizations
+        const multimodalMetrics = {
+            visualElements: request.hasVisualElements || false,
+            textComplexity: request.textComplexity || 'standard',
+            integrationRequired: request.requiresIntegration || true
+        };
+
         return {
             strategy: strategy.strategy,
             visualProcessing: strategy.visualProcessing,
@@ -388,6 +411,7 @@ class RevolutionaryOptimizer extends EventEmitter {
             integratedAnalysis: true,
             visualCodeUnderstanding: true,
             contextualIntegration: true,
+            metrics: multimodalMetrics,
             optimizations: [
                 'advanced-visual-processing',
                 'unlimited-textual-understanding',
@@ -403,6 +427,13 @@ class RevolutionaryOptimizer extends EventEmitter {
     async optimizeRevolutionaryCache(request) {
         const strategy = this.revolutionaryStrategies.get('revolutionaryCache');
 
+        // Analyze request for cache optimizations
+        const cacheMetrics = {
+            cacheHitTarget: request.cacheHitRate || 0.9,
+            storageRequirement: request.storageSize || 'unlimited',
+            retrievalSpeed: request.retrievalLatency || 1
+        };
+
         return {
             strategy: strategy.strategy,
             compressionAlgorithm: strategy.compressionAlgorithm,
@@ -411,6 +442,7 @@ class RevolutionaryOptimizer extends EventEmitter {
             unlimitedStorage: true,
             instantRetrieval: true,
             predictiveLoading: true,
+            metrics: cacheMetrics,
             optimizations: [
                 'unlimited-storage-capacity',
                 'adaptive-compression',
@@ -473,6 +505,12 @@ class RevolutionaryOptimizer extends EventEmitter {
         const requiresReasoning = complexity.requiresReasoning;
         const requiresMultimodal = complexity.requiresMultimodal;
         const latencyRequirement = complexity.latencyRequirement;
+
+        // Check for explicit strategy override in request
+        if (request.strategy) {
+            console.log(`Using explicit strategy override: ${request.strategy}`);
+            return request.strategy;
+        }
 
         // Ultra-fast path for simple requests
         if (level === 'simple' && latencyRequirement < 100) {

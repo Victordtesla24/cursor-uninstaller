@@ -595,7 +595,7 @@ class LatencyTracker extends EventEmitter {
             }
 
             // Complete any remaining active operations
-            for (const [id, operation] of this.state.activeOperations.entries()) {
+            for (const [id] of this.state.activeOperations.entries()) {
                 this.completeOperation(id, false, { reason: 'tracker_shutdown' });
             }
 

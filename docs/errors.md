@@ -19,44 +19,63 @@ vicd@Vics-MacBook-Air cursor-uninstaller % ./scripts/revolutionary-setup.sh
 [REVOLUTIONARY] 📦 Installing revolutionary dependencies...
 npm warn config production Use `--omit=dev` instead.
 
-removed 772 packages, changed 1 package, and audited 269 packages in 2s
+up to date, audited 1041 packages in 8s
 
-33 packages are looking for funding
+139 packages are looking for funding
   run `npm fund` for details
 
-found 0 vulnerabilities
+19 vulnerabilities (7 moderate, 12 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
 [INFO] Installing revolutionary development tools...
 
-added 9 packages, and changed 363 packages in 24s
+added 9 packages, and changed 363 packages in 25s
 
 87 packages are looking for funding
   run `npm fund` for details
 [INFO] Installing revolutionary testing framework...
 
-added 54 packages, changed 1 package, and audited 323 packages in 10s
+up to date, audited 1041 packages in 2s
 
-39 packages are looking for funding
+139 packages are looking for funding
   run `npm fund` for details
 
-found 0 vulnerabilities
+19 vulnerabilities (7 moderate, 12 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
 [INFO] Installing revolutionary linting tools...
 
-added 90 packages, and audited 413 packages in 6s
+up to date, audited 1041 packages in 2s
 
-71 packages are looking for funding
+139 packages are looking for funding
   run `npm fund` for details
 
-found 0 vulnerabilities
+19 vulnerabilities (7 moderate, 12 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
 [INFO] Installing revolutionary performance monitoring...
-npm warn deprecated har-validator@5.1.5: this library is no longer supported
-npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
-npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
-npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
 
-added 627 packages, and audited 1040 packages in 34s
+up to date, audited 1041 packages in 1s
 
-138 packages are looking for funding
+139 packages are looking for funding
   run `npm fund` for details
 
 19 vulnerabilities (7 moderate, 12 high)
@@ -73,7 +92,7 @@ Run `npm audit` for details.
 [INFO] Creating revolutionary directory structure...
 [INFO] Setting up revolutionary git hooks...
 
-added 1 package, and audited 1041 packages in 850ms
+up to date, audited 1041 packages in 774ms
 
 139 packages are looking for funding
   run `npm fund` for details
