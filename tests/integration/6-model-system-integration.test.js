@@ -230,7 +230,7 @@ function processData(data) {
                     confidence: 0.94,
                     contextProcessed: 'unlimited',
                     success: true
-                }
+                };
             });
 
             const result = await controller.executeInstruction(request);
@@ -409,6 +409,9 @@ function processData(data) {
             };
 
             jest.spyOn(orchestrator, 'executeParallel').mockImplementation(async (models, request) => {
+                // Use models and request parameters for validation
+                expect(models).toBeDefined();
+                expect(request).toBeDefined();
                 return [{
                     modelName: 'claude-3.7-sonnet-thinking',
                     result: 'fallback success',
@@ -443,8 +446,9 @@ function processData(data) {
 
             try {
                 await controller.executeInstruction(failingRequest);
-            } catch (e) {
-                // Expected
+            } catch (error) {
+                // Expected error: All models failed
+                expect(error.message).toContain('All models failed');
             }
 
             expect(errorEvents.length).toBeGreaterThan(0);
