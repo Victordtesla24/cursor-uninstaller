@@ -145,9 +145,9 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 requiresQuickIteration: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            const primaryModel = selectedModels.find(m => m.role === 'primary');
+            const primaryModel = result.modelDetails.find(m => m.role === 'primary');
             expect(primaryModel.name).toBe('claude-3.7-sonnet-thinking');
             expect(primaryModel.reasoning).toContain('Rapid thinking');
         });
