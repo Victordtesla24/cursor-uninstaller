@@ -5,7 +5,7 @@ export default {
     roots: ['<rootDir>/tests'],
     testMatch: [
         '**/tests/**/*.test.(ts|js)',
-        '**/tests/**/revolutionary-*.js'
+        '**/tests/**/revolutionary-test-suite.js'
     ],
     collectCoverageFrom: [
         'lib/**/*.{ts,js}',

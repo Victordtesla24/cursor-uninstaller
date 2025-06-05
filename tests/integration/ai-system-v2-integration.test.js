@@ -98,34 +98,28 @@ describe('AI System V2.0.0 Integration Tests', () => {
     }, 30000);
 
     afterAll(async () => {
-        // Shutdown all components safely
-        const shutdownPromises = [];
+        // Shutdown all components safely and sequentially
+        const components = [
+            aiController,
+            uiSystem,
+            shadowWorkspace,
+            languageFramework,
+            performanceMonitor,
+            cache,
+            modelSelector,
+            contextManager,
+        ];
 
-        if (aiController?.shutdown) {
-            shutdownPromises.push(aiController.shutdown().catch(err => console.warn('AI Controller shutdown error:', err.message)));
+        for (const component of components) {
+            if (component && typeof component.shutdown === 'function') {
+                try {
+                    await component.shutdown();
+                } catch (err) {
+                    console.warn(`${component.constructor.name} shutdown error:`, err.message);
+                }
+            }
         }
 
-        if (uiSystem?.shutdown) {
-            shutdownPromises.push(uiSystem.shutdown().catch(err => console.warn('UI System shutdown error:', err.message)));
-        }
-
-        if (shadowWorkspace?.shutdown) {
-            shutdownPromises.push(shadowWorkspace.shutdown().catch(err => console.warn('Shadow Workspace shutdown error:', err.message)));
-        }
-
-        if (languageFramework?.shutdown) {
-            shutdownPromises.push(languageFramework.shutdown().catch(err => console.warn('Language Framework shutdown error:', err.message)));
-        }
-
-        if (performanceMonitor?.shutdown) {
-            shutdownPromises.push(performanceMonitor.shutdown().catch(err => console.warn('Performance Monitor shutdown error:', err.message)));
-        }
-
-        if (cache?.shutdown) {
-            shutdownPromises.push(Promise.resolve(cache.shutdown()).catch(err => console.warn('Cache shutdown error:', err.message)));
-        }
-
-        await Promise.allSettled(shutdownPromises);
         console.log('✅ All components shut down');
     });
 
