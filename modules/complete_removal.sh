@@ -411,7 +411,7 @@ perform_deep_system_scan() {
     
     # Spotlight search with exact bundle identifier
     module_log "INFO" "Performing Spotlight search with bundle identifier..."
-    local spotlight_results spotlight_error
+    local spotlight_results
     if spotlight_results=$(mdfind "kMDItemCFBundleIdentifier == 'com.todesktop.230313mzl4w4u92'" 2>&1); then
         while IFS= read -r result; do
             if [[ -n "$result" && -e "$result" ]]; then
@@ -880,4 +880,4 @@ else
     echo "Complete Removal Module v$MODULE_VERSION"
     echo "This module must be sourced, not executed directly"
     exit 1
-fi 
+fi

@@ -533,7 +533,7 @@ check_cursor_processes() {
         if [[ $pgrep_exit -eq 0 && -n "$pids" ]]; then
             # Process PIDs without modifying IFS (Bash 3.2 compatibility)
             local pid_array
-            pid_array=($pids)
+            read -ra pid_array <<< "$pids"
             for pid in "${pid_array[@]}"; do
                 # Skip our own process and invalid PIDs
                 if [[ "$pid" =~ ^[0-9]+$ ]] && (( pid != current_pid )) && kill -0 "$pid" 2>/dev/null; then

@@ -161,7 +161,7 @@ print_separator() {
     fi
     
     # Print separator using printf for consistency
-    printf '%*s\n' "$width" | tr ' ' "$char"
+    printf '%*s\n' "$width" "" | tr ' ' "$char"
 }
 
 # Display operation header with title and description

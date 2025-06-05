@@ -1,0 +1,52 @@
+name: Cursor AI Enhancement CI
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - run: npm ci
+    - run: npm run lint
+    - run: npm test
+    - run: npm run test:benchmark
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      
+  performance:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - run: npm ci
+    - run: npm run benchmark:ci
+    
+    - name: Performance regression check
+      run: |
+        if [ -f "performance-baseline.json" ]; then
+          npm run performance:compare
+        fi

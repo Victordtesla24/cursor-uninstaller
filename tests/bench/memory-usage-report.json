@@ -1,0 +1,203 @@
+{
+  "timestamp": "2025-06-05T10:58:55.028Z",
+  "baseline": {
+    "memory": {
+      "heapUsed": 4282392,
+      "heapTotal": 5324800,
+      "external": 12089239,
+      "rss": 49577984,
+      "timestamp": 1749121132920
+    },
+    "formatted": "4MB"
+  },
+  "totalOverhead": {
+    "bytes": 274720,
+    "formatted": "0MB",
+    "target": "500MB",
+    "meetsTarget": true
+  },
+  "final": {
+    "memory": {
+      "heapUsed": 4375336,
+      "heapTotal": 6635520,
+      "external": 12396479,
+      "rss": 51232768,
+      "timestamp": 1749121135027
+    },
+    "formatted": "4MB"
+  },
+  "components": [
+    {
+      "component": "AI Controller",
+      "memory": {
+        "heapUsed": 4424392,
+        "heapTotal": 5324800,
+        "external": 12396479,
+        "rss": 49840128,
+        "timestamp": 1749121132921
+      },
+      "overhead": 142000,
+      "overheadFormatted": "0MB",
+      "targetMet": true
+    },
+    {
+      "component": "Shadow Workspace",
+      "memory": {
+        "heapUsed": 4471384,
+        "heapTotal": 5324800,
+        "external": 12396479,
+        "rss": 49922048,
+        "timestamp": 1749121132921
+      },
+      "overhead": 46992,
+      "overheadFormatted": "0MB",
+      "targetMet": true
+    },
+    {
+      "component": "Language Adapters",
+      "memory": {
+        "heapUsed": 4557112,
+        "heapTotal": 5324800,
+        "external": 12396479,
+        "rss": 50069504,
+        "timestamp": 1749121132921
+      },
+      "overhead": 85728,
+      "overheadFormatted": "0MB",
+      "targetMet": true
+    },
+    {
+      "component": "Memory Leak Test",
+      "memory": {
+        "heapUsed": 4375336,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51232768,
+        "timestamp": 1749121135027
+      },
+      "overhead": -224760,
+      "overheadFormatted": "0MB",
+      "growthPercentage": -4.89,
+      "hasLeak": false,
+      "targetMet": true
+    }
+  ],
+  "memorySnapshots": [
+    {
+      "cycle": 0,
+      "memory": {
+        "heapUsed": 4602304,
+        "heapTotal": 5324800,
+        "external": 12396479,
+        "rss": 50135040,
+        "timestamp": 1749121132922
+      },
+      "growth": 2208
+    },
+    {
+      "cycle": 10,
+      "memory": {
+        "heapUsed": 4664392,
+        "heapTotal": 5586944,
+        "external": 12396479,
+        "rss": 50282496,
+        "timestamp": 1749121133033
+      },
+      "growth": 64296
+    },
+    {
+      "cycle": 20,
+      "memory": {
+        "heapUsed": 4700304,
+        "heapTotal": 5586944,
+        "external": 12396479,
+        "rss": 50364416,
+        "timestamp": 1749121133144
+      },
+      "growth": 100208
+    },
+    {
+      "cycle": 30,
+      "memory": {
+        "heapUsed": 4206416,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51036160,
+        "timestamp": 1749121133255
+      },
+      "growth": -393680
+    },
+    {
+      "cycle": 40,
+      "memory": {
+        "heapUsed": 4230736,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51052544,
+        "timestamp": 1749121133365
+      },
+      "growth": -369360
+    },
+    {
+      "cycle": 50,
+      "memory": {
+        "heapUsed": 4254944,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51068928,
+        "timestamp": 1749121133475
+      },
+      "growth": -345152
+    },
+    {
+      "cycle": 60,
+      "memory": {
+        "heapUsed": 4278976,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51101696,
+        "timestamp": 1749121133584
+      },
+      "growth": -321120
+    },
+    {
+      "cycle": 70,
+      "memory": {
+        "heapUsed": 4302624,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51118080,
+        "timestamp": 1749121133695
+      },
+      "growth": -297472
+    },
+    {
+      "cycle": 80,
+      "memory": {
+        "heapUsed": 4326272,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51150848,
+        "timestamp": 1749121133806
+      },
+      "growth": -273824
+    },
+    {
+      "cycle": 90,
+      "memory": {
+        "heapUsed": 4351056,
+        "heapTotal": 6635520,
+        "external": 12396479,
+        "rss": 51167232,
+        "timestamp": 1749121133915
+      },
+      "growth": -249040
+    }
+  ],
+  "summary": {
+    "componentsWithIssues": 0,
+    "totalComponents": 4,
+    "overallPass": true
+  },
+  "benchmarkDuration": 3109
+}

@@ -1,0 +1,138 @@
+{
+  "timestamp": "2025-06-05T10:58:47.473Z",
+  "totalTests": 8,
+  "passed": 6,
+  "failed": 2,
+  "errors": 0,
+  "successRate": 75,
+  "metrics": {
+    "avgLatency": 587,
+    "minLatency": 150,
+    "maxLatency": 2610,
+    "targetLatency": 500,
+    "meetsTarget": false
+  },
+  "performanceByComplexity": {
+    "simple": {
+      "avg": 154,
+      "target": 200
+    },
+    "medium": {
+      "avg": 356,
+      "target": 400
+    },
+    "complex": {
+      "avg": 2610,
+      "target": 800
+    }
+  },
+  "performanceByLanguage": {
+    "javascript": {
+      "avg": 862,
+      "tests": 4
+    },
+    "python": {
+      "avg": 367,
+      "tests": 2
+    },
+    "shell": {
+      "avg": 150,
+      "tests": 1
+    },
+    "typescript": {
+      "avg": 368,
+      "tests": 1
+    }
+  },
+  "totalBenchmarkTime": 14099,
+  "results": [
+    {
+      "scenario": "Simple JavaScript Variable",
+      "language": "javascript",
+      "complexity": "simple",
+      "latency": 158,
+      "expectedLatency": 200,
+      "success": true,
+      "completion": "\"hello world\"",
+      "confidence": 0.9108593937803181,
+      "performance": "PASS"
+    },
+    {
+      "scenario": "JavaScript Function Declaration",
+      "language": "javascript",
+      "complexity": "medium",
+      "latency": 323,
+      "expectedLatency": 350,
+      "success": true,
+      "completion": "a + b;",
+      "confidence": 0.9320223648810698,
+      "performance": "PASS"
+    },
+    {
+      "scenario": "React Component",
+      "language": "javascript",
+      "complexity": "medium",
+      "latency": 356,
+      "expectedLatency": 400,
+      "success": true,
+      "completion": "useState(0);",
+      "confidence": 0.8735136582813544,
+      "performance": "PASS"
+    },
+    {
+      "scenario": "Python List Comprehension",
+      "language": "python",
+      "complexity": "medium",
+      "latency": 377,
+      "expectedLatency": 350,
+      "success": true,
+      "completion": "x % 2 == 0]",
+      "confidence": 0.9268077811962687,
+      "performance": "FAIL"
+    },
+    {
+      "scenario": "Python Class Method",
+      "language": "python",
+      "complexity": "medium",
+      "latency": 356,
+      "expectedLatency": 400,
+      "success": true,
+      "completion": "processed_data",
+      "confidence": 0.9308416513166382,
+      "performance": "PASS"
+    },
+    {
+      "scenario": "Shell Script Loop",
+      "language": "shell",
+      "complexity": "simple",
+      "latency": 150,
+      "expectedLatency": 250,
+      "success": true,
+      "completion": "\"Processing $file\"",
+      "confidence": 0.9209663536266381,
+      "performance": "PASS"
+    },
+    {
+      "scenario": "Large File Context (1000+ lines)",
+      "language": "javascript",
+      "complexity": "complex",
+      "latency": 2610,
+      "expectedLatency": 800,
+      "success": true,
+      "completion": "\"https://api.example.com/v1\"",
+      "confidence": 0.8861905021287908,
+      "performance": "FAIL"
+    },
+    {
+      "scenario": "TypeScript Interface Extension",
+      "language": "typescript",
+      "complexity": "medium",
+      "latency": 368,
+      "expectedLatency": 400,
+      "success": true,
+      "completion": "ApiData[]",
+      "confidence": 0.9000088869716012,
+      "performance": "PASS"
+    }
+  ]
+}

@@ -63,11 +63,11 @@ PROJECT_ROOT_OPTIMIZE="$(dirname "$SCRIPT_DIR_OPTIMIZE")" # Assumes scripts/ is 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/config.sh
+# shellcheck source=../lib/config.sh
 source "$PROJECT_ROOT/lib/config.sh" || { echo "Error: Failed to source config.sh" >&2; exit 1; }
-# shellcheck source=lib/ui.sh
+# shellcheck source=../lib/ui.sh
 source "$PROJECT_ROOT/lib/ui.sh" || { echo "Error: Failed to source ui.sh" >&2; exit 1; }
-# shellcheck source=lib/helpers.sh
+# shellcheck source=../lib/helpers.sh
 source "$PROJECT_ROOT/lib/helpers.sh" || { echo "Error: Failed to source helpers.sh" >&2; exit 1; } # For terminate_cursor_processes
 
 # Production logging functions (wrapper around log_with_level from helpers.sh)
@@ -296,8 +296,8 @@ EOF
 
     # 2. System-Level Memory and Performance Optimizations
     production_info_message "Applying system-level performance optimizations..."
-    if ulimit -n "$FILE_DESCRIPTOR_LIMIT" 2>/dev/null; then
-        production_success_message "✓ Increased file descriptor limit to $FILE_DESCRIPTOR_LIMIT"
+    if ulimit -n "${FILE_DESCRIPTOR_LIMIT}" 2>/dev/null; then
+        production_success_message "✓ Increased file descriptor limit to ${FILE_DESCRIPTOR_LIMIT}"
         ((optimizations_applied++))
     else
         production_warning_message "⚠ Could not increase file descriptor limit (may require sudo or config file edit)"
