@@ -9,6 +9,7 @@ export default {
     '<rootDir>/tests/integration/setupJest.js'
   ],
   testMatch: [
+    '<rootDir>/tests/unit/**/*.test.js',
     '<rootDir>/tests/integration/**/*.test.js'
   ],
   transformIgnorePatterns: [
