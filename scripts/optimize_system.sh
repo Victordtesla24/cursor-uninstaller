@@ -296,7 +296,7 @@ EOF
 
     # 2. System-Level Memory and Performance Optimizations
     production_info_message "Applying system-level performance optimizations..."
-    if ulimit -n "${FILE_DESCRIPTOR_LIMIT}" 2>/dev/null; then
+    if ulimit -n "$FILE_DESCRIPTOR_LIMIT" 2>/dev/null; then
         production_success_message "✓ Increased file descriptor limit to ${FILE_DESCRIPTOR_LIMIT}"
         ((optimizations_applied++))
     else
@@ -398,7 +398,7 @@ EOF
     )
     
     # Add paths that exist to the exclusion list
-    local -a conditional_exclusions=(
+    local conditional_exclusions=(
         "$HOME/node_modules"
         "$HOME/.npm"
         "$HOME/.cache"

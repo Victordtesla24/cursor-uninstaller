@@ -581,7 +581,7 @@ terminate_cursor_processes() {
         log_with_level "INFO" "Found cursor processes:"
         # Process cursor processes without modifying IFS (Bash 3.2 compatibility)
         local process_array
-        process_array=($cursor_processes)
+        read -ra process_array <<< "$cursor_processes"
         for process_line in "${process_array[@]}"; do
             local pid="${process_line%%:*}"
             local name="${process_line##*:}"
@@ -616,7 +616,7 @@ terminate_cursor_processes() {
         local -a pids_to_terminate=()
         # Process cursor processes without modifying IFS (Bash 3.2 compatibility)
         local process_array2
-        process_array2=($cursor_processes)
+        read -ra process_array2 <<< "$cursor_processes"
         for process_line in "${process_array2[@]}"; do
             local pid="${process_line%%:*}"
             if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then

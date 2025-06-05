@@ -78,7 +78,7 @@ if [ -f "package.json" ]; then
     REQUIRED_SCRIPTS=("test" "lint")
     
     for script in "${REQUIRED_SCRIPTS[@]}"; do
-        if npm run $script --dry-run >/dev/null 2>&1; then
+        if npm run -- "$script" --dry-run >/dev/null 2>&1; then
             check_result 0 "Script '$script' configured"
         else
             check_result 1 "Script '$script' missing"

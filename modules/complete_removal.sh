@@ -442,7 +442,7 @@ perform_deep_system_scan() {
             module_log "DEBUG" "Scanning: $target_dir"
             
             # Search for Cursor-specific patterns with depth limits
-            local found_items find_errors
+            local found_items
             if ! found_items=$(find "$target_dir" -maxdepth 3 \( -name "*Cursor*" -o -name "*cursor*" -o -name "*todesktop*" \) 2>&1 | head -20); then
                 module_log "DEBUG" "Find command failed in $target_dir: $found_items"
                 continue
