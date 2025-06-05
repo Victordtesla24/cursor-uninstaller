@@ -489,7 +489,7 @@ if run_test "Docker image build" "docker build --no-cache -t ${TEST_TAG} -f \"${
   
   # Clean up the test image
   log "${BLUE}ℹ Cleaning up test image...${NC}"
-  if run_test "Docker image cleanup" "docker rmi -f ${TEST_TAG}" "$build_output"; then
+  if run_test "Docker image cleanup" "docker rmi -f \"${TEST_TAG}\"" "$build_output"; then
     log "${GREEN}✓ Test image cleaned up successfully${NC}"
   else
     log "${YELLOW}⚠ Failed to clean up test image. It may need to be removed manually.${NC}"
@@ -529,7 +529,7 @@ else
       
       # Clean up container output file and image
       rm -f "$container_output"
-      docker rmi -f ${TEST_TAG} 2>/dev/null || true
+      docker rmi -f "${TEST_TAG}" 2>/dev/null || true
     else
       log "${RED}✗ Docker buildx build also failed${NC}"
       FAILURES=$((FAILURES + 1))
@@ -550,7 +550,7 @@ else
         
         # Clean up container output file and image
         rm -f "$container_output"
-        docker rmi -f ${TEST_TAG} 2>/dev/null || true
+        docker rmi -f "${TEST_TAG}" 2>/dev/null || true
       else
         log "${RED}✗ All Docker build methods failed${NC}"
         log "${RED}✗ Unable to build Docker image using standard builder, buildx, or legacy builder${NC}"
@@ -596,4 +596,4 @@ else
   log "${RED}✗ Docker environment tests completed with ${FAILURES} failures${NC}"
   log "${RED}✗ Please address the issues above to ensure Background Agent can function correctly${NC}"
   exit 1
-fi 
+fi

@@ -126,7 +126,8 @@ log "${BLUE}ℹ Preparing test environment...${NC}"
 # Source environment from load-env.sh if it exists
 if [ -f "${CURSOR_DIR}/load-env.sh" ]; then
   log "${BLUE}ℹ Sourcing environment variables from ${CURSOR_DIR}/load-env.sh${NC}"
-  source "${CURSOR_DIR}/load-env.sh"
+  # shellcheck disable=SC1090,SC1091
+  source "$(dirname "${BASH_SOURCE[0]}")/../load-env.sh"
 fi
 
 # Make sure all test scripts are executable
@@ -187,4 +188,4 @@ else
   log "${RED}${BOLD}===============================================${NC}"
   # Exit with total number of failed tests as error code (but max 125 to avoid shell issues)
   [ ${FAILED_TESTS} -gt 125 ] && exit 125 || exit ${FAILED_TESTS}
-fi 
+fi

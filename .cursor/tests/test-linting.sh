@@ -346,7 +346,7 @@ if [ -f "${REPO_ROOT}/package.json" ]; then
       else
         # Try to run ESLint on the sample files
         if command_exists eslint; then
-          if run_test "ESLint sample check" "eslint --no-ignore --max-warnings=0 $(cat ${js_files_output})" "$eslint_output"; then # Set max-warnings to 0
+          if run_test "ESLint sample check" "eslint --no-ignore --max-warnings=0 $(cat "${js_files_output}")" "$eslint_output"; then # Set max-warnings to 0
             log "${GREEN}✓ ESLint sample check passed${NC}"
           else
             log "${YELLOW}⚠ ESLint found issues (expected during development)${NC}"
@@ -354,7 +354,7 @@ if [ -f "${REPO_ROOT}/package.json" ]; then
             FAILURES=$((FAILURES + 1)) # Count ESLint issues as failures
           fi
         elif [ -f "${REPO_ROOT}/node_modules/.bin/eslint" ]; then
-          if run_test "ESLint sample check (local)" "${REPO_ROOT}/node_modules/.bin/eslint --no-ignore --max-warnings=0 $(cat ${js_files_output})" "$eslint_output"; then # Set max-warnings to 0
+          if run_test "ESLint sample check (local)" "${REPO_ROOT}/node_modules/.bin/eslint --no-ignore --max-warnings=0 $(cat "${js_files_output}")" "$eslint_output"; then # Set max-warnings to 0
             log "${GREEN}✓ ESLint sample check passed${NC}"
           else
             log "${YELLOW}⚠ ESLint found issues (expected during development)${NC}"
@@ -473,4 +473,4 @@ else
   log "${RED}✗ Linting tests completed with ${FAILURES} failures${NC}"
   log "${RED}✗ Please address the issues above to ensure code quality${NC}"
   exit 1
-fi 
+fi

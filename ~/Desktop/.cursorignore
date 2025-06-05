@@ -1,0 +1,127 @@
+# =============================================================================
+# Cursor Performance Optimization - .cursorignore Template
+# =============================================================================
+# Based on research: Excluding large directories dramatically improves performance
+# Reference: https://tomoharutsutsumi.medium.com/how-to-enhance-the-performance-of-cursor-abb5fbffa16e
+
+# Dependencies and Package Managers
+node_modules/
+.pnpm-store/
+.yarn/
+bower_components/
+vendor/
+packages/*/node_modules/
+
+# Build Output and Distribution
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+target/
+bin/
+obj/
+
+# Development and IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.nyc_output
+
+# Runtime and Cache Directories
+.cache/
+.parcel-cache/
+.coverage/
+coverage/
+*.tsbuildinfo
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Environment and Configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Version Control
+.git/
+.svn/
+.hg/
+
+# Large Data Files
+*.sqlite
+*.db
+*.sql
+*.dump
+*.csv
+*.json.gz
+*.xml.gz
+
+# Media Files (if not part of your project)
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mp3
+*.wav
+*.flac
+*.aac
+
+# Documentation Build
+docs/_build/
+site/
+_site/
+
+# Language-specific
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Go
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Add your project-specific ignores below:
+# ==========================================
+

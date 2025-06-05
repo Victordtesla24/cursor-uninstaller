@@ -4,12 +4,15 @@
 set -e
 
 # Source environment variables
-if [ -f "$(dirname "${BASH_SOURCE[0]}")/.cursor/load-env.sh" ]; then
-  source "$(dirname "${BASH_SOURCE[0]}")/.cursor/load-env.sh"
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/load-env.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$(dirname "${BASH_SOURCE[0]}")/load-env.sh"
 elif [ -f "./.cursor/load-env.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
   source "./.cursor/load-env.sh"
 elif [ -f "../.cursor/load-env.sh" ]; then # If script is in .cursor/
-    source "../.cursor/load-env.sh"
+  # shellcheck disable=SC1090,SC1091
+  source "../.cursor/load-env.sh"
 fi
 
 # Default repository URL if not provided through environment
@@ -99,6 +102,7 @@ log "Running GitHub setup script (from .cursor/github-setup.sh)..."
 # Source retry utilities if available
 if [ -f "${CURSOR_DIR_RELATIVE_TO_SCRIPT}/retry-utils.sh" ]; then
   log "Sourcing retry utilities from ${CURSOR_DIR_RELATIVE_TO_SCRIPT}/retry-utils.sh..."
+  # shellcheck disable=SC1090,SC1091
   source "${CURSOR_DIR_RELATIVE_TO_SCRIPT}/retry-utils.sh"
 else
   log "Retry utilities not found at ${CURSOR_DIR_RELATIVE_TO_SCRIPT}/retry-utils.sh. Creating basic retry function..."
@@ -110,13 +114,13 @@ else
     local attempt=1
 
     until "$@"; do
-      if [ $attempt -ge $max_attempts ]; then
+      if [ "$attempt" -ge "$max_attempts" ]; then
         log "Command '$*' failed after $max_attempts attempts."
         return 1
       fi
 
       log "Command '$*' failed. Retrying in ${delay}s (attempt $attempt/$max_attempts)..."
-      sleep $delay
+      sleep "$delay"
       attempt=$((attempt + 1))
     done
 
@@ -261,13 +265,13 @@ verify_github_access() {
   local max_attempts=3
   local delay=2
 
-  while [ $attempt -le $max_attempts ]; do
+  while [ "$attempt" -le "$max_attempts" ]; do
     # Check if we can access GitHub
     if git ls-remote --quiet "${GITHUB_REPO_URL}" HEAD > /dev/null 2>&1; then
       log "GitHub access verified successfully."
       return 0
     else
-      if [ $attempt -lt $max_attempts ]; then
+      if [ "$attempt" -lt "$max_attempts" ]; then
         log "GitHub access failed (attempt $attempt/$max_attempts). Retrying in ${delay}s..."
 
         # Provide more detailed troubleshooting information
@@ -283,7 +287,7 @@ verify_github_access() {
           log "This is a common issue with GitHub Actions: Add 'permissions: contents: read' to your workflow."
         fi
 
-        sleep $delay
+        sleep "$delay"
         delay=$((delay * 2))
         attempt=$((attempt + 1))
       else

@@ -55,8 +55,8 @@ temp_files=(
 )
 
 for file in "${temp_files[@]}"; do
-  if ls $file 2>/dev/null; then
-    rm -f $file
+  if ls "$file" 2>/dev/null; then
+    rm -f "$file"
     log "Removed temporary file: $file"
   fi
 done
