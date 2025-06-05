@@ -31,11 +31,11 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 latencyRequirement: 50
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            expect(selectedModels[0].name).toBe('o3');
-            expect(selectedModels[0].role).toBe('primary');
-            expect(selectedModels[0].reasoning).toContain('Ultra-fast');
+            expect(result.modelDetails[0].name).toBe('o3');
+            expect(result.modelDetails[0].role).toBe('primary');
+            expect(result.modelDetails[0].reasoning).toContain('Ultra-fast');
         });
 
         test('should include validation model for parallel processing', () => {
@@ -45,10 +45,10 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 complexity: 'simple'
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            expect(selectedModels).toHaveLength(2);
-            const validationModel = selectedModels.find(m => m.role === 'validation');
+            expect(result.modelDetails).toHaveLength(2);
+            const validationModel = result.modelDetails.find(m => m.role === 'validation');
             expect(validationModel.name).toBe('claude-3.7-sonnet-thinking');
         });
     });
@@ -62,9 +62,9 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 requiresReasoning: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            const primaryModel = selectedModels.find(m => m.role === 'primary');
+            const primaryModel = result.modelDetails.find(m => m.role === 'primary');
             expect(primaryModel.name).toBe('claude-4-sonnet-thinking');
             expect(primaryModel.reasoning).toContain('Advanced reasoning');
         });
@@ -76,9 +76,9 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 requiresFastFallback: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            const speedBackup = selectedModels.find(m => m.role === 'speed-backup');
+            const speedBackup = result.modelDetails.find(m => m.role === 'speed-backup');
             expect(speedBackup.name).toBe('o3');
             expect(speedBackup.weight).toBe(0.5);
         });
@@ -93,9 +93,9 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 requiresDeepReasoning: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            const primaryModel = selectedModels.find(m => m.role === 'primary');
+            const primaryModel = result.modelDetails.find(m => m.role === 'primary');
             expect(primaryModel.name).toBe('claude-4-opus-thinking');
             expect(primaryModel.reasoning).toContain('Ultimate intelligence');
         });
@@ -111,9 +111,9 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 hasVisualContent: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            const multimodalModel = selectedModels.find(m => m.role === 'multimodal');
+            const multimodalModel = result.modelDetails.find(m => m.role === 'multimodal');
             expect(multimodalModel).toBeDefined();
             expect(multimodalModel.name).toBe('gemini-2.5-pro');
             expect(multimodalModel.reasoning).toContain('Multimodal');
@@ -128,12 +128,12 @@ describe('6-Model Orchestrator - Model Selection', () => {
                 requiresMultiplePerspectives: true
             };
 
-            const selectedModels = orchestrator.selectModels(request);
+            const result = orchestrator.selectModels(request);
 
-            expect(selectedModels.length).toBeGreaterThan(1);
-            const modelNames = selectedModels.map(m => m.name);
-            expect(modelNames).toContain('claude-4-sonnet-thinking');
+            expect(result.modelDetails.length).toBeGreaterThan(1);
+            const modelNames = result.modelDetails.map(m => m.name);
             expect(modelNames).toContain('gpt-4.1');
+            expect(modelNames).toContain('o3');
         });
     });
 

@@ -16,7 +16,7 @@
 const { describe, test, expect, beforeAll, afterAll } = require('@jest/globals');
 const RevolutionaryOptimizer = require('../modules/performance/revolutionary-optimizer');
 const { RevolutionaryAIController } = require('../lib/ai/revolutionary-controller');
-const MultiModelOrchestrator = require('../lib/ai/multi-model-orchestrator');
+const { MultiModelOrchestrator } = require('../lib/ai/multi-model-orchestrator');
 const UnlimitedContextManager = require('../lib/ai/unlimited-context-manager');
 const RevolutionaryCache = require('../lib/cache/revolutionary-cache');
 
