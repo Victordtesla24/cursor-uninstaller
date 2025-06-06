@@ -1,14 +1,14 @@
-# Cursor AI Optimization - Research-Based File Exclusion
-# Reduces context noise by 80-90% for faster, more accurate AI completions
+# Cursor AI Optimization - File Exclusion for Better Context
+# Reduces noise and improves AI completion accuracy
 
-# Node.js and Package Management
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+__pycache__/
+.venv/
+venv/
+env/
+target/
+vendor/
 
 # Build Output
 dist/
@@ -16,18 +16,21 @@ build/
 out/
 .next/
 .nuxt/
-.vite/
-target/
-bin/
-obj/
+.output/
 
-# Development Cache and Temporary
+# Cache and Temporary Files
 .cache/
 .parcel-cache/
 .turbo/
 .eslintcache
 .tsbuildinfo
+*.log
+tmp/
+temp/
+
+# System Files
 .DS_Store
+Thumbs.db
 *.swp
 *.swo
 
@@ -37,19 +40,22 @@ obj/
 *.bundle.js
 *.chunk.js
 *.map
-*.d.ts.map
 
 # Testing and Coverage
 coverage/
 .nyc_output/
 test-results/
-__tests__/__snapshots__/
 
-# Database and Binary Files
-*.sqlite
-*.db
-*.sql
-*.dump
+# Environment Files
+.env
+.env.*
+
+# Version Control
+.git/
+.svn/
+.hg/
+
+# Media Files (reduce context noise)
 *.jpg
 *.jpeg
 *.png
@@ -58,18 +64,3 @@ __tests__/__snapshots__/
 *.pdf
 *.zip
 *.tar.gz
-
-# Environment and Config
-.env
-.env.*
-*.log
-
-# Version Control
-.git/
-.svn/
-.hg/
-
-# IDE Files
-.vscode/
-.idea/
-*.code-workspace

@@ -1,6 +1,8 @@
 {
     "recommendations": [
-        "undefined_publisher.cursor-ai-enhanced",
-        "cursor-optimization.cursor-ai-enhanced"
+        "ms-vscode.vscode-typescript-next",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-python.python"
     ]
 }
