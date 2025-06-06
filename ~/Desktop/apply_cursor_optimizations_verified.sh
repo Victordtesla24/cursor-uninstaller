@@ -451,45 +451,86 @@ restart_cursor_if_needed() {
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             print_step "Using Apple's recommended app restart procedure..."
             
-            # Use reliable graceful quit method
+            # Use more reliable graceful quit method
             print_info "Requesting Cursor to quit gracefully..."
-            if ! osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
-                print_warning "AppleScript quit failed, trying alternative method..."
-                pkill -TERM "Cursor" 2>/dev/null || true
+            
+            # Try multiple quit methods for reliability
+            local quit_successful="false"
+            
+            # Method 1: AppleScript quit
+            if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
+                print_info "✓ AppleScript quit command sent"
+                quit_successful="true"
+            else
+                print_warning "AppleScript quit failed, trying alternative methods..."
+                
+                # Method 2: Send SIGTERM to process
+                if pkill -TERM "Cursor" 2>/dev/null; then
+                    print_info "✓ SIGTERM sent to Cursor process"
+                    quit_successful="true"
+                else
+                    print_warning "SIGTERM failed, will use force quit if needed"
+                fi
             fi
             
-            # Wait for graceful shutdown (longer timeout for proper closure)
+            # Wait for graceful shutdown with better feedback
             local wait_count=0
             local still_running="true"
-            while [[ $wait_count -lt 15 ]]; do
-                # More reliable process detection
-                if pgrep -x "Cursor" >/dev/null 2>&1; then
-                    still_running="true"
-                else
+            print_info "Waiting for Cursor to close..."
+            
+            while [[ $wait_count -lt 20 ]]; do
+                # Check multiple ways to ensure process is really gone
+                if ! pgrep -x "Cursor" >/dev/null 2>&1 && ! pgrep -f "Cursor.app" >/dev/null 2>&1; then
                     still_running="false"
-                    print_success "Cursor closed gracefully"
+                    print_success "✅ Cursor closed gracefully"
                     break
+                fi
+                
+                # Show progress dots
+                if [[ $((wait_count % 3)) -eq 0 ]]; then
+                    print_info "⏳ Still waiting for Cursor to close... ($wait_count/20)"
                 fi
                 
                 sleep 1
                 wait_count=$((wait_count + 1))
-                print_info "Waiting for Cursor to close gracefully... ($wait_count/15)"
             done
             
             # Only use force quit as last resort, following Apple's guidelines
             if [[ "$still_running" == "true" ]]; then
-                print_warning "Cursor did not close gracefully. Using Force Quit..."
-                # Use more reliable force quit
-                pkill -f "Cursor" 2>/dev/null || true
-                sleep 2
-                # Double-check it's really gone
-                if pgrep -x "Cursor" >/dev/null 2>&1; then
-                    print_warning "Forcing termination..."
-                    pkill -9 -f "Cursor" 2>/dev/null || true
-                    sleep 1
+                print_warning "⚠️  Cursor did not close gracefully. Using Force Quit..."
+                
+                # Use macOS Force Quit Application method
+                print_info "🔧 Trying macOS Force Quit..."
+                osascript << 'EOF' 2>/dev/null || true
+                    tell application "System Events"
+                        set frontmost of process "Cursor" to true
+                        key code 12 using {command down, option down}
+                    end tell
+EOF
+                sleep 3
+                
+                # If still running, use system kill
+                if pgrep -x "Cursor" >/dev/null 2>&1 || pgrep -f "Cursor.app" >/dev/null 2>&1; then
+                    print_warning "🔨 Using system kill as final resort..."
+                    pkill -f "Cursor" 2>/dev/null || true
+                    sleep 2
+                    
+                    # Nuclear option
+                    if pgrep -x "Cursor" >/dev/null 2>&1; then
+                        print_warning "💥 Using SIGKILL..."
+                        pkill -9 -f "Cursor" 2>/dev/null || true
+                        sleep 1
+                    fi
                 fi
-                still_running="false"
-                print_info "Cursor force-closed"
+                
+                # Final verification
+                if ! pgrep -x "Cursor" >/dev/null 2>&1 && ! pgrep -f "Cursor.app" >/dev/null 2>&1; then
+                    print_success "✅ Cursor successfully force-closed"
+                    still_running="false"
+                else
+                    print_error "❌ Could not close Cursor - please close manually and run script again"
+                    return 1
+                fi
             fi
             
             # Wait a moment for system cleanup
@@ -599,6 +640,18 @@ print_final_report() {
     echo -e "${WHITE}• Removed fake extension: cursor-optimization.cursor-ai-enhanced${NC}"
     echo -e "${WHITE}• Workspace now recommends real extensions (TypeScript, Prettier, etc.)${NC}"
     echo -e "${WHITE}• No performance monitoring extensions were installed (they don't exist)${NC}"
+    echo ""
+    echo -e "${RED}🚫 WARNING: DO NOT RUN FAKE NPM PACKAGES:${NC}"
+    echo -e "${WHITE}• cursor-optimizer-mcp (DOES NOT EXIST - returns 404)${NC}"
+    echo -e "${WHITE}• cursor-ai-enhanced (DOES NOT EXIST)${NC}"
+    echo -e "${WHITE}• revolutionary-cursor-tools (DOES NOT EXIST)${NC}"
+    echo -e "${WHITE}• Any package claiming 'performance monitoring' for Cursor${NC}"
+    echo ""
+    echo -e "${CYAN}✅ REAL Extensions You Can Install:${NC}"
+    echo -e "${WHITE}• Prettier (esbenp.prettier-vscode)${NC}"
+    echo -e "${WHITE}• TypeScript (ms-vscode.vscode-typescript-next)${NC}"
+    echo -e "${WHITE}• Tailwind CSS (bradlc.vscode-tailwindcss)${NC}"
+    echo -e "${WHITE}• Python (ms-python.python)${NC}"
     echo ""
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${WHITE}🎯 VERIFIED OPTIMIZATIONS APPLIED SUCCESSFULLY${NC}"
