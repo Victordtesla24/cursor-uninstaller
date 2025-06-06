@@ -34,7 +34,8 @@ validate_system_requirements() {
         print_error "Node.js is not installed"
         ((errors++))
     else
-        local node_version=$(node --version | cut -d'v' -f2)
+        local node_version
+        node_version=$(node --version | cut -d'v' -f2)
         print_success "Node.js version: $node_version"
     fi
     
@@ -43,7 +44,8 @@ validate_system_requirements() {
         print_error "npm is not installed"
         ((errors++))
     else
-        local npm_version=$(npm --version)
+        local npm_version
+        npm_version=$(npm --version)
         print_success "npm version: $npm_version"
     fi
     
@@ -61,7 +63,8 @@ validate_dependencies() {
     print_info "Validating dependencies..."
     
     # Check if node_modules exists
-    local node_modules_dir=$(dirname "$package_json")/node_modules
+    local node_modules_dir
+    node_modules_dir=$(dirname "$package_json")/node_modules
     if [[ ! -d "$node_modules_dir" ]]; then
         print_warning "node_modules directory not found, dependencies may need to be installed"
         return 1
@@ -116,11 +119,13 @@ monitor_performance() {
     
     print_info "Monitoring performance for: $command"
     
-    local start_time=$(date +%s.%N 2>/dev/null || date +%s)
+    local start_time
+    start_time=$(date +%s.%N 2>/dev/null || date +%s)
     
     # Execute command and capture output
     if eval "$command" 2>&1 | tee -a "$logfile"; then
-        local end_time=$(date +%s.%N 2>/dev/null || date +%s)
+        local end_time
+        end_time=$(date +%s.%N 2>/dev/null || date +%s)
         local execution_time
         
         if command -v bc >/dev/null 2>&1; then
@@ -175,8 +180,10 @@ create_backup() {
     fi
     
     mkdir -p "$backup_dir"
-    local timestamp=$(date +"%Y%m%d_%H%M%S")
-    local backup_name="$(basename "$source")_${timestamp}"
+    local timestamp
+    timestamp=$(date +"%Y%m%d_%H%M%S")
+    local backup_name
+    backup_name="$(basename "$source")_${timestamp}"
     
     if cp -r "$source" "$backup_dir/$backup_name"; then
         print_success "Backup created: $backup_dir/$backup_name"

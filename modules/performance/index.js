@@ -714,21 +714,30 @@ class PerformanceMonitoringSystem extends EventEmitter {
             if (this.components.collector) {
                 shutdownPromises.push(Promise.race([
                     this.components.collector.stop(),
-                    new Promise(resolve => setTimeout(resolve, 1000))
+                    new Promise(resolve => {
+                        const timer = setTimeout(resolve, 1000);
+                        timer.unref(); // Prevent hanging the process
+                    })
                 ]));
             }
 
             if (this.components.memoryMonitor) {
                 shutdownPromises.push(Promise.race([
                     this.components.memoryMonitor.stop(),
-                    new Promise(resolve => setTimeout(resolve, 1000))
+                    new Promise(resolve => {
+                        const timer = setTimeout(resolve, 1000);
+                        timer.unref(); // Prevent hanging the process
+                    })
                 ]));
             }
 
             if (this.components.latencyTracker) {
                 shutdownPromises.push(Promise.race([
                     this.components.latencyTracker.stop(),
-                    new Promise(resolve => setTimeout(resolve, 1000))
+                    new Promise(resolve => {
+                        const timer = setTimeout(resolve, 1000);
+                        timer.unref(); // Prevent hanging the process
+                    })
                 ]));
             }
 

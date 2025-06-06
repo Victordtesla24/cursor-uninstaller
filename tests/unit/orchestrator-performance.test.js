@@ -154,7 +154,10 @@ describe('6-Model Orchestrator - Performance', () => {
                     'gpt-4.1': 150
                 };
 
-                await new Promise(resolve => setTimeout(resolve, latencies[modelName] || 100));
+                await new Promise(resolve => {
+                    const timer = setTimeout(resolve, latencies[modelName] || 100);
+                    timer.unref(); // Prevent hanging the process
+                });
 
                 return {
                     modelName,

@@ -12,10 +12,12 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Load helper functions if available
 if [[ -f "$PROJECT_ROOT/lib/helpers.sh" ]]; then
+    # shellcheck disable=SC1091
     source "$PROJECT_ROOT/lib/helpers.sh"
 fi
 
 if [[ -f "$PROJECT_ROOT/lib/ui.sh" ]]; then
+    # shellcheck disable=SC1091
     source "$PROJECT_ROOT/lib/ui.sh"
 fi
 
@@ -62,29 +64,25 @@ production_execute_optimize() {
     validate_system_requirements || true
     
     # Configure revolutionary AI models
-    configure_ai_models
-    if [[ $? -ne 0 ]]; then
+    if ! configure_ai_models; then
         print_error "Failed to configure AI models"
         return 1
     fi
     
     # Optimize performance settings
-    optimize_performance_settings
-    if [[ $? -ne 0 ]]; then
+    if ! optimize_performance_settings; then
         print_error "Failed to optimize performance settings"
         return 1
     fi
     
     # Enable advanced caching
-    enable_caching_system
-    if [[ $? -ne 0 ]]; then
+    if ! enable_caching_system; then
         print_error "Failed to enable caching system"
         return 1
     fi
     
     # Configure unlimited context processing
-    configure_unlimited_context
-    if [[ $? -ne 0 ]]; then
+    if ! configure_unlimited_context; then
         print_error "Failed to configure unlimited context"
         return 1
     fi

@@ -35,7 +35,10 @@ describe('AI System Integration', () => {
       expect(aiSystem.initialized).toBe(true);
 
       // Add small delay to ensure uptime measurement in fast test environments
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 1);
+        timer.unref(); // Prevent hanging the process
+      });
 
       const stats = aiSystem.getSystemStats();
       expect(stats.system.initialized).toBe(true);

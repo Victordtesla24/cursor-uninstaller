@@ -87,22 +87,23 @@ class CompletionLatencyBenchmark {
     };
 
     const contextMultiplier = scenario.contextSize === 'large' ? 1.8 : 1;
-    
+
     // Add random variation (±20%)
     const variation = 0.8 + (Math.random() * 0.4);
-    
-    const simulatedLatency = baseLatency[scenario.complexity] * 
-                           complexityMultiplier[scenario.complexity] * 
-                           contextMultiplier * 
-                           variation;
+
+    const simulatedLatency = baseLatency[scenario.complexity] *
+      complexityMultiplier[scenario.complexity] *
+      contextMultiplier *
+      variation;
 
     return new Promise(resolve => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         resolve({
           completion: this.generateMockCompletion(scenario),
           confidence: 0.85 + (Math.random() * 0.15)
         });
       }, simulatedLatency);
+      timer.unref(); // Prevent hanging the process
     });
   }
 
@@ -117,13 +118,13 @@ class CompletionLatencyBenchmark {
       'Large File Context (1000+ lines)': '"https://api.example.com/v1"',
       'TypeScript Interface Extension': 'ApiData[]'
     };
-    
+
     return completions[scenario.name] || 'completion';
   }
 
   async measureCompletion(scenario) {
     const startTime = performance.now();
-    
+
     try {
       const result = await this.mockAICompletion(scenario);
       const endTime = performance.now();
@@ -159,13 +160,13 @@ class CompletionLatencyBenchmark {
 
   async runBenchmark() {
     console.log('🚀 Starting Completion Latency Benchmark...\n');
-    
+
     const startTime = performance.now();
-    
+
     for (let i = 0; i < this.scenarios.length; i++) {
       const scenario = this.scenarios[i];
       console.log(`📊 Testing: ${scenario.name} (${scenario.complexity})`);
-      
+
       // Run each scenario 3 times and take average
       const runs = [];
       for (let run = 0; run < 3; run++) {
@@ -173,28 +174,28 @@ class CompletionLatencyBenchmark {
         runs.push(result);
         process.stdout.write(`.`);
       }
-      
+
       // Calculate average latency
       const avgLatency = Math.round(
         runs.reduce((sum, run) => sum + run.latency, 0) / runs.length
       );
-      
+
       const bestRun = runs[0];
       bestRun.latency = avgLatency;
-      
+
       this.results.push(bestRun);
-      
+
       const status = bestRun.performance === 'PASS' ? '✅' : '❌';
       console.log(` ${status} ${avgLatency}ms (target: ${scenario.expectedLatency}ms)`);
     }
-    
+
     const totalTime = performance.now() - startTime;
-    
+
     console.log('\n📈 Benchmark Results Summary:');
     console.log('================================');
-    
+
     await this.generateReport(totalTime);
-    
+
     return this.results;
   }
 
@@ -202,22 +203,22 @@ class CompletionLatencyBenchmark {
     const passed = this.results.filter(r => r.performance === 'PASS').length;
     const failed = this.results.filter(r => r.performance === 'FAIL').length;
     const errors = this.results.filter(r => r.performance === 'ERROR').length;
-    
+
     const avgLatency = Math.round(
       this.results.reduce((sum, r) => sum + r.latency, 0) / this.results.length
     );
-    
+
     const maxLatency = Math.max(...this.results.map(r => r.latency));
     const minLatency = Math.min(...this.results.map(r => r.latency));
-    
+
     // Performance by complexity
     const simpleAvg = this.getAvgLatencyByComplexity('simple');
     const mediumAvg = this.getAvgLatencyByComplexity('medium');
     const complexAvg = this.getAvgLatencyByComplexity('complex');
-    
+
     // Performance by language
     const langPerformance = this.getPerformanceByLanguage();
-    
+
     const report = {
       timestamp: new Date().toISOString(),
       totalTests: this.results.length,
@@ -241,41 +242,41 @@ class CompletionLatencyBenchmark {
       totalBenchmarkTime: Math.round(totalTime),
       results: this.results
     };
-    
+
     // Console output
     console.log(`Total Tests: ${this.results.length}`);
-    console.log(`✅ Passed: ${passed} (${Math.round((passed/this.results.length)*100)}%)`);
-    console.log(`❌ Failed: ${failed} (${Math.round((failed/this.results.length)*100)}%)`);
+    console.log(`✅ Passed: ${passed} (${Math.round((passed / this.results.length) * 100)}%)`);
+    console.log(`❌ Failed: ${failed} (${Math.round((failed / this.results.length) * 100)}%)`);
     if (errors > 0) console.log(`💥 Errors: ${errors}`);
-    
+
     console.log(`\n⏱️  Average Latency: ${avgLatency}ms (target: 500ms)`);
     console.log(`⚡ Fastest: ${minLatency}ms`);
     console.log(`🐌 Slowest: ${maxLatency}ms`);
-    
+
     console.log('\n📊 Performance by Complexity:');
     console.log(`   Simple: ${simpleAvg}ms (target: 200ms)`);
     console.log(`   Medium: ${mediumAvg}ms (target: 400ms)`);
     console.log(`   Complex: ${complexAvg}ms (target: 800ms)`);
-    
+
     console.log('\n🌐 Performance by Language:');
     Object.entries(langPerformance).forEach(([lang, perf]) => {
       console.log(`   ${lang}: ${perf.avg}ms (${perf.tests} tests)`);
     });
-    
+
     // Save detailed report
     await fs.writeFile(
       path.join(__dirname, 'completion-latency-report.json'),
       JSON.stringify(report, null, 2)
     );
-    
+
     console.log(`\n💾 Detailed report saved to: completion-latency-report.json`);
-    
+
     if (report.metrics.meetsTarget) {
       console.log(`\n🎉 BENCHMARK PASSED - Average latency meets target!`);
     } else {
       console.log(`\n⚠️  BENCHMARK FAILED - Average latency exceeds target`);
     }
-    
+
     return report;
   }
 
@@ -287,7 +288,7 @@ class CompletionLatencyBenchmark {
 
   getPerformanceByLanguage() {
     const languages = {};
-    
+
     this.results.forEach(result => {
       if (!languages[result.language]) {
         languages[result.language] = { total: 0, count: 0 };
@@ -295,14 +296,14 @@ class CompletionLatencyBenchmark {
       languages[result.language].total += result.latency;
       languages[result.language].count += 1;
     });
-    
+
     Object.keys(languages).forEach(lang => {
       languages[lang] = {
         avg: Math.round(languages[lang].total / languages[lang].count),
         tests: languages[lang].count
       };
     });
-    
+
     return languages;
   }
 }
@@ -313,12 +314,12 @@ async function main() {
     const benchmark = new CompletionLatencyBenchmark();
     try {
       await benchmark.runBenchmark();
-      
+
       // Exit with appropriate code
       const report = JSON.parse(
         await fs.readFile(path.join(__dirname, 'completion-latency-report.json'))
       );
-      
+
       process.exit(report.metrics.meetsTarget ? 0 : 1);
     } catch (error) {
       console.error('❌ Benchmark failed:', error.message);

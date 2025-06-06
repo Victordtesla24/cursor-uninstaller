@@ -1,72 +1,75 @@
-# AI-Optimized .cursorignore - Maximum Code Completion Performance
-# Reduces AI context noise by 80-90% for faster, more accurate completions
+# Cursor AI Optimization - Research-Based File Exclusion
+# Reduces context noise by 80-90% for faster, more accurate AI completions
 
-# Build Output and Distribution
+# Node.js and Package Management
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build Output
 dist/
 build/
 out/
 .next/
 .nuxt/
+.vite/
 target/
 bin/
 obj/
 
-# Package Management Files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-composer.lock
-Pipfile.lock
-
-# Generated and Compiled Files
-*.min.js
-*.min.css
-*.bundle.js
-*.map
-*.d.ts.map
-
-# Development Cache
+# Development Cache and Temporary
 .cache/
 .parcel-cache/
-.vite/
 .turbo/
 .eslintcache
 .tsbuildinfo
-
-# IDE and System Files
-.vscode/
-.idea/
-*.swp
 .DS_Store
+*.swp
+*.swo
 
-# Logs and Debug Files
-*.log
-npm-debug.log*
-yarn-debug.log*
+# Generated Files
+*.min.js
+*.min.css
+*.bundle.js
+*.chunk.js
+*.map
+*.d.ts.map
 
 # Testing and Coverage
 coverage/
 .nyc_output/
 test-results/
+__tests__/__snapshots__/
 
-# Database and Data Files
+# Database and Binary Files
 *.sqlite
 *.db
 *.sql
 *.dump
-
-# Media Files
 *.jpg
+*.jpeg
 *.png
 *.gif
 *.mp4
 *.pdf
+*.zip
+*.tar.gz
+
+# Environment and Config
+.env
+.env.*
+*.log
 
 # Version Control
 .git/
 .svn/
+.hg/
 
-# Environment Files
-.env
-.env.*
+# IDE Files
+.vscode/
+.idea/
+*.code-workspace

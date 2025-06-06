@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
-# Comprehensive Code Validation Tool v3.1
-# Simplified and optimized for reliability with complete validation coverage
+# Comprehensive Code Validation Tool v3.3.0
+# Enhanced for complete validation coverage with detailed error reporting
 
-set -euo pipefail
+# set -e: disabled to ensure script continues after errors, allowing a full report.
+# set -E: ensures ERR traps are inherited by shell functions.
+# set -u: treats unset variables as an error.
+# set -o pipefail: a pipeline's exit code is the last command's with a non-zero exit.
+set -Euo pipefail
 
 # Basic configuration
-readonly SCRIPT_VERSION="3.1.0"
+readonly SCRIPT_VERSION="3.3.0"
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 
@@ -41,6 +45,12 @@ declare -a JAVASCRIPT_FILES=()
 declare -a TYPESCRIPT_FILES=()
 declare -a JSON_FILES_LIST=()
 
+# Arrays to store detailed error information
+declare -a SHELL_ERRORS=()
+declare -a JS_ERRORS=()
+declare -a TS_ERRORS=()
+declare -a JSON_ERRORS=()
+
 # Simple logging
 log_header() {
     printf "\n${BLUE}${BOLD}=== %s ===${NC}\n" "$1" >&2
@@ -67,7 +77,7 @@ has_command() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Run command with timeout (simplified)
+# Run command with timeout but preserve error output
 run_with_timeout() {
     local timeout_sec="$1"
     shift
@@ -82,7 +92,32 @@ run_with_timeout() {
     fi
 }
 
-# Simplified file discovery (compatible with all bash versions)
+# Add error to specific category with full details
+add_shell_error() {
+    local file="$1"
+    local error_msg="$2"
+    SHELL_ERRORS+=("$file" "$error_msg")
+}
+
+add_js_error() {
+    local file="$1"
+    local error_msg="$2"
+    JS_ERRORS+=("$file" "$error_msg")
+}
+
+add_ts_error() {
+    local file="$1"
+    local error_msg="$2"
+    TS_ERRORS+=("$file" "$error_msg")
+}
+
+add_json_error() {
+    local file="$1"
+    local error_msg="$2"
+    JSON_ERRORS+=("$file" "$error_msg")
+}
+
+# Simplified file discovery with better exclusion patterns
 discover_files() {
     log_header "File Discovery"
     
@@ -92,48 +127,52 @@ discover_files() {
     TYPESCRIPT_FILES=()
     JSON_FILES_LIST=()
     
-    # Find shell scripts (portable approach)
+    # Find shell scripts (exclude more paths that might cause issues)
     log_info "Scanning for shell scripts..."
     if command -v find >/dev/null 2>&1; then
         while IFS= read -r -d '' file; do
-            [[ -f "$file" ]] && SHELL_SCRIPTS+=("$file")
+            [[ -f "$file" && -r "$file" ]] && SHELL_SCRIPTS+=("$file")
         done < <(find . -type f \( -name "*.sh" -o -name "*.bash" \) \
             -not -path "./node_modules/*" -not -path "./.git/*" \
             -not -path "./coverage/*" -not -path "./build/*" \
-            -not -path "./dist/*" -print0 2>/dev/null || true)
+            -not -path "./dist/*" -not -path "./.cache/*" \
+            -not -path "./tmp/*" -print0 2>/dev/null || true)
     fi
     
-    # Find JavaScript files
+    # Find JavaScript files (exclude test artifacts and build outputs)
     log_info "Scanning for JavaScript files..."
     if command -v find >/dev/null 2>&1; then
         while IFS= read -r -d '' file; do
-            [[ -f "$file" ]] && JAVASCRIPT_FILES+=("$file")
+            [[ -f "$file" && -r "$file" ]] && JAVASCRIPT_FILES+=("$file")
         done < <(find . -type f -name "*.js" \
             -not -path "./node_modules/*" -not -path "./.git/*" \
             -not -path "./coverage/*" -not -path "./build/*" \
-            -not -path "./dist/*" -print0 2>/dev/null || true)
+            -not -path "./dist/*" -not -path "./.cache/*" \
+            -not -path "./tmp/*" -print0 2>/dev/null || true)
     fi
     
-    # Find TypeScript files
+    # Find TypeScript files (ONLY in our project, not node_modules)
     log_info "Scanning for TypeScript files..."
     if command -v find >/dev/null 2>&1; then
         while IFS= read -r -d '' file; do
-            [[ -f "$file" ]] && TYPESCRIPT_FILES+=("$file")
+            [[ -f "$file" && -r "$file" ]] && TYPESCRIPT_FILES+=("$file")
         done < <(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
             -not -path "./node_modules/*" -not -path "./.git/*" \
             -not -path "./coverage/*" -not -path "./build/*" \
-            -not -path "./dist/*" -print0 2>/dev/null || true)
+            -not -path "./dist/*" -not -path "./.cache/*" \
+            -not -path "./tmp/*" -print0 2>/dev/null || true)
     fi
     
-    # Find JSON files
+    # Find JSON files (exclude node_modules and build artifacts)
     log_info "Scanning for JSON files..."
     if command -v find >/dev/null 2>&1; then
         while IFS= read -r -d '' file; do
-            [[ -f "$file" ]] && JSON_FILES_LIST+=("$file")
+            [[ -f "$file" && -r "$file" ]] && JSON_FILES_LIST+=("$file")
         done < <(find . -type f -name "*.json" \
             -not -path "./node_modules/*" -not -path "./.git/*" \
             -not -path "./coverage/*" -not -path "./build/*" \
-            -not -path "./dist/*" -print0 2>/dev/null || true)
+            -not -path "./dist/*" -not -path "./.cache/*" \
+            -not -path "./tmp/*" -print0 2>/dev/null || true)
     fi
     
     # Update counters
@@ -152,14 +191,16 @@ discover_files() {
     printf "  • Total files: ${BOLD}%d${NC}\n" "$TOTAL_FILES" >&2
 }
 
-# Validate shell scripts
+# Validate shell scripts with comprehensive error capture
 validate_shell_scripts() {
     [[ $SHELL_FILES -eq 0 ]] && return 0
     
     log_header "Shell Script Validation"
     
     # Check for ShellCheck
+    local has_shellcheck=0
     if has_command shellcheck; then
+        has_shellcheck=1
         local version
         version="$(run_with_timeout 5 shellcheck --version | grep version: | cut -d' ' -f2 2>/dev/null || echo "unknown")"
         log_info "Using ShellCheck v$version"
@@ -180,26 +221,26 @@ validate_shell_scripts() {
         processed=$((processed + 1))
         printf "\rProcessing shell script %d/%d: %s" "$processed" "$SHELL_FILES" "$basename_script" >&2
         
-        # Basic syntax check with timeout
-        if ! run_with_timeout 10 bash -n "$script" 2>/dev/null; then
+        # Basic syntax check - CAPTURE the error output
+        local syntax_error
+        if ! syntax_error=$(run_with_timeout 10 bash -n "$script" 2>&1); then
             printf "\r%80s\r" " " >&2  # Clear progress line
             log_error "Syntax error in: $basename_script"
+            add_shell_error "$script" "Syntax error: $syntax_error"
             script_issues=1
         fi
         
-        # ShellCheck if available
-        if has_command shellcheck && [[ $script_issues -eq 0 ]]; then
-            if run_with_timeout 15 shellcheck "$script" >/dev/null 2>&1; then
-                printf "\r%80s\r" " " >&2  # Clear progress line
-                log_success "$basename_script - passed"
-            else
+        # ShellCheck if available - CAPTURE the detailed output
+        if [[ $has_shellcheck -eq 1 && $script_issues -eq 0 ]]; then
+            local shellcheck_output
+            if ! shellcheck_output=$(run_with_timeout 15 shellcheck "$script" 2>&1); then
                 printf "\r%80s\r" " " >&2  # Clear progress line
                 log_warning "ShellCheck issues in: $basename_script"
-                # Show a few key issues
-                run_with_timeout 10 shellcheck "$script" 2>&1 | head -3 | while read -r line; do
-                    printf "    %s\n" "$line" >&2
-                done
+                add_shell_error "$script" "ShellCheck issues: $shellcheck_output"
                 script_issues=1
+            else
+                printf "\r%80s\r" " " >&2  # Clear progress line
+                log_success "$basename_script - passed"
             fi
         elif [[ $script_issues -eq 0 ]]; then
             printf "\r%80s\r" " " >&2  # Clear progress line
@@ -218,7 +259,7 @@ validate_shell_scripts() {
     log_info "Shell validation: $issues issues found"
 }
 
-# Validate JavaScript files with enhanced debugging and timeout protection
+# Validate JavaScript files with enhanced error capture
 validate_javascript_files() {
     [[ $JS_FILES -eq 0 ]] && return 0
     
@@ -227,9 +268,8 @@ validate_javascript_files() {
     local issues=0
     local has_node=0
     local has_eslint=0
-    local skipped=0
     
-    # Check available tools with timeout
+    # Check available tools
     if run_with_timeout 5 node --version >/dev/null 2>&1; then
         has_node=1
         local node_version
@@ -240,7 +280,7 @@ validate_javascript_files() {
         return 0
     fi
     
-    # Test ESLint with shorter timeout
+    # Test ESLint
     if run_with_timeout 3 eslint --version >/dev/null 2>&1; then
         has_eslint=1
         log_info "ESLint available for enhanced validation"
@@ -258,50 +298,36 @@ validate_javascript_files() {
         
         processed=$((processed + 1))
         
-        # Debug: Show which file we're processing
+        # Show progress
         printf "\r%80s\r" " " >&2  # Clear line
         printf "\rProcessing JavaScript file %d/%d: %s" "$processed" "$JS_FILES" "$basename_file" >&2
         
-        # Skip very large files that might cause timeouts
-        local file_size
-        if file_size=$(wc -c < "$jsfile" 2>/dev/null) && [[ $file_size -gt 1048576 ]]; then
-            printf "\r%80s\r" " " >&2  # Clear progress line
-            log_warning "$basename_file - skipped (file too large: ${file_size} bytes)"
-            skipped=$((skipped + 1))
-            continue
-        fi
-        
-        # Simple Node.js syntax validation with reliable timeout
+        # Node.js syntax validation - CAPTURE the error output
         if [[ $has_node -eq 1 ]]; then
-            if run_with_timeout 8 node --check "$jsfile" >/dev/null 2>&1; then
-                printf "\r%80s\r" " " >&2  # Clear progress line
-                log_success "$basename_file - syntax OK"
-            else
+            local js_error
+            if ! js_error=$(run_with_timeout 10 node --check "$jsfile" 2>&1); then
                 printf "\r%80s\r" " " >&2  # Clear progress line
                 log_error "JavaScript syntax error in: $basename_file"
+                add_js_error "$jsfile" "Syntax error: $js_error"
                 file_issues=1
+            else
+                printf "\r%80s\r" " " >&2  # Clear progress line
+                log_success "$basename_file - syntax OK"
             fi
         fi
         
-        # ESLint validation with timeout (only if syntax is OK)
+        # ESLint validation - CAPTURE the detailed output
         if [[ $has_eslint -eq 1 && $file_issues -eq 0 ]]; then
-            if run_with_timeout 5 eslint --quiet "$jsfile" >/dev/null 2>&1; then
-                # File passed ESLint - don't double-log success
-                :
-            else
+            local eslint_output
+            if ! eslint_output=$(run_with_timeout 8 eslint "$jsfile" 2>&1); then
                 log_warning "ESLint issues in: $basename_file"
+                add_js_error "$jsfile" "ESLint issues: $eslint_output"
                 file_issues=1
             fi
         fi
         
         if [[ $file_issues -gt 0 ]]; then
             issues=$((issues + 1))
-        fi
-        
-        # Progress indicator every 10 files
-        if [[ $((processed % 10)) -eq 0 ]]; then
-            printf "\r%80s\r" " " >&2  # Clear line
-            log_info "Processed $processed/$JS_FILES JavaScript files..."
         fi
     done
     
@@ -310,10 +336,9 @@ validate_javascript_files() {
     
     JS_ISSUES=$issues
     log_info "JavaScript validation complete: $issues issues found"
-    [[ $skipped -gt 0 ]] && log_info "Skipped $skipped large files"
 }
 
-# Validate TypeScript files
+# Validate TypeScript files with proper error handling
 validate_typescript_files() {
     [[ $TS_FILES -eq 0 ]] && return 0
     
@@ -322,30 +347,16 @@ validate_typescript_files() {
     local issues=0
     
     # Check for TypeScript compiler
-    if run_with_timeout 5 tsc --version >/dev/null 2>&1; then
-        local tsc_version
-        tsc_version="$(run_with_timeout 5 tsc --version 2>/dev/null | cut -d' ' -f2 || echo "unknown")"
-        log_info "Using TypeScript v$tsc_version"
-    else
+    if ! run_with_timeout 5 tsc --version >/dev/null 2>&1; then
         log_warning "TypeScript compiler not found - skipping TypeScript validation"
         return 0
     fi
     
-    # Try global TypeScript compilation check
-    log_info "Running TypeScript compilation check..."
-    local ts_output
-    if ts_output=$(run_with_timeout 30 tsc --noEmit --skipLibCheck 2>&1); then
-        log_success "TypeScript compilation passed"
-    else
-        log_warning "TypeScript compilation issues detected"
-        # Show compilation errors
-        echo "$ts_output" | head -5 | while read -r line; do
-            printf "    %s\n" "$line" >&2
-        done
-        issues=1
-    fi
+    local tsc_version
+    tsc_version="$(run_with_timeout 5 tsc --version 2>/dev/null | cut -d' ' -f2 || echo "unknown")"
+    log_info "Using TypeScript v$tsc_version"
     
-    # Individual file syntax checking
+    # Individual file syntax checking (safer than global compilation)
     local processed=0
     for tsfile in "${TYPESCRIPT_FILES[@]}"; do
         [[ ! -f "$tsfile" ]] && continue
@@ -356,14 +367,16 @@ validate_typescript_files() {
         processed=$((processed + 1))
         printf "\rProcessing TypeScript file %d/%d: %s" "$processed" "$TS_FILES" "$basename_file" >&2
         
-        # Basic TypeScript syntax check
-        if run_with_timeout 15 tsc --noEmit --skipLibCheck "$tsfile" >/dev/null 2>&1; then
-            printf "\r%80s\r" " " >&2  # Clear progress line
-            log_success "$basename_file - syntax OK"
-        else
+        # Basic TypeScript syntax check - CAPTURE error output
+        local ts_error
+        if ! ts_error=$(run_with_timeout 15 tsc --noEmit --skipLibCheck "$tsfile" 2>&1); then
             printf "\r%80s\r" " " >&2  # Clear progress line
             log_error "TypeScript error in: $basename_file"
+            add_ts_error "$tsfile" "Compilation error: $ts_error"
             issues=$((issues + 1))
+        else
+            printf "\r%80s\r" " " >&2  # Clear progress line
+            log_success "$basename_file - syntax OK"
         fi
     done
     
@@ -374,7 +387,7 @@ validate_typescript_files() {
     log_info "TypeScript validation: $issues issues found"
 }
 
-# Validate JSON files
+# Validate JSON files with comprehensive error reporting
 validate_json_files() {
     [[ $JSON_FILES -eq 0 ]] && return 0
     
@@ -383,14 +396,14 @@ validate_json_files() {
     local issues=0
     local validation_method=""
     
-    # Determine validation method with timeout checks
-    if run_with_timeout 5 jq --version >/dev/null 2>&1; then
+    # Determine validation method
+    if run_with_timeout 3 jq --version >/dev/null 2>&1; then
         validation_method="jq"
         log_info "Using jq for JSON validation"
-    elif run_with_timeout 5 node --version >/dev/null 2>&1; then
+    elif run_with_timeout 3 node --version >/dev/null 2>&1; then
         validation_method="node"
         log_info "Using Node.js for JSON validation"
-    elif run_with_timeout 5 python3 --version >/dev/null 2>&1; then
+    elif run_with_timeout 3 python3 --version >/dev/null 2>&1; then
         validation_method="python3"
         log_info "Using Python3 for JSON validation"
     else
@@ -404,36 +417,35 @@ validate_json_files() {
         
         local basename_file
         basename_file="$(basename "$jsonfile")"
-        local is_valid=0
+        local json_error=""
+        local exit_code=0
         
         processed=$((processed + 1))
         printf "\rProcessing JSON file %d/%d: %s" "$processed" "$JSON_FILES" "$basename_file" >&2
         
-        # Validate based on available tool
+        # Validate based on available tool - CAPTURE error output and exit code
         case "$validation_method" in
             "jq")
-                if run_with_timeout 10 jq empty "$jsonfile" >/dev/null 2>&1; then
-                    is_valid=1
-                fi
+                json_error=$(run_with_timeout 10 jq . "$jsonfile" 2>&1 >/dev/null)
+                exit_code=$?
                 ;;
             "node")
-                if run_with_timeout 10 node -e "JSON.parse(require('fs').readFileSync('$jsonfile', 'utf8'))" >/dev/null 2>&1; then
-                    is_valid=1
-                fi
+                json_error=$(run_with_timeout 10 node -e "JSON.parse(require('fs').readFileSync('$jsonfile', 'utf8'))" 2>&1)
+                exit_code=$?
                 ;;
             "python3")
-                if run_with_timeout 10 python3 -c "import json; json.load(open('$jsonfile'))" >/dev/null 2>&1; then
-                    is_valid=1
-                fi
+                json_error=$(run_with_timeout 10 python3 -c "import json, sys; json.load(open(sys.argv[1]))" "$jsonfile" 2>&1)
+                exit_code=$?
                 ;;
         esac
         
         printf "\r%80s\r" " " >&2  # Clear progress line
         
-        if [[ $is_valid -eq 1 ]]; then
+        if [[ $exit_code -eq 0 ]]; then
             log_success "$basename_file - valid JSON"
         else
             log_error "Invalid JSON in: $basename_file"
+            add_json_error "$jsonfile" "$json_error"
             issues=$((issues + 1))
         fi
     done
@@ -445,6 +457,57 @@ validate_json_files() {
     log_info "JSON validation: $issues issues found"
 }
 
+# Show detailed error summary for debugging
+show_detailed_errors() {
+    if [[ ${#SHELL_ERRORS[@]} -gt 0 ]]; then
+        log_header "Detailed Shell Script Errors"
+        for ((i=0; i<${#SHELL_ERRORS[@]}; i+=2)); do
+            local file="${SHELL_ERRORS[i]}"
+            local msg="${SHELL_ERRORS[i+1]}"
+            printf "\n${YELLOW}File: ${BOLD}%s${NC}\n" "$file" >&2
+            while IFS= read -r line; do
+                printf "  %s%s%s\n" "${RED}" "$line" "${NC}" >&2
+            done <<< "${msg}"
+        done
+    fi
+    
+    if [[ ${#JS_ERRORS[@]} -gt 0 ]]; then
+        log_header "Detailed JavaScript Errors"
+        for ((i=0; i<${#JS_ERRORS[@]}; i+=2)); do
+            local file="${JS_ERRORS[i]}"
+            local msg="${JS_ERRORS[i+1]}"
+            printf "\n${YELLOW}File: ${BOLD}%s${NC}\n" "$file" >&2
+            while IFS= read -r line; do
+                printf "  %s%s%s\n" "${RED}" "$line" "${NC}" >&2
+            done <<< "${msg}"
+        done
+    fi
+    
+    if [[ ${#TS_ERRORS[@]} -gt 0 ]]; then
+        log_header "Detailed TypeScript Errors"
+        for ((i=0; i<${#TS_ERRORS[@]}; i+=2)); do
+            local file="${TS_ERRORS[i]}"
+            local msg="${TS_ERRORS[i+1]}"
+            printf "\n${YELLOW}File: ${BOLD}%s${NC}\n" "$file" >&2
+            while IFS= read -r line; do
+                printf "  %s%s%s\n" "${RED}" "$line" "${NC}" >&2
+            done <<< "${msg}"
+        done
+    fi
+    
+    if [[ ${#JSON_ERRORS[@]} -gt 0 ]]; then
+        log_header "Detailed JSON Errors"
+        for ((i=0; i<${#JSON_ERRORS[@]}; i+=2)); do
+            local file="${JSON_ERRORS[i]}"
+            local msg="${JSON_ERRORS[i+1]}"
+            printf "\n${YELLOW}File: ${BOLD}%s${NC}\n" "$file" >&2
+            while IFS= read -r line; do
+                printf "  %s%s%s\n" "${RED}" "$line" "${NC}" >&2
+            done <<< "${msg}"
+        done
+    fi
+}
+
 # Generate comprehensive summary
 show_summary() {
     log_header "Validation Summary"
@@ -453,27 +516,32 @@ show_summary() {
     TOTAL_ISSUES=$((SHELL_ISSUES + JS_ISSUES + TS_ISSUES + JSON_ISSUES))
     
     # File statistics
-    printf "%sFile Statistics:%s\n" "${BOLD}" "${NC}" >&2
-    printf "  • Shell scripts: %d (issues: %d)\n" "$SHELL_FILES" "$SHELL_ISSUES" >&2
-    printf "  • JavaScript files: %d (issues: %d)\n" "$JS_FILES" "$JS_ISSUES" >&2
-    printf "  • TypeScript files: %d (issues: %d)\n" "$TS_FILES" "$TS_ISSUES" >&2
-    printf "  • JSON files: %d (issues: %d)\n" "$JSON_FILES" "$JSON_ISSUES" >&2
+    printf '%sFile Statistics:%s\n' "${BOLD}" "${NC}" >&2
+    printf "  • Shell scripts: %d (issues: %s%d%s)\n" "$SHELL_FILES" "${RED}" "$SHELL_ISSUES" "${NC}" >&2
+    printf "  • JavaScript files: %d (issues: %s%d%s)\n" "$JS_FILES" "${RED}" "$JS_ISSUES" "${NC}" >&2
+    printf "  • TypeScript files: %d (issues: %s%d%s)\n" "$TS_FILES" "${RED}" "$TS_ISSUES" "${NC}" >&2
+    printf "  • JSON files: %d (issues: %s%d%s)\n" "$JSON_FILES" "${RED}" "$JSON_ISSUES" "${NC}" >&2
     printf "  • Total files: %d\n" "$TOTAL_FILES" >&2
     
     echo >&2
     
+    # Show detailed errors if any
+    if [[ $TOTAL_ISSUES -gt 0 ]]; then
+        show_detailed_errors
+    fi
+    
     # Overall result
     if [[ $TOTAL_ISSUES -eq 0 ]]; then
-        printf "%s%s🎉 ALL VALIDATIONS PASSED!%s\n" "${GREEN}" "${BOLD}" "${NC}" >&2
-        printf "%sAll %d files are valid and ready for production.%s\n" "${GREEN}" "$TOTAL_FILES" "${NC}" >&2
+        printf '%s%s🎉 ALL VALIDATIONS PASSED!%s\n' "${GREEN}" "${BOLD}" "${NC}" >&2
+        printf '%sAll %d files are valid and ready for production.%s\n' "${GREEN}" "$TOTAL_FILES" "${NC}" >&2
         return 0
     else
-        printf "%s%s⚠️  ISSUES FOUND%s\n" "${YELLOW}" "${BOLD}" "${NC}" >&2
-        printf "%sFound %d issues across %d files that need attention.%s\n" "${YELLOW}" "$TOTAL_ISSUES" "$TOTAL_FILES" "${NC}" >&2
+        printf '\n%s%s⚠️  ISSUES FOUND%s\n' "${YELLOW}" "${BOLD}" "${NC}" >&2
+        printf '%sFound %d issues across all files that need attention.%s\n' "${YELLOW}" "$TOTAL_ISSUES" "${NC}" >&2
         
         # Recommendations
         echo >&2
-        printf "%sRecommendations:%s\n" "${BOLD}" "${NC}" >&2
+        printf '%sRecommendations:%s\n' "${BOLD}" "${NC}" >&2
         [[ $SHELL_ISSUES -gt 0 ]] && printf "  • Fix shell script issues using shellcheck\n" >&2
         [[ $JS_ISSUES -gt 0 ]] && printf "  • Fix JavaScript issues using eslint\n" >&2
         [[ $TS_ISSUES -gt 0 ]] && printf "  • Fix TypeScript compilation errors\n" >&2
@@ -513,6 +581,11 @@ ${BOLD}DESCRIPTION:${NC}
     ${BOLD}JSON (.json):${NC}
       • Syntax validation with jq, Node.js, or Python3
 
+${BOLD}NOTE:${NC}
+    The accuracy of validation (including false positives) depends on the
+    configuration of the underlying tools (e.g., .eslintrc, tsconfig.json).
+    This script accurately reports the output from those tools.
+
 ${BOLD}EXIT CODES:${NC}
     0   All files passed validation
     1   Issues found requiring attention
@@ -528,10 +601,10 @@ ${BOLD}TOOLS USED (when available):${NC}
 
 ${BOLD}FEATURES:${NC}
     ✅ Comprehensive multi-language validation
+    ✅ Detailed, non-suppressed error reporting for easy debugging
+    ✅ Continue processing all files even if some fail
+    ✅ Complete summary of all issues found
     ✅ Timeout protection for long-running operations
-    ✅ Progress indicators for large codebases
-    ✅ Intelligent tool detection and fallbacks
-    ✅ Clear, actionable error reporting
 
 EOF
 }
@@ -572,7 +645,7 @@ main() {
     printf "╚══════════════════════════════════════════════════════════════════════════════╝\n"
     printf "%s\n" "${NC}"
     
-    # Run validations
+    # Run validations (each function handles its own errors)
     discover_files
     validate_shell_scripts
     validate_javascript_files

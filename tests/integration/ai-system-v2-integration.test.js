@@ -121,6 +121,7 @@ describe('AI System V2.0.0 Integration Tests', () => {
         }
 
         console.log('✅ All components shut down');
+        jest.clearAllTimers();
     });
 
     describe('Language Adapter Framework', () => {
@@ -253,7 +254,10 @@ describe('AI System V2.0.0 Integration Tests', () => {
 
     describe('Performance Monitoring System', () => {
         test('should track operation latency within target', async () => {
-            const operation = () => new Promise(resolve => setTimeout(resolve, 100));
+            const operation = () => new Promise(resolve => {
+                const timer = setTimeout(resolve, 100);
+                timer.unref(); // Prevent hanging the process
+            });
 
             await performanceMonitor.trackOperation('test_operation', operation);
 
@@ -286,12 +290,18 @@ describe('AI System V2.0.0 Integration Tests', () => {
 
             // Simulate slow operations
             for (let i = 0; i < 5; i++) {
-                const slowOperation = () => new Promise(resolve => setTimeout(resolve, 600));
+                const slowOperation = () => new Promise(resolve => {
+                    const timer = setTimeout(resolve, 600);
+                    timer.unref(); // Prevent hanging the process
+                });
                 await performanceMonitor.trackOperation('slow_operation', slowOperation);
             }
 
             // Allow time for analysis
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => {
+                const timer = setTimeout(resolve, 1000);
+                timer.unref(); // Prevent hanging the process
+            });
 
             // Should detect degradation (operations > 500ms threshold)
             expect(degradationDetected).toBe(true);

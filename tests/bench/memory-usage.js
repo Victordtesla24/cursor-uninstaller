@@ -34,7 +34,7 @@ class MemoryUsageBenchmark {
   async simulateBaseVSCode() {
     // Simulate base VS Code memory usage
     console.log('📊 Measuring baseline VS Code memory usage...');
-    
+
     // Simulate loading basic extensions and workspace
     const mockExtensions = [];
     for (let i = 0; i < 10; i++) {
@@ -43,28 +43,31 @@ class MemoryUsageBenchmark {
         data: Buffer.alloc(1024 * 1024) // 1MB per extension
       });
     }
-    
+
     // Force garbage collection if available
     if (global.gc) global.gc();
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
+    await new Promise(resolve => {
+      const timer = setTimeout(resolve, 1000);
+      timer.unref(); // Prevent hanging the process
+    });
+
     this.baselineMemory = this.getMemoryUsage();
     console.log(`✅ Baseline memory: ${this.formatMemory(this.baselineMemory.heapUsed)}`);
-    
+
     return this.baselineMemory;
   }
 
   async simulateAIController() {
     console.log('🤖 Simulating AI Controller initialization...');
-    
+
     // Simulate AI controller with caches
     const aiController = {
       contextCache: new Map(),
       resultCache: new Map(),
       modelConfigs: {}
     };
-    
+
     // Populate caches with realistic data
     for (let i = 0; i < 100; i++) {
       aiController.contextCache.set(`context-${i}`, {
@@ -73,7 +76,7 @@ class MemoryUsageBenchmark {
         metadata: { timestamp: Date.now(), language: 'javascript' }
       });
     }
-    
+
     for (let i = 0; i < 50; i++) {
       aiController.resultCache.set(`result-${i}`, {
         completion: 'y'.repeat(500), // 500B completion
@@ -81,10 +84,10 @@ class MemoryUsageBenchmark {
         tokens: 150
       });
     }
-    
+
     const aiMemory = this.getMemoryUsage();
     const overhead = aiMemory.heapUsed - this.baselineMemory.heapUsed;
-    
+
     this.results.push({
       component: 'AI Controller',
       memory: aiMemory,
@@ -92,15 +95,15 @@ class MemoryUsageBenchmark {
       overheadFormatted: this.formatMemory(overhead),
       targetMet: overhead <= (100 * 1024 * 1024) // 100MB target for AI controller
     });
-    
+
     console.log(`   Memory: ${this.formatMemory(aiMemory.heapUsed)} (+${this.formatMemory(overhead)})`);
-    
+
     return aiController;
   }
 
   async simulateShadowWorkspace() {
     console.log('👥 Simulating Shadow Workspace...');
-    
+
     // Simulate hidden VS Code instance
     const shadowWorkspace = {
       hiddenEditor: {
@@ -110,7 +113,7 @@ class MemoryUsageBenchmark {
       },
       tempFiles: new Map()
     };
-    
+
     // Simulate file models in shadow workspace
     for (let i = 0; i < 20; i++) {
       const fileContent = 'console.log("test");'.repeat(100); // ~2KB per file
@@ -121,7 +124,7 @@ class MemoryUsageBenchmark {
         diagnostics: []
       });
     }
-    
+
     // Simulate LSP diagnostics
     for (let i = 0; i < 50; i++) {
       shadowWorkspace.hiddenEditor.diagnostics.set(`diag-${i}`, {
@@ -130,11 +133,11 @@ class MemoryUsageBenchmark {
         range: { start: { line: 1, character: 0 }, end: { line: 1, character: 10 } }
       });
     }
-    
+
     const shadowMemory = this.getMemoryUsage();
     const aiControllerMemory = this.results[0].memory.heapUsed;
     const shadowOverhead = shadowMemory.heapUsed - aiControllerMemory;
-    
+
     this.results.push({
       component: 'Shadow Workspace',
       memory: shadowMemory,
@@ -142,18 +145,18 @@ class MemoryUsageBenchmark {
       overheadFormatted: this.formatMemory(shadowOverhead),
       targetMet: shadowOverhead <= (200 * 1024 * 1024) // 200MB target for shadow workspace
     });
-    
+
     console.log(`   Memory: ${this.formatMemory(shadowMemory.heapUsed)} (+${this.formatMemory(shadowOverhead)})`);
-    
+
     return shadowWorkspace;
   }
 
   async simulateLanguageAdapters() {
     console.log('🌐 Simulating Language Adapters...');
-    
+
     const adapters = {};
     const languages = ['javascript', 'python', 'shell', 'typescript'];
-    
+
     // Simulate each language adapter
     languages.forEach(lang => {
       adapters[lang] = {
@@ -162,7 +165,7 @@ class MemoryUsageBenchmark {
         rules: new Array(50).fill({ rule: 'mock-rule', config: {} }),
         diagnosticsParser: { patterns: [], handlers: [] }
       };
-      
+
       // Add some cached context for each adapter
       for (let i = 0; i < 20; i++) {
         adapters[lang].contextCache.set(`${lang}-context-${i}`, {
@@ -172,11 +175,11 @@ class MemoryUsageBenchmark {
         });
       }
     });
-    
+
     const adaptersMemory = this.getMemoryUsage();
     const shadowMemory = this.results[1].memory.heapUsed;
     const adaptersOverhead = adaptersMemory.heapUsed - shadowMemory;
-    
+
     this.results.push({
       component: 'Language Adapters',
       memory: adaptersMemory,
@@ -184,18 +187,18 @@ class MemoryUsageBenchmark {
       overheadFormatted: this.formatMemory(adaptersOverhead),
       targetMet: adaptersOverhead <= (50 * 1024 * 1024) // 50MB target for all adapters
     });
-    
+
     console.log(`   Memory: ${this.formatMemory(adaptersMemory.heapUsed)} (+${this.formatMemory(adaptersOverhead)})`);
-    
+
     return adapters;
   }
 
   async simulateMemoryLeak() {
     console.log('🔍 Testing for memory leaks...');
-    
+
     const initialMemory = this.getMemoryUsage();
     const leakTest = [];
-    
+
     // Simulate 100 AI completion cycles
     for (let cycle = 0; cycle < 100; cycle++) {
       // Simulate completion request processing
@@ -204,9 +207,9 @@ class MemoryUsageBenchmark {
         completion: 'y'.repeat(500),
         metadata: { timestamp: Date.now(), cycle }
       };
-      
+
       leakTest.push(requestData);
-      
+
       // Take memory snapshot every 10 cycles
       if (cycle % 10 === 0) {
         const snapshot = this.getMemoryUsage();
@@ -216,21 +219,27 @@ class MemoryUsageBenchmark {
           growth: snapshot.heapUsed - initialMemory.heapUsed
         });
       }
-      
+
       // Simulate some processing delay
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 10);
+        timer.unref(); // Prevent hanging the process
+      });
     }
-    
+
     // Force garbage collection
     if (global.gc) global.gc();
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise(resolve => {
+      const timer = setTimeout(resolve, 1000);
+      timer.unref(); // Prevent hanging the process
+    });
+
     const finalMemory = this.getMemoryUsage();
     const memoryGrowth = finalMemory.heapUsed - initialMemory.heapUsed;
     const growthPercentage = (memoryGrowth / initialMemory.heapUsed) * 100;
-    
+
     const hasMemoryLeak = growthPercentage > 10; // >10% growth indicates potential leak
-    
+
     this.results.push({
       component: 'Memory Leak Test',
       memory: finalMemory,
@@ -240,41 +249,41 @@ class MemoryUsageBenchmark {
       hasLeak: hasMemoryLeak,
       targetMet: !hasMemoryLeak
     });
-    
+
     console.log(`   Growth: ${this.formatMemory(memoryGrowth)} (${growthPercentage.toFixed(1)}%)`);
     console.log(`   Leak detected: ${hasMemoryLeak ? '❌ YES' : '✅ NO'}`);
-    
+
     return { hasMemoryLeak, memoryGrowth, growthPercentage };
   }
 
   async runBenchmark() {
     console.log('🚀 Starting Memory Usage Benchmark...\n');
-    
+
     const startTime = performance.now();
-    
+
     try {
       // 1. Establish baseline
       await this.simulateBaseVSCode();
-      
+
       // 2. Test AI Controller memory usage
       await this.simulateAIController();
-      
+
       // 3. Test Shadow Workspace memory usage
       await this.simulateShadowWorkspace();
-      
+
       // 4. Test Language Adapters memory usage
       await this.simulateLanguageAdapters();
-      
+
       // 5. Test for memory leaks
       await this.simulateMemoryLeak();
-      
+
       const totalTime = performance.now() - startTime;
-      
+
       console.log('\n📈 Memory Benchmark Results Summary:');
       console.log('=====================================');
-      
+
       await this.generateReport(totalTime);
-      
+
       return this.results;
     } catch (error) {
       console.error('❌ Memory benchmark failed:', error.message);
@@ -286,12 +295,12 @@ class MemoryUsageBenchmark {
     const totalOverhead = this.results
       .filter(r => r.component !== 'Memory Leak Test')
       .reduce((sum, r) => sum + r.overhead, 0);
-    
+
     const finalMemory = this.results[this.results.length - 1].memory;
     const meetsOverheadTarget = totalOverhead <= this.targetOverhead;
-    
+
     const componentsWithIssues = this.results.filter(r => !r.targetMet);
-    
+
     const report = {
       timestamp: new Date().toISOString(),
       baseline: {
@@ -317,12 +326,12 @@ class MemoryUsageBenchmark {
       },
       benchmarkDuration: Math.round(totalTime)
     };
-    
+
     // Console output
     console.log(`📊 Baseline Memory: ${this.formatMemory(this.baselineMemory.heapUsed)}`);
     console.log(`📈 Final Memory: ${this.formatMemory(finalMemory.heapUsed)}`);
     console.log(`⬆️  Total Overhead: ${this.formatMemory(totalOverhead)} (target: ${this.formatMemory(this.targetOverhead)})`);
-    
+
     console.log('\n📋 Component Breakdown:');
     this.results.forEach(result => {
       const status = result.targetMet ? '✅' : '❌';
@@ -331,28 +340,28 @@ class MemoryUsageBenchmark {
         console.log(`      Memory leak: ${result.hasLeak ? '❌ Detected' : '✅ None'}`);
       }
     });
-    
+
     if (componentsWithIssues.length > 0) {
       console.log('\n⚠️  Components exceeding targets:');
       componentsWithIssues.forEach(component => {
         console.log(`   - ${component.component}: ${component.overheadFormatted}`);
       });
     }
-    
+
     // Save detailed report
     await fs.writeFile(
       path.join(__dirname, 'memory-usage-report.json'),
       JSON.stringify(report, null, 2)
     );
-    
+
     console.log(`\n💾 Detailed report saved to: memory-usage-report.json`);
-    
+
     if (report.summary.overallPass) {
       console.log('\n🎉 MEMORY BENCHMARK PASSED - All targets met!');
     } else {
       console.log('\n⚠️  MEMORY BENCHMARK FAILED - Some targets exceeded');
     }
-    
+
     return report;
   }
 }
@@ -363,12 +372,12 @@ async function main() {
     const benchmark = new MemoryUsageBenchmark();
     try {
       await benchmark.runBenchmark();
-      
+
       // Exit with appropriate code
       const report = JSON.parse(
         await fs.readFile(path.join(__dirname, 'memory-usage-report.json'))
       );
-      
+
       process.exit(report.summary.overallPass ? 0 : 1);
     } catch (error) {
       console.error('❌ Memory benchmark failed:', error.message);

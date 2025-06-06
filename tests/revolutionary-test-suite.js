@@ -72,16 +72,15 @@ describe('Revolutionary Cursor AI Test Suite', () => {
     });
 
     afterAll(async () => {
-        // Cleanup revolutionary components
-        await Promise.all([
-            aiController.shutdown(),
-            modelOrchestrator.shutdown(),
-            contextManager.shutdown(),
-            revolutionaryCache.shutdown()
-        ]);
+        // Cleanup revolutionary components sequentially
+        if (aiController) await aiController.shutdown();
+        if (modelOrchestrator) await modelOrchestrator.shutdown();
+        if (contextManager) await contextManager.shutdown();
+        if (revolutionaryCache) await revolutionaryCache.shutdown();
 
         // Cleanup after tests
         console.log('✅ Revolutionary Test Suite Complete');
+        jest.clearAllTimers();
     });
 
     describe('Revolutionary Performance Targets', () => {

@@ -12,6 +12,7 @@ declare -g GREEN='\033[0;32m'
 declare -g YELLOW='\033[1;33m'
 declare -g BLUE='\033[0;34m'
 declare -g PURPLE='\033[0;35m'
+export PURPLE  # Export for external use
 declare -g CYAN='\033[0;36m'
 declare -g WHITE='\033[1;37m'
 declare -g NC='\033[0m' # No Color
@@ -32,16 +33,16 @@ show_progress() {
     
     for ((i=0; i<width; i++)); do
         if ((i < filled)); then
-            printf "${GREEN}█${NC}"
+            printf "%s█%s" "$GREEN" "$NC"
         else
-            printf "${DIM}░${NC}"
+            printf "%s░%s" "$DIM" "$NC"
         fi
     done
     
     printf "] ${BOLD}%d%%${NC}" "$percentage"
     
     if ((current >= total)); then
-        printf " ${GREEN}✓${NC}\n"
+        printf " %s✓%s\n" "$GREEN" "$NC"
     fi
 }
 
@@ -49,15 +50,15 @@ show_progress() {
 display_system() {
     local system_info="$1"
     
-    printf "${BOLD}${BLUE}System Information${NC}\n"
-    printf "${BLUE}==================${NC}\n"
+    printf "%s%sSystem Information%s\n" "$BOLD" "$BLUE" "$NC"
+    printf "%s==================%s\n" "$BLUE" "$NC"
     
     if [[ -f "$system_info" ]]; then
         while IFS= read -r line; do
             printf "${CYAN}%s${NC}\n" "$line"
         done < "$system_info"
     else
-        printf "${RED}System information file not found${NC}\n"
+        printf "%sSystem information file not found%s\n" "$RED" "$NC"
     fi
     
     echo
@@ -120,32 +121,32 @@ draw_box() {
     local padding=$(((width - title_len - 2) / 2))
     
     # Top border
-    printf "${BLUE}╭"
+    printf "%s╭" "$BLUE"
     for ((i=0; i<width-2; i++)); do printf "─"; done
-    printf "╮${NC}\n"
+    printf "╮%s\n" "$NC"
     
     # Title line
-    printf "${BLUE}│${NC}"
+    printf "%s│%s" "$BLUE" "$NC"
     for ((i=0; i<padding; i++)); do printf " "; done
-    printf "${BOLD}%s${NC}" "$title"
+    printf "%s%s%s" "$BOLD" "$title" "$NC"
     for ((i=0; i<width-title_len-padding-2; i++)); do printf " "; done
-    printf "${BLUE}│${NC}\n"
+    printf "%s│%s\n" "$BLUE" "$NC"
     
     # Separator
-    printf "${BLUE}├"
+    printf "%s├" "$BLUE"
     for ((i=0; i<width-2; i++)); do printf "─"; done
-    printf "┤${NC}\n"
+    printf "┤%s\n" "$NC"
     
     # Content lines
     IFS=$'\n' read -d '' -ra lines <<< "$content" || true
     for line in "${lines[@]}"; do
-        printf "${BLUE}│${NC} %-$((width-4))s ${BLUE}│${NC}\n" "$line"
+        printf "%s│%s %-$((width-4))s %s│%s\n" "$BLUE" "$NC" "$line" "$BLUE" "$NC"
     done
     
     # Bottom border
-    printf "${BLUE}╰"
+    printf "%s╰" "$BLUE"
     for ((i=0; i<width-2; i++)); do printf "─"; done
-    printf "╯${NC}\n"
+    printf "╯%s\n" "$NC"
 }
 
 # Spinner animation
@@ -153,7 +154,8 @@ show_spinner() {
     local message="$1"
     local pid="${2:-$$}"
     local delay=0.1
-    local spinstr='|/-\'
+    # shellcheck disable=SC1003
+    local spinstr='|/-\\'
     
     printf "${CYAN}%s${NC} " "$message"
     
@@ -165,7 +167,7 @@ show_spinner() {
         printf "\b\b\b"
     done
     
-    printf "${GREEN}[✓]${NC}\n"
+    printf "%s[✓]%s\n" "$GREEN" "$NC"
 }
 
 # Menu functions
@@ -175,10 +177,10 @@ show_menu() {
     local options=("$@")
     
     echo
-    printf "${BOLD}${BLUE}%s${NC}\n" "$title"
-    printf "${BLUE}"
+    printf "%s%s%s%s\n" "$BOLD" "$BLUE" "$title" "$NC"
+    printf "%s" "$BLUE"
     for ((i=0; i<${#title}; i++)); do printf "="; done
-    printf "${NC}\n"
+    printf "%s\n" "$NC"
     
     for i in "${!options[@]}"; do
         printf "${CYAN}%2d)${NC} %s\n" $((i+1)) "${options[i]}"
