@@ -143,13 +143,23 @@ describe('AI System Integration', () => {
 
   describe('Model Selection', () => {
     test('should select fast model for simple requests', async () => {
+      // Clear cache to ensure fresh results
+      aiSystem.clearCaches();
+      
       const request = {
         code: 'let x',
         language: 'javascript',
         position: { line: 0, character: 5 }
       };
 
+      // Disable caching for this request to force fresh results
+      const originalCaching = aiSystem.controller.config.revolutionary.unlimitedCaching;
+      aiSystem.controller.config.revolutionary.unlimitedCaching = false;
+
       const result = await aiSystem.requestCompletion(request);
+
+      // Restore caching
+      aiSystem.controller.config.revolutionary.unlimitedCaching = originalCaching;
 
       // Simple requests should use fast models
       expect(['o3', 'claude-3.7-sonnet-thinking', 'claude-4-sonnet-thinking']).toContain(result.metadata.model);

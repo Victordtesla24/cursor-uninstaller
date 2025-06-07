@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-06-07T05:33:05Z",
-  "local_timestamp": "2025-06-07 15:33:05",
+  "timestamp": "2025-06-07T06:22:09Z",
+  "local_timestamp": "2025-06-07 16:22:09",
   "disclaimer": "Real system data only - no simulated metrics",
   "health_score": 70,
   "cursor": {
@@ -37,13 +37,13 @@
   "optimization": {
     "settings_optimized": false,
     "keybindings_optimized": false,
-    "cursorignore_patterns": 147,
+    "cursorignore_patterns": 146,
     "settings_has_ai_config": true
   },
   "validation": {
     "all_files_real": true,
     "no_fake_metrics": true,
     "production_ready": true,
-    "last_check": "2025-06-07 15:33:05"
+    "last_check": "2025-06-07 16:22:09"
   }
 }

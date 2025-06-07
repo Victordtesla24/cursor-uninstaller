@@ -11,10 +11,10 @@ const { LanguageAdapterFramework } = require('../../lib/lang');
 const { ShadowWorkspace } = require('../../lib/shadow');
 const { PerformanceMonitoringSystem } = require('../../modules/performance');
 const { UISystem } = require('../../lib/ui');
-const { AIController } = require('../../lib/ai');
-const ModelSelector = require('../../lib/ai/model-selector');
-const ContextManager = require('../../lib/ai/context-manager');
-const ResultCache = require('../../lib/cache/result-cache');
+const { AISystem } = require('../../lib/ai');
+const { ModelSelector } = require('../../lib/ai/model-selector');
+const { ContextManager } = require('../../lib/ai/context-manager');
+const { ResultCache } = require('../../lib/cache/result-cache');
 
 describe('AI System V2.0.0 Integration Tests', () => {
     let languageFramework;
@@ -82,7 +82,7 @@ describe('AI System V2.0.0 Integration Tests', () => {
         });
 
         // Initialize AI controller with all dependencies
-        aiController = new AIController({
+        aiController = new AISystem({
             performanceMonitor,
             cache,
             languageFramework
