@@ -88,15 +88,10 @@
           "list_directory",
           "create_directory"
         ]
-      },
-      "git": {
-        "status": "operational",
-        "toolsEnabled": 0,
-        "tools": []
       }
     },
     "totalToolsEnabled": 9,
-    "lastValidated": "2025-06-07T12:06:59.687Z"
+    "lastValidated": "2025-06-07T13:35:12.308Z"
   },
   "systemHealth": {
     "overall": "excellent",

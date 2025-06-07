@@ -199,11 +199,6 @@ apply_revolutionary_optimizations() {
               $workspace_root
             ],
             "env": {}
-          },
-          "git": {
-            "command": "npx",
-            "args": ["@modelcontextprotocol/server-git"],
-            "env": {}
           }
         }
       }')
