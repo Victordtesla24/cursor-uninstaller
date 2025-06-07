@@ -6,7 +6,7 @@
  */
 
 const { describe, test, expect, beforeEach } = require('@jest/globals');
-const { SixModelOrchestrator } = require('../../lib/ai/6-model-orchestrator');
+const SixModelOrchestrator = require('../../lib/ai/6-model-orchestrator');
 
 describe('6-Model Orchestrator - Model Selection', () => {
     let orchestrator;
