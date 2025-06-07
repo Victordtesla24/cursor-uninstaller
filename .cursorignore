@@ -42,7 +42,6 @@ temp/
 Thumbs.db
 *.swp
 *.swo
-*~
 .fuse_hidden*
 
 # Generated Files
