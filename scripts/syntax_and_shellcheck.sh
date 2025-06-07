@@ -115,12 +115,12 @@ discover_files() {
         [[ -f "$file" && -r "$file" ]] && SHELL_SCRIPTS+=("$file")
     done < <(find . "${prune_args[@]}" -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.zsh" -o -name "*.ksh" \) -print0)
 
-    # Find executable files with shebang
+    # Find executable files with shebang - Fixed permission syntax
     while IFS= read -r -d '' file; do
         if [[ -f "$file" && -r "$file" ]] && head -n1 "$file" 2>/dev/null | grep -qE '^#!/.*(bash|sh|zsh|ksh)'; then
             SHELL_SCRIPTS+=("$file")
         fi
-    done < <(find . "${prune_args[@]}" -type f -perm /u=x -print0)
+    done < <(find . "${prune_args[@]}" -type f -perm +111 -print0)
 
     # Find JavaScript files
     log_info "Scanning for JavaScript files..."

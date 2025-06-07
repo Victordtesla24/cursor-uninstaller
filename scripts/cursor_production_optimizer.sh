@@ -277,7 +277,8 @@ comprehensive_validation() {
     print_info "Validating MCP Configuration Format..."
     if jq -e '.mcpServers | type == "object"' "$mcp_config_path" >/dev/null 2>&1; then
         print_success "MCP Configuration Format VALIDATED."
-        local server_count=$(jq '.mcpServers | length' "$mcp_config_path")
+        local server_count
+        server_count=$(jq '.mcpServers | length' "$mcp_config_path")
         print_info "Configured MCP Servers: $server_count"
     else
         TESTS_FAILED=true
@@ -491,7 +492,7 @@ generate_html_report() {
 main() {
     log_file="/tmp/cursor_optimizer_log.ansi"
     # Ensure log is clean before starting
-    >"$log_file"
+    true >"$log_file"
     local status_file_tests
     status_file_tests=$(mktemp)
     local status_file_vulns

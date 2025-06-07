@@ -20,7 +20,6 @@ NC='\033[0m'
 # Configuration paths (based on successful installation from verified optimization script)
 # Using the correct Cursor paths that match the real optimization features
 CURSOR_USER_CONFIG="$HOME/Library/Application Support/Cursor/User"
-CURSOR_CONFIG_DIR="$HOME/.cursor"
 
 print_header() {
     echo ""
