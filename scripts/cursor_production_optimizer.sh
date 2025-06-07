@@ -306,6 +306,27 @@ comprehensive_validation() {
         print_error "Unlimited Context processing validation FAILED."
     fi
     
+    # Test Performance Optimizer
+    print_info "Validating Performance Optimization system..."
+    if node -e "
+        const PerformanceOptimizer = require('./lib/ai/performance-optimizer.js');
+        const optimizer = new PerformanceOptimizer({ performanceMonitoring: false });
+        if (optimizer && typeof optimizer.optimizeConversation === 'function') {
+            console.log('Performance Optimizer: OPERATIONAL');
+            const metrics = optimizer.getMetrics();
+            console.log('Performance Score:', metrics.performanceScore + '%');
+            process.exit(0);
+        } else {
+            console.error('Performance optimizer validation failed');
+            process.exit(1);
+        }
+    " 2>/dev/null; then
+        print_success "Performance Optimization system VALIDATED."
+    else
+        TESTS_FAILED=true
+        print_error "Performance Optimization system validation FAILED."
+    fi
+    
     # Run basic system tests if they exist
     print_info "Running additional system tests..."
     if [[ -f "package.json" ]] && npm run test >/dev/null 2>&1; then
@@ -338,6 +359,7 @@ display_summary() {
         print_success "  → Claude-3.7-Sonnet Thinking: READY"
         print_success "  → Unlimited Context Processing: ENABLED"
         print_success "  → Revolutionary Caching: ENABLED"
+        print_success "  → Performance Optimization: ENABLED"
         print_success "  → Thinking Modes: ENABLED"
         print_success "  → Security Audit: CLEAN"
         echo ""

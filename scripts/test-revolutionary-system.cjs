@@ -169,12 +169,39 @@ async function testComponents() {
             if (typeof controller.executeInstruction !== 'function') {
                 throw new Error('Controller missing executeInstruction method');
             }
+            if (!controller.performanceOptimizer) {
+                throw new Error('Controller missing performance optimizer');
+            }
         } catch (loadError) {
             throw new Error(`Module loading failed: ${loadError.message}`);
         }
     });
 
-    // Test 8: Production Optimizer Script
+    // Test 8: Performance Optimizer
+    test('Performance Optimizer', () => {
+        if (!fs.existsSync('./lib/ai/performance-optimizer.js')) {
+            throw new Error('Performance optimizer file not found');
+        }
+        try {
+            delete require.cache[require.resolve('../lib/ai/performance-optimizer.js')];
+            const PerformanceOptimizer = require('../lib/ai/performance-optimizer.js');
+            const optimizer = new PerformanceOptimizer({ performanceMonitoring: false });
+            if (!optimizer) throw new Error('Performance optimizer initialization failed');
+            if (typeof optimizer.optimizeConversation !== 'function') {
+                throw new Error('Performance optimizer missing optimizeConversation method');
+            }
+            if (typeof optimizer.optimizeLargeFileProcessing !== 'function') {
+                throw new Error('Performance optimizer missing optimizeLargeFileProcessing method');
+            }
+            if (typeof optimizer.optimizeMemoryUsage !== 'function') {
+                throw new Error('Performance optimizer missing optimizeMemoryUsage method');
+            }
+        } catch (loadError) {
+            throw new Error(`Module loading failed: ${loadError.message}`);
+        }
+    });
+
+    // Test 9: Production Optimizer Script
     test('Production Optimizer Script', () => {
         const script = fs.readFileSync('./scripts/cursor_production_optimizer.sh', 'utf8');
         if (!script.includes('Revolutionary deployment complete and validated.')) {
@@ -182,7 +209,7 @@ async function testComponents() {
         }
     });
 
-    // Test 9: Revolutionary Dashboard
+    // Test 10: Revolutionary Dashboard
     test('Revolutionary Dashboard', () => {
         const dashboard = fs.readFileSync('./scripts/dashboard.html', 'utf8');
         if (!dashboard.includes('REVOLUTIONARY CURSOR AI OPTIMIZATION LOG')) {
@@ -193,7 +220,7 @@ async function testComponents() {
         }
     });
 
-    // Test 10: Architecture Files Integration
+    // Test 11: Architecture Files Integration
     test('Architecture Files Integration', () => {
         const requiredFiles = [
             './lib/ai/revolutionary-controller.js',
@@ -225,6 +252,7 @@ async function testComponents() {
         console.log('   ✅ Advanced Thinking Modes');
         console.log('   ✅ Multimodal Understanding');
         console.log('   ✅ Revolutionary Caching System');
+        console.log('   ✅ Performance Optimization System');
         console.log('   ✅ Production-Grade Optimization');
         console.log('   ✅ Real-Time Dashboard Monitoring');
         console.log('\n💡 PERFORMANCE TARGETS ACHIEVED:');
