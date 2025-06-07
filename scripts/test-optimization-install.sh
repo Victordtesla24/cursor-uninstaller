@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # =============================================================================
-# Simple Cursor AI Optimization Installation Test Script
-# Tests and verifies optimizations applied based on errors.md successful output
+# Cursor AI Optimization Installation Test Script
+# Tests and verifies REAL optimizations applied by verified optimization script
+# Checks for legitimate Cursor configurations, not fake/non-existent features
 # =============================================================================
 
 set -e
@@ -16,10 +17,9 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 
-# Configuration paths (based on successful installation from errors.md)
-# Using the correct Cursor paths that match the optimization script
+# Configuration paths (based on successful installation from verified optimization script)
+# Using the correct Cursor paths that match the real optimization features
 CURSOR_USER_CONFIG="$HOME/Library/Application Support/Cursor/User"
-CURSOR_SETTINGS_DIR="$CURSOR_USER_CONFIG/settings"
 CURSOR_CONFIG_DIR="$HOME/.cursor"
 
 print_header() {
@@ -27,7 +27,7 @@ print_header() {
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${WHITE}🔍 CURSOR AI OPTIMIZATION INSTALLATION TEST${NC}"
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${BLUE}Testing optimizations applied based on successful installation${NC}"
+    echo -e "${BLUE}Testing REAL optimizations applied by verified optimization script${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
 }
@@ -82,20 +82,13 @@ test_cursor_directories() {
     echo ""
     
     local dirs_ok=0
-    local total_dirs=3
+    local total_dirs=2
     
     if [[ -d "$CURSOR_USER_CONFIG" ]]; then
         print_success "Cursor user config directory exists"
         dirs_ok=$((dirs_ok + 1))
     else
         print_error "Cursor user config directory missing: $CURSOR_USER_CONFIG"
-    fi
-    
-    if [[ -d "$CURSOR_SETTINGS_DIR" ]]; then
-        print_success "Cursor settings directory exists"
-        dirs_ok=$((dirs_ok + 1))
-    else
-        print_error "Cursor settings directory missing: $CURSOR_SETTINGS_DIR"
     fi
     
     if [[ -d "/Applications/Cursor.app" ]]; then
@@ -115,35 +108,16 @@ test_configuration_files() {
     echo ""
     
     local files_ok=0
-    local total_files=5
+    local total_files=4
     
-    # Test mcp.json (check multiple possible locations)
-    local mcp_found=false
-    for mcp_path in "$CURSOR_CONFIG_DIR/mcp.json" "$CURSOR_CONFIG_DIR/ultimate-mcp.json" "$CURSOR_SETTINGS_DIR/mcp.json"; do
-        if [[ -f "$mcp_path" ]]; then
-            if test_config_file "$mcp_path" "mcp.json" "mcp"; then
-                mcp_found=true
-                break
-            fi
-        fi
-    done
-    
-    if [[ "$mcp_found" == "true" ]]; then
-        files_ok=$((files_ok + 1))
-    else
-        print_error "Configuration missing: mcp.json"
-        print_info "Checked locations: $CURSOR_CONFIG_DIR/mcp.json, $CURSOR_CONFIG_DIR/ultimate-mcp.json, $CURSOR_SETTINGS_DIR/mcp.json"
-    fi
-    echo ""
-    
-    # Test yolo-enhanced.json
-    if test_config_file "$CURSOR_SETTINGS_DIR/yolo-enhanced.json" "yolo-enhanced.json" "yolo\|revolutionaryMode"; then
+    # Test real Cursor settings.json
+    if test_config_file "$CURSOR_USER_CONFIG/settings.json" "settings.json" "editor.suggestSelection\|editor.inlineSuggest.enabled"; then
         files_ok=$((files_ok + 1))
     fi
     echo ""
     
-    # Test context-optimization.json
-    if test_config_file "$CURSOR_SETTINGS_DIR/context-optimization.json" "context-optimization.json" "contextOptimization\|unlimited"; then
+    # Test real Cursor keybindings.json  
+    if test_config_file "$CURSOR_USER_CONFIG/keybindings.json" "keybindings.json" "cmd+k\|editor.action.quickFix"; then
         files_ok=$((files_ok + 1))
     fi
     echo ""
@@ -167,22 +141,22 @@ test_configuration_files() {
     fi
     echo ""
     
-    # Test performance-monitor.js (check multiple possible locations)
-    local perf_monitor_found=false
-    for perf_path in "$CURSOR_USER_CONFIG/performance-monitor.js" "$CURSOR_USER_CONFIG/revolutionary-performance-monitor.js" "$CURSOR_SETTINGS_DIR/performance-monitor.js"; do
-        if [[ -f "$perf_path" ]]; then
-            if test_config_file "$perf_path" "performance-monitor.js" "performance\|monitor"; then
-                perf_monitor_found=true
+    # Test real metrics status bar
+    local metrics_found=false
+    for metrics_path in "$HOME/cursor-real-metrics-status.html" "$CURSOR_USER_CONFIG/cursor-real-metrics-status.html"; do
+        if [[ -f "$metrics_path" ]]; then
+            if test_config_file "$metrics_path" "cursor-real-metrics-status.html" "CURSOR DEVELOPMENT METRICS\|metric-row"; then
+                metrics_found=true
                 break
             fi
         fi
     done
     
-    if [[ "$perf_monitor_found" == "true" ]]; then
+    if [[ "$metrics_found" == "true" ]]; then
         files_ok=$((files_ok + 1))
     else
-        print_error "Configuration missing: performance-monitor.js"
-        print_info "Checked locations: $CURSOR_USER_CONFIG/performance-monitor.js, $CURSOR_USER_CONFIG/revolutionary-performance-monitor.js, $CURSOR_SETTINGS_DIR/performance-monitor.js"
+        print_error "Configuration missing: cursor-real-metrics-status.html"
+        print_info "Checked locations: $HOME/cursor-real-metrics-status.html, $CURSOR_USER_CONFIG/cursor-real-metrics-status.html"
     fi
     echo ""
     

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # =============================================================================
-# Revolutionary Implementation Validation Script
-# Validates all 6-model enhancements and unlimited capabilities
+# Project Implementation Validation Script
+# Validates real project components and legitimate AI capabilities
 # =============================================================================
 
 set -e
@@ -20,9 +20,9 @@ NC='\033[0m'
 print_header() {
     echo ""
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}🔍 REVOLUTIONARY IMPLEMENTATION VALIDATION${NC}"
+    echo -e "${WHITE}🔍 PROJECT IMPLEMENTATION VALIDATION${NC}"
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${PURPLE}Validating 6-Model Architecture with Unlimited Capabilities${NC}"
+    echo -e "${BLUE}Validating Real Project Components and Existing AI Features${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
 }
@@ -43,7 +43,7 @@ print_error() {
     echo -e "${RED}[✗]${NC} $1"
 }
 
-validate_models_in_file() {
+validate_real_features_in_file() {
     local file="$1"
     local description="$2"
     
@@ -54,93 +54,94 @@ validate_models_in_file() {
     
     echo -e "${BLUE}Validating $description: $file${NC}"
     
-    # Define models with flexible matching patterns (handles both hyphenated and spaced versions)
-    local model_patterns=(
-        "claude-4-sonnet.*thinking|Claude-4-Sonnet.*Thinking"
-        "claude-4-opus.*thinking|Claude-4-Opus.*Thinking" 
-        "o3"
-        "gemini-2\.5-pro|Gemini-2\.5-Pro"
-        "gpt-4\.1|GPT-4\.1"
-        "claude-3\.7-sonnet.*thinking|Claude-3\.7-Sonnet.*Thinking"
+    # Check for legitimate project indicators
+    local real_features=(
+        "test|testing|spec"
+        "implementation|develop|code"
+        "javascript|typescript|js|node"
+        "performance|optimization|feature"
+        "project|application|system"
+        "documentation|requirements|design"
     )
     
-    local model_names=(
-        "Claude-4-Sonnet-Thinking"
-        "Claude-4-Opus-Thinking"
-        "o3"
-        "Gemini-2.5-Pro"
-        "GPT-4.1"
-        "Claude-3.7-Sonnet-Thinking"
+    local feature_names=(
+        "Testing References"
+        "Implementation Content"  
+        "Technology Stack"
+        "Performance/Features"
+        "Project Structure"
+        "Documentation Standards"
     )
     
     local found_count=0
     
-    for i in "${!model_patterns[@]}"; do
-        local pattern="${model_patterns[$i]}"
-        local name="${model_names[$i]}"
+    for i in "${!real_features[@]}"; do
+        local pattern="${real_features[$i]}"
+        local name="${feature_names[$i]}"
         
-        if grep -qE "$pattern" "$file"; then
-            print_success "Found model: $name"
+        if grep -qiE "$pattern" "$file"; then
+            print_success "Found feature: $name"
             found_count=$((found_count + 1))
         else
-            print_warning "Model not found: $name"
+            print_info "Not found: $name (pattern: $pattern)"
         fi
     done
     
-    if [[ $found_count -eq ${#model_patterns[@]} ]]; then
-        print_success "All 6 required models found in $description"
+    if [[ $found_count -ge 3 ]]; then
+        print_success "Real project features validated in $description ($found_count/6)"
         return 0
     else
-        print_warning "Only $found_count/6 models found in $description"
+        print_warning "Limited real features found in $description ($found_count/6)"
         return 1
     fi
 }
 
-validate_unlimited_capabilities() {
-    local file="$1"
-    local description="$2"
+validate_project_structure() {
+    echo -e "${BLUE}Validating project structure${NC}"
     
-    echo -e "${BLUE}Validating unlimited capabilities in $description${NC}"
-    
-    local unlimited_features=(
-        "unlimited"
-        "unlimitedContext"
-        "unlimitedProcessing"
-        "removeAllConstraints"
-        "noTokenLimitations"
-        "thinkingMode"
-        "multimodal"
+    local required_dirs=(
+        "lib"
+        "tests"
+        "scripts"
+        "docs"
     )
     
-    local found_count=0
+    local found_dirs=0
     
-    for feature in "${unlimited_features[@]}"; do
-        if grep -qi "$feature" "$file" 2>/dev/null; then
-            print_success "Found unlimited feature: $feature"
-            found_count=$((found_count + 1))
+    for dir in "${required_dirs[@]}"; do
+        if [[ -d "$dir" ]]; then
+            print_success "Directory exists: $dir"
+            found_dirs=$((found_dirs + 1))
+        else
+            print_warning "Directory missing: $dir"
         fi
     done
     
-    if [[ $found_count -ge 4 ]]; then
-        print_success "Unlimited capabilities validated in $description"
-        return 0
-    else
-        print_warning "Limited unlimited features found in $description ($found_count/7)"
-        return 1
-    fi
+    return $((${#required_dirs[@]} - found_dirs))
 }
 
-validate_performance_targets() {
-    local file="$1"
-    local description="$2"
+validate_package_configuration() {
+    echo -e "${BLUE}Validating package configuration${NC}"
     
-    echo -e "${BLUE}Validating performance targets in $description${NC}"
-    
-    if grep -q "200.*ms\|0\.2.*s\|98.*%" "$file" 2>/dev/null; then
-        print_success "Performance targets validated (≤200ms, ≥98% accuracy)"
+    if [[ -f "package.json" ]]; then
+        print_success "Package configuration found"
+        
+        # Check for real dependencies
+        if grep -q "jest\|test" package.json; then
+            print_success "Testing framework configured"
+        fi
+        
+        if grep -q "eslint" package.json; then
+            print_success "Linting configured"
+        fi
+        
+        if grep -q "scripts" package.json; then
+            print_success "NPM scripts configured"
+        fi
+        
         return 0
     else
-        print_warning "Performance targets not clearly specified"
+        print_error "package.json not found"
         return 1
     fi
 }
@@ -151,7 +152,25 @@ main() {
     local validation_count=0
     local total_validations=0
     
-    echo -e "${YELLOW}🔍 PHASE 1: DOCUMENTATION VALIDATION${NC}"
+    echo -e "${YELLOW}🔍 PHASE 1: PROJECT STRUCTURE VALIDATION${NC}"
+    echo ""
+    
+    if validate_project_structure; then
+        validation_count=$((validation_count + 1))
+    fi
+    total_validations=$((total_validations + 1))
+    echo ""
+    
+    echo -e "${YELLOW}🔍 PHASE 2: CONFIGURATION VALIDATION${NC}"
+    echo ""
+    
+    if validate_package_configuration; then
+        validation_count=$((validation_count + 1))
+    fi
+    total_validations=$((total_validations + 1))
+    echo ""
+    
+    echo -e "${YELLOW}🔍 PHASE 3: DOCUMENTATION VALIDATION${NC}"
     echo ""
     
     # Validate documentation files
@@ -166,82 +185,58 @@ main() {
         IFS=':' read -r doc_path doc_desc <<< "$doc_info"
         total_validations=$((total_validations + 1))
         
-        if validate_models_in_file "$doc_path" "$doc_desc"; then
+        if validate_real_features_in_file "$doc_path" "$doc_desc"; then
             validation_count=$((validation_count + 1))
         fi
-        
-        validate_unlimited_capabilities "$doc_path" "$doc_desc"
-        validate_performance_targets "$doc_path" "$doc_desc"
         echo ""
     done
     
-    echo -e "${YELLOW}🔍 PHASE 2: IMPLEMENTATION VALIDATION${NC}"
+    echo -e "${YELLOW}🔍 PHASE 4: IMPLEMENTATION VALIDATION${NC}"
     echo ""
     
-    # Validate implementation files
-    local implementations=(
-        "lib/ai/multi-model-orchestrator.js:6-Model Orchestrator"
-        "lib/ai/revolutionary-controller.js:Revolutionary AI Controller"
-        "lib/ai/unlimited-context-manager.js:Unlimited Context Manager"
-        "lib/cache/revolutionary-cache.js:Revolutionary Cache"
+    # Check for real implementation files
+    local lib_files=(
+        "lib/ai"
+        "lib/cache"
+        "lib/system"
+        "lib/tools"
     )
     
-    for impl_info in "${implementations[@]}"; do
-        IFS=':' read -r impl_path impl_desc <<< "$impl_info"
-        total_validations=$((total_validations + 1))
-        
-        if validate_models_in_file "$impl_path" "$impl_desc"; then
-            validation_count=$((validation_count + 1))
+    local impl_found=0
+    for lib_dir in "${lib_files[@]}"; do
+        if [[ -d "$lib_dir" ]]; then
+            print_success "Implementation directory exists: $lib_dir"
+            impl_found=$((impl_found + 1))
+        else
+            print_warning "Implementation directory missing: $lib_dir"
         fi
-        
-        validate_unlimited_capabilities "$impl_path" "$impl_desc"
-        echo ""
     done
     
-    echo -e "${YELLOW}🔍 PHASE 3: TEST SUITE VALIDATION${NC}"
-    echo ""
-    
-    # Validate test files
-    if validate_models_in_file "tests/revolutionary-test-suite.js" "Revolutionary Test Suite"; then
+    if [[ $impl_found -ge 2 ]]; then
         validation_count=$((validation_count + 1))
     fi
     total_validations=$((total_validations + 1))
-    
-    validate_unlimited_capabilities "tests/revolutionary-test-suite.js" "Revolutionary Test Suite"
     echo ""
     
-    echo -e "${YELLOW}🔍 PHASE 4: OPTIMIZATION SCRIPT VALIDATION${NC}"
+    echo -e "${YELLOW}🔍 PHASE 5: TEST SUITE VALIDATION${NC}"
     echo ""
     
-    # Validate optimization script
-    if validate_models_in_file "$HOME/Desktop/apply_cursor_optimizations.sh" "Cursor Optimization Script"; then
-        validation_count=$((validation_count + 1))
-    fi
-    total_validations=$((total_validations + 1))
-    
-    validate_unlimited_capabilities "$HOME/Desktop/apply_cursor_optimizations.sh" "Cursor Optimization Script"
-    echo ""
-    
-    echo -e "${YELLOW}🔍 PHASE 5: COMPONENT INTEGRATION VALIDATION${NC}"
-    echo ""
-    
-    # Check for integration between components
-    if [[ -f "lib/ai/revolutionary-controller.js" ]] && [[ -f "lib/ai/multi-model-orchestrator.js" ]]; then
-        if grep -q "SixModelOrchestrator\|MultiModelOrchestrator" "lib/ai/revolutionary-controller.js"; then
-            print_success "Controller-Orchestrator integration validated"
+    # Check for real test files
+    if [[ -d "tests" ]]; then
+        local test_count
+        test_count=$(find tests -name "*.js" -o -name "*.test.js" -o -name "*.spec.js" | wc -l)
+        if [[ $test_count -gt 0 ]]; then
+            print_success "Test files found: $test_count test files"
+            validation_count=$((validation_count + 1))
         else
-            print_warning "Controller-Orchestrator integration unclear"
+            print_warning "No test files found in tests directory"
         fi
-    fi
-    
-    # Validate package.json for dependencies
-    if [[ -f "package.json" ]] && grep -q "jest\|test" package.json; then
-        print_success "Test framework integration validated"
     else
-        print_warning "Test framework integration not clear"
+        print_error "Tests directory not found"
     fi
-    
+    total_validations=$((total_validations + 1))
     echo ""
+    
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${WHITE}📊 VALIDATION SUMMARY${NC}"
     echo -e "${CYAN}================================================================${NC}"
@@ -255,26 +250,18 @@ main() {
     echo ""
     
     if [[ $success_rate -ge 80 ]]; then
-        echo -e "${GREEN}✅ REVOLUTIONARY IMPLEMENTATION VALIDATED SUCCESSFULLY${NC}"
-        echo -e "${GREEN}🚀 6-Model Architecture with Unlimited Capabilities Ready${NC}"
+        echo -e "${GREEN}✅ PROJECT IMPLEMENTATION VALIDATED SUCCESSFULLY${NC}"
+        echo -e "${GREEN}🚀 Real project components and structure confirmed${NC}"
+        exit 0
     elif [[ $success_rate -ge 60 ]]; then
         echo -e "${YELLOW}⚠️  IMPLEMENTATION MOSTLY VALIDATED${NC}"
         echo -e "${YELLOW}🔧 Minor improvements may be needed${NC}"
+        exit 1
     else
         echo -e "${RED}❌ IMPLEMENTATION NEEDS SIGNIFICANT IMPROVEMENTS${NC}"
         echo -e "${RED}🔧 Please review and fix validation issues${NC}"
+        exit 2
     fi
-    
-    echo ""
-    echo -e "${PURPLE}🎯 REVOLUTIONARY FEATURES CONFIRMED:${NC}"
-    echo -e "${WHITE}• 6 Specified Models (Claude-4-Sonnet/Opus-Thinking, o3, Gemini-2.5-Pro, GPT-4.1, Claude-3.7-Sonnet-Thinking)${NC}"
-    echo -e "${WHITE}• Unlimited Context Processing (No Token Limitations)${NC}"
-    echo -e "${WHITE}• Advanced Thinking Modes for Complex Reasoning${NC}"
-    echo -e "${WHITE}• Multimodal Understanding and Visual Analysis${NC}"
-    echo -e "${WHITE}• Revolutionary Performance (≤200ms, ≥98% accuracy)${NC}"
-    echo -e "${WHITE}• Enhanced Cursor AI Precision and Code Completion${NC}"
-    echo ""
-    echo -e "${CYAN}================================================================${NC}"
 }
 
 # Execute validation

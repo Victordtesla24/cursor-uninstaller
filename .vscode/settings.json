@@ -1,34 +1,25 @@
 {
-    "cursor.ai.revolutionary": {
-        "enabled": true,
-        "models": {
-            "ultraFast": "o3",
-            "thinking": ["claude-4-sonnet-thinking", "claude-4-opus-thinking"],
-            "multimodal": "gemini-2.5-pro",
-            "enhanced": "gpt-4.1",
-            "rapid": "claude-3.7-sonnet-thinking"
-        },
-        "unlimited": {
-            "contextProcessing": true,
-            "fileSize": "unlimited",
-            "projectSize": "unlimited",
-            "tokenLimitations": "removed"
-        },
-        "revolutionary": {
-            "thinkingModes": true,
-            "multiModelOrchestration": true,
-            "unlimitedCaching": true,
-            "performanceOptimization": true
-        }
-    },
-    "typescript.preferences.includePackageJsonAutoImports": "on",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": "explicit"
-    },
-    "files.exclude": {
-        "**/node_modules": true,
-        "**/dist": true,
-        "**/.cache": true
-    }
-}
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": ["."],
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.preferences.includePackageJsonAutoImports": "on",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/coverage": true,
+    "**/.cache": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/coverage": true,
+    "**/.cache": true
+  },
+  "jest.jestCommandLine": "npm test",
+  "jest.rootPath": ".",
+  "terminal.integrated.env.osx": {
+    "NODE_ENV": "development"
+  }
+} 
