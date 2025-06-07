@@ -2,7 +2,6 @@
   "name": "cursor-uninstaller",
   "version": "1.0.0",
   "description": "Cursor uninstaller tool for macOS",
-  "type": "module",
   "main": "bin/uninstall_cursor.sh",
   "scripts": {
     "test": "jest --config=jest.config.js --testTimeout=30000",
@@ -25,7 +24,12 @@
     "dev": "nodemon --exec 'node --experimental-modules' --ext js,ts,json",
     "performance:monitor": "clinic doctor -- node tests/bench/performance-monitor.js",
     "cache:clear": "rm -rf .cache/revolutionary/* && echo 'Revolutionary cache cleared'",
-    "setup:complete": "npm run revolutionary:setup && npm run revolutionary:validate"
+    "setup:complete": "npm run revolutionary:setup && npm run revolutionary:validate",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "audit:check": "npm audit --audit-level=moderate",
+    "security:scan": "npm audit --json > security-audit.json",
+    "mcp:validate": "npx @modelcontextprotocol/server-filesystem --help"
   },
   "keywords": [
     "cursor",
@@ -40,7 +44,7 @@
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "autocannon": "^8.0.0",
-    "clinic": "^13.0.0",
+    "clinic": "^9.1.0",
     "eslint": "^9.28.0",
     "globals": "^16.2.0",
     "husky": "^9.1.7",
@@ -49,5 +53,8 @@
     "prettier": "^3.5.3",
     "pretty-format": "^29.7.0",
     "ts-jest": "^29.3.4"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server-filesystem": "^2025.3.28"
   }
 }

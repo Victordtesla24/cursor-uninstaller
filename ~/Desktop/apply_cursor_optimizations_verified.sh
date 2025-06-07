@@ -726,19 +726,15 @@ restart_cursor_if_needed() {
             print_info "Requesting Cursor to quit gracefully..."
             
             # Try multiple quit methods for reliability
-            local quit_successful="false"
-            
             # Method 1: AppleScript quit
             if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
                 print_info "✓ AppleScript quit command sent"
-                quit_successful="true"
             else
                 print_warning "AppleScript quit failed, trying alternative methods..."
                 
                 # Method 2: Send SIGTERM to process
                 if pkill -TERM "Cursor" 2>/dev/null; then
                     print_info "✓ SIGTERM sent to Cursor process"
-                    quit_successful="true"
                 else
                     print_warning "SIGTERM failed, will use force quit if needed"
                 fi

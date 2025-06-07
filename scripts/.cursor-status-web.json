@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-06-07T05:33:05Z",
+  "local_timestamp": "2025-06-07 15:33:05",
+  "disclaimer": "Real system data only - no simulated metrics",
+  "health_score": 70,
+  "cursor": {
+    "running": false,
+    "memory_mb": 0,
+    "cpu_percent": 0,
+    "app_installed": true,
+    "app_path": "/Applications/Cursor.app"
+  },
+  "configuration": {
+    "settings_exists": true,
+    "keybindings_exists": true,
+    "mcp_config_exists": true,
+    "cursorignore_exists": true,
+    "settings_size_bytes": 888,
+    "keybindings_size_bytes": 173
+  },
+  "mcp": {
+    "total_servers": 1,
+    "apidog_configured": false,
+    "filesystem_configured": true,
+    "config_file_size": 175
+  },
+  "system": {
+    "macos_version": "15.5",
+    "total_memory_gb": 8,
+    "cpu_cores": 8,
+    "cpu_brand": "Apple M3",
+    "node_version": "v22.14.0",
+    "node_path": "/Users/vicd/.nvm/versions/node/v22.14.0/bin/node",
+    "npm_available": true,
+    "internet_available": true
+  },
+  "optimization": {
+    "settings_optimized": false,
+    "keybindings_optimized": false,
+    "cursorignore_patterns": 147,
+    "settings_has_ai_config": true
+  },
+  "validation": {
+    "all_files_real": true,
+    "no_fake_metrics": true,
+    "production_ready": true,
+    "last_check": "2025-06-07 15:33:05"
+  }
+}

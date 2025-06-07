@@ -1,7 +1,7 @@
-# Cursor AI Optimization - File Exclusion for Better Context
-# Reduces noise and improves AI completion accuracy
+# Cursor AI Production Optimization - File Exclusion
+# Optimizes AI context by excluding non-essential files
 
-# Dependencies
+# Dependencies and Package Managers
 node_modules/
 __pycache__/
 .venv/
@@ -9,14 +9,20 @@ venv/
 env/
 target/
 vendor/
+.yarn/
+.pnpm-store/
+bower_components/
 
-# Build Output
+# Build Output and Distribution
 dist/
 build/
 out/
 .next/
 .nuxt/
 .output/
+.vercel/
+.netlify/
+public/build/
 
 # Cache and Temporary Files
 .cache/
@@ -25,14 +31,19 @@ out/
 .eslintcache
 .tsbuildinfo
 *.log
+*.log.*
 tmp/
 temp/
+.temp/
+.sass-cache/
 
-# System Files
+# System and OS Files
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+*~
+.fuse_hidden*
 
 # Generated Files
 *.min.js
@@ -40,27 +51,97 @@ Thumbs.db
 *.bundle.js
 *.chunk.js
 *.map
+*.d.ts.map
+*.generated.*
 
-# Testing and Coverage
+# Testing and Coverage Output
 coverage/
 .nyc_output/
 test-results/
+.coverage/
+htmlcov/
+.pytest_cache/
+__tests__/__snapshots__/
 
-# Environment Files
+# Environment and Configuration Secrets
 .env
 .env.*
+!.env.example
+.envrc
 
 # Version Control
 .git/
 .svn/
 .hg/
 
-# Media Files (reduce context noise)
+# IDE and Editor Files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.sublime-*
+.atom/
+
+# Large Media and Binary Files
 *.jpg
 *.jpeg
 *.png
 *.gif
+*.svg
+*.ico
+*.webp
 *.mp4
+*.avi
+*.mov
+*.wmv
 *.pdf
 *.zip
 *.tar.gz
+*.rar
+*.7z
+
+# Documentation Assets
+docs/assets/
+*.md.backup
+
+# Language-Specific Build Artifacts
+# Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+
+# Java
+*.class
+*.jar
+*.war
+
+# Rust
+Cargo.lock
+
+# Go
+go.sum
+
+# Production Optimization Exclusions
+# Exclude large log files but keep essential ones
+logs/performance/large-dataset-*.log
+logs/optimization/benchmark-*.json
+logs/revolutionary/stress-test-*.log
+
+# Exclude temporary optimization files
+.cursor-optimization-temp/
+.revolutionary-cache-temp/
+*.optimization.tmp
+
+# Keep essential AI architecture files for context
+# lib/ai/ - INCLUDE (needed for production)
+# lib/cache/ - INCLUDE (needed for production)  
+# lib/system/ - INCLUDE (needed for production)
+# scripts/ - INCLUDE (needed for production)

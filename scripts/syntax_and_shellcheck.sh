@@ -40,13 +40,25 @@ declare -a TS_ERRORS=()
 declare -a JSON_ERRORS=()
 
 # ------------------------------------------------------------------------------
-# Logging functions (no color codes)
+# ANSI Color Codes
 # ------------------------------------------------------------------------------
-log_header()   { printf "\n=== %s ===\n" "$1" >&2; }
-log_info()     { printf "INFO: %s\n" "$1" >&2; }
-log_success()  { printf "SUCCESS: %s\n" "$1" >&2; }
-log_warning()  { printf "WARNING: %s\n" "$1" >&2; }
-log_error()    { printf "ERROR: %s\n" "$1" >&2; }
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[0;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly WHITE='\033[1;37m'
+readonly RESET='\033[0m'
+
+# ------------------------------------------------------------------------------
+# Logging functions with ANSI colors
+# ------------------------------------------------------------------------------
+log_header()   { printf "\n${CYAN}=== %s ===${RESET}\n" "$1" >&2; }
+log_info()     { printf "${BLUE}INFO:${RESET} %s\n" "$1" >&2; }
+log_success()  { printf "${GREEN}SUCCESS:${RESET} %s\n" "$1" >&2; }
+log_warning()  { printf "${YELLOW}WARNING:${RESET} %s\n" "$1" >&2; }
+log_error()    { printf "${RED}ERROR:${RESET} %s\n" "$1" >&2; }
+log_debug()    { printf "${GRAY}DEBUG:${RESET} %s\n" "$1" >&2; }
 
 # ------------------------------------------------------------------------------
 # Check if a command exists
@@ -133,7 +145,7 @@ discover_files() {
         local uniq_shell=()
         while IFS= read -r -d '' item; do
             uniq_shell+=("$item")
-        done < <(printf '%s\0' "${SHELL_SCRIPTS[@]}" | sort -uz)
+        done < <(printf '\0' "${SHELL_SCRIPTS[@]}" | sort -uz)  
         SHELL_SCRIPTS=("${uniq_shell[@]}")
     fi
 
@@ -146,11 +158,11 @@ discover_files() {
 
     # Report discovery
     log_info "Discovery Results:"
-    printf "  • Shell scripts: %d\n" "$SHELL_FILES" >&2
-    printf "  • JavaScript files: %d\n" "$JS_FILES" >&2
-    printf "  • TypeScript files: %d\n" "$TS_FILES" >&2
-    printf "  • JSON files: %d\n" "$JSON_FILES" >&2
-    printf "  • Total files: %d\n" "$TOTAL_FILES" >&2
+    printf "  ${WHITE}•${RESET} Shell scripts: %d\n" "$SHELL_FILES" >&2
+    printf "  ${WHITE}•${RESET} JavaScript files: %d\n" "$JS_FILES" >&2
+    printf "  ${WHITE}•${RESET} TypeScript files: %d\n" "$TS_FILES" >&2
+    printf "  ${WHITE}•${RESET} JSON files: %d\n" "$JSON_FILES" >&2
+    printf "  ${WHITE}•${RESET} Total files: %d\n" "$TOTAL_FILES" >&2
 }
 
 # ------------------------------------------------------------------------------
@@ -174,7 +186,7 @@ validate_shell_scripts() {
     for script in "${SHELL_SCRIPTS[@]}"; do
         [[ ! -f "$script" ]] && continue
         processed=$((processed + 1))
-        printf "\rProcessing shell script %d/%d: %s" "$processed" "$SHELL_FILES" "$(basename "$script")" >&2
+        printf "\r${CYAN}Processing shell script %d/%d: ${WHITE}%s${RESET}" "$processed" "$SHELL_FILES" "$(basename "$script")" >&2
 
         local issues_in_file=0
         # Syntax check
@@ -236,7 +248,7 @@ validate_javascript_files() {
     for js in "${JAVASCRIPT_FILES[@]}"; do
         [[ ! -f "$js" ]] && continue
         processed=$((processed + 1))
-        printf "\rProcessing JS file %d/%d: %s" "$processed" "$JS_FILES" "$(basename "$js")" >&2
+        printf "\r${CYAN}Processing JS file %d/%d: %s${RESET}" "$processed" "$JS_FILES" "$(basename "$js")" >&2
 
         local issues_in_file=0
         # Syntax check
@@ -288,7 +300,7 @@ validate_typescript_files() {
     for ts in "${TYPESCRIPT_FILES[@]}"; do
         [[ ! -f "$ts" ]] && continue
         processed=$((processed + 1))
-        printf "\rProcessing TS file %d/%d: %s" "$processed" "$TS_FILES" "$(basename "$ts")" >&2
+        printf "\r${CYAN}Processing TS file %d/%d: %s${RESET}" "$processed" "$TS_FILES" "$(basename "$ts")" >&2
 
         if ! tsc --noEmit --skipLibCheck --strict "$ts" 2>/dev/null; then
             printf "\r%80s\r" "" >&2
@@ -332,7 +344,7 @@ validate_json_files() {
     for jf in "${JSON_FILES_LIST[@]}"; do
         [[ ! -f "$jf" ]] && continue
         processed=$((processed + 1))
-        printf "\rProcessing JSON file %d/%d: %s" "$processed" "$JSON_FILES" "$(basename "$jf")" >&2
+        printf "\r${CYAN}Processing JSON file %d/%d: %s${RESET}" "$processed" "$JSON_FILES" "$(basename "$jf")" >&2
 
         local exit_code=0
         case "$method" in
@@ -367,34 +379,31 @@ validate_json_files() {
 }
 
 # ------------------------------------------------------------------------------
-
-
-# ------------------------------------------------------------------------------
 # Show detailed errors if any
 # ------------------------------------------------------------------------------
 show_detailed_errors() {
     if [[ ${#SHELL_ERRORS[@]} -gt 0 ]]; then
         log_header "Detailed Shell Script Errors"
         for ((i=0; i<${#SHELL_ERRORS[@]}; i+=2)); do
-            printf "\nFile: %s\n  Issue: %s\n" "${SHELL_ERRORS[i]}" "${SHELL_ERRORS[i+1]}" >&2
+            printf "\n${WHITE}File:${RESET} %s\n  ${RED}Issue:${RESET} %s\n" "${SHELL_ERRORS[i]}" "${SHELL_ERRORS[i+1]}" >&2
         done
     fi
     if [[ ${#JS_ERRORS[@]} -gt 0 ]]; then
         log_header "Detailed JavaScript Errors"
         for ((i=0; i<${#JS_ERRORS[@]}; i+=2)); do
-            printf "\nFile: %s\n  Issue: %s\n" "${JS_ERRORS[i]}" "${JS_ERRORS[i+1]}" >&2
+            printf "\n${WHITE}File:${RESET} %s\n  ${RED}Issue:${RESET} %s\n" "${JS_ERRORS[i]}" "${JS_ERRORS[i+1]}" >&2
         done
     fi
     if [[ ${#TS_ERRORS[@]} -gt 0 ]]; then
         log_header "Detailed TypeScript Errors"
         for ((i=0; i<${#TS_ERRORS[@]}; i+=2)); do
-            printf "\nFile: %s\n  Issue: %s\n" "${TS_ERRORS[i]}" "${TS_ERRORS[i+1]}" >&2
+            printf "\n${WHITE}File:${RESET} %s\n  ${RED}Issue:${RESET} %s\n" "${TS_ERRORS[i]}" "${TS_ERRORS[i+1]}" >&2
         done
     fi
     if [[ ${#JSON_ERRORS[@]} -gt 0 ]]; then
         log_header "Detailed JSON Errors"
         for ((i=0; i<${#JSON_ERRORS[@]}; i+=2)); do
-            printf "\nFile: %s\n  Issue: %s\n" "${JSON_ERRORS[i]}" "${JSON_ERRORS[i+1]}" >&2
+            printf "\n${WHITE}File:${RESET} %s\n  ${RED}Issue:${RESET} %s\n" "${JSON_ERRORS[i]}" "${JSON_ERRORS[i+1]}" >&2
         done
     fi
 }
@@ -406,7 +415,7 @@ show_summary() {
     log_header "Validation Summary"
     TOTAL_ISSUES=$((SHELL_ISSUES + JS_ISSUES + TS_ISSUES + JSON_ISSUES))
 
-    printf "\nFile Statistics:\n" >&2
+    printf "\nFile Statistics:\n" "$WHITE" "$RESET" >&2
     printf "  • Shell scripts: %d (issues: %d)\n" "$SHELL_FILES" "$SHELL_ISSUES" >&2
     printf "  • JavaScript files: %d (issues: %d)\n" "$JS_FILES" "$JS_ISSUES" >&2
     printf "  • TypeScript files: %d (issues: %d)\n" "$TS_FILES" "$TS_ISSUES" >&2
@@ -417,10 +426,18 @@ show_summary() {
         show_detailed_errors
         printf "\n⚠️  ISSUES FOUND: %d across all files\n" "$TOTAL_ISSUES" >&2
         printf "Recommendations:\n" >&2
-        [[ $SHELL_ISSUES -gt 0 ]] && printf "  • Fix shell script issues using shellcheck\n" >&2
-        [[ $JS_ISSUES -gt 0 ]]    && printf "  • Fix JavaScript issues using eslint\n" >&2
-        [[ $TS_ISSUES -gt 0 ]]    && printf "  • Fix TypeScript compilation errors\n" >&2
-        [[ $JSON_ISSUES -gt 0 ]]  && printf "  • Fix JSON syntax errors\n" >&2
+        if [[ $SHELL_ISSUES -gt 0 ]]; then
+            printf "  • Fix shell script issues using shellcheck\n" >&2
+        fi
+        if [[ $JS_ISSUES -gt 0 ]]; then
+            printf "  • Fix JavaScript issues using eslint\n" >&2
+        fi
+        if [[ $TS_ISSUES -gt 0 ]]; then
+            printf "  • Fix TypeScript compilation errors\n" >&2
+        fi
+        if [[ $JSON_ISSUES -gt 0 ]]; then
+            printf "  • Fix JSON syntax errors\n" >&2
+        fi
         exit 1
     else
         printf "\n🎉 ALL VALIDATIONS PASSED! All %d files are valid.\n" "$TOTAL_FILES" >&2
@@ -433,33 +450,33 @@ show_summary() {
 # ------------------------------------------------------------------------------
 show_help() {
     cat << EOF
-Comprehensive Code Validation Tool v${SCRIPT_VERSION}
+${CYAN}Comprehensive Code Validation Tool v${SCRIPT_VERSION}${RESET}
 
-USAGE:
+${WHITE}USAGE:${RESET}
   $SCRIPT_NAME [OPTIONS]
 
-OPTIONS:
+${WHITE}OPTIONS:${RESET}
   -h, --help      Show help message
   --version       Show version
 
-DESCRIPTION:
+${WHITE}DESCRIPTION:${RESET}
   Validates code files with full transparency—no suppressed warnings or masked errors.
 
-  Shell Scripts (.sh, etc.):
+  ${YELLOW}Shell Scripts (.sh, etc.):${RESET}
     • Syntax check: bash -n
     • Lint: shellcheck (all severities)
 
-  JavaScript (.js, etc.):
+  ${YELLOW}JavaScript (.js, etc.):${RESET}
     • Syntax check: node --check
     • Lint: eslint
 
-  TypeScript (.ts, etc.):
+  ${YELLOW}TypeScript (.ts, etc.):${RESET}
     • Compilation check: tsc --noEmit --strict
 
-  JSON (.json, .jsonc):
+  ${YELLOW}JSON (.json, .jsonc):${RESET}
     • Validation: jq, node, or python3
 
-EXIT CODES:
+${WHITE}EXIT CODES:${RESET}
   0   All files passed
   1   One or more issues found
   2   Invalid arguments
@@ -477,7 +494,7 @@ parse_arguments() {
                 show_help; exit 0
                 ;;
             --version)
-                echo "Comprehensive Code Validation Tool v$SCRIPT_VERSION"; exit 0
+                echo "${CYAN}Comprehensive Code Validation Tool v$SCRIPT_VERSION${RESET}"; exit 0
                 ;;
             *)
                 log_error "Unknown argument: $1"
@@ -493,8 +510,8 @@ parse_arguments() {
 main() {
     printf "\n"
     printf "╔═════════════════════════════════════════════════════════════════════════╗\n"
-    printf "║     Comprehensive Code Validation Tool v%-22s   ║\n" "$SCRIPT_VERSION"
-    printf "║  Shell • JavaScript • TypeScript • JSON                                  ║\n"
+    printf "║             Comprehensive Code Validation Tool v%-22s  ║\n" "$SCRIPT_VERSION"
+    printf "║               Shell • JavaScript • TypeScript • JSON                    ║\n"
     printf "╚═════════════════════════════════════════════════════════════════════════╝\n"
     printf "\n"
 
