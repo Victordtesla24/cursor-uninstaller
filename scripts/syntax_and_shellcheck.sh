@@ -145,7 +145,7 @@ discover_files() {
         local uniq_shell=()
         while IFS= read -r -d '' item; do
             uniq_shell+=("$item")
-        done < <(printf '\0' "${SHELL_SCRIPTS[@]}" | sort -uz)  
+        done < <(printf '%s\0' "${SHELL_SCRIPTS[@]}" | sort -uz)
         SHELL_SCRIPTS=("${uniq_shell[@]}")
     fi
 
@@ -414,8 +414,7 @@ show_detailed_errors() {
 show_summary() {
     log_header "Validation Summary"
     TOTAL_ISSUES=$((SHELL_ISSUES + JS_ISSUES + TS_ISSUES + JSON_ISSUES))
-
-    printf "\nFile Statistics:\n" "$WHITE" "$RESET" >&2
+    printf "%sFile Statistics:%s\n" "$WHITE" "$RESET" >&2
     printf "  • Shell scripts: %d (issues: %d)\n" "$SHELL_FILES" "$SHELL_ISSUES" >&2
     printf "  • JavaScript files: %d (issues: %d)\n" "$JS_FILES" "$JS_ISSUES" >&2
     printf "  • TypeScript files: %d (issues: %d)\n" "$TS_FILES" "$TS_ISSUES" >&2
