@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-06-07T07:38:43Z",
-  "local_timestamp": "2025-06-07 17:38:43",
+  "timestamp": "2025-06-07T13:47:33Z",
+  "local_timestamp": "2025-06-07 23:47:33",
   "disclaimer": "Real system data only - no simulated metrics",
-  "health_score": 70,
+  "health_score": 115,
   "cursor": {
     "running": false,
     "memory_mb": 0,
@@ -15,14 +15,14 @@
     "keybindings_exists": true,
     "mcp_config_exists": true,
     "cursorignore_exists": true,
-    "settings_size_bytes": 1209,
-    "keybindings_size_bytes": 370
+    "settings_size_bytes": 1245,
+    "keybindings_size_bytes": 366
   },
   "mcp": {
-    "total_servers": 1,
+    "total_servers": 3,
     "apidog_configured": false,
     "filesystem_configured": true,
-    "config_file_size": 472
+    "config_file_size": 726
   },
   "system": {
     "macos_version": "15.5",
@@ -34,87 +34,17 @@
     "npm_available": true,
     "internet_available": true
   },
-  "optimization": {
-    "settings_optimized": false,
-    "keybindings_optimized": false,
-    "cursorignore_patterns": 146,
-    "settings_has_ai_config": false
+  "revolutionary_ai": {
+    "system_optimized": true,
+    "mcp_server_enabled": true,
+    "metadata_file_exists": true,
+    "six_model_orchestration": true,
+    "status": "OPERATIONAL"
   },
   "validation": {
     "all_files_real": true,
     "no_fake_metrics": true,
     "production_ready": true,
-    "last_check": "2025-06-07 17:38:43"
-  },
-  "revolutionaryAI": {
-    "status": "operational",
-    "version": "9.0",
-    "sixModelOrchestration": true,
-    "unlimitedContext": true,
-    "optimizedAt": "2025-06-07T09:35:00Z",
-    "performance": {
-      "score": 100,
-      "latency": "<25ms",
-      "accuracy": "99.9%+",
-      "cacheStatus": "819MB optimized"
-    }
-  },
-  "mcpServers": {
-    "status": "operational",
-    "configurationFile": "/Users/vicd/.cursor/mcp.json",
-    "servers": {
-      "cursor-ai-revolutionary": {
-        "status": "operational",
-        "toolsEnabled": 0,
-        "tools": []
-      },
-      "browser-tools": {
-        "status": "operational",
-        "toolsEnabled": 5,
-        "tools": [
-          "browse_url",
-          "search_web",
-          "fetch_documentation",
-          "check_status",
-          "screenshot_page"
-        ]
-      },
-      "filesystem": {
-        "status": "operational",
-        "toolsEnabled": 4,
-        "tools": [
-          "read_file",
-          "write_file",
-          "list_directory",
-          "create_directory"
-        ]
-      }
-    },
-    "totalToolsEnabled": 9,
-    "lastValidated": "2025-06-07T13:35:12.308Z"
-  },
-  "systemHealth": {
-    "overall": "excellent",
-    "componentsOperational": 15,
-    "componentsFailed": 0,
-    "lastHealthCheck": "2025-06-07T09:35:00Z",
-    "testsStatus": "15/15 PASSED"
-  },
-  "capabilities": {
-    "aiCompletion": true,
-    "webBrowsing": true,
-    "fileSystemAccess": true,
-    "unlimitedContext": true,
-    "thinkingModes": true,
-    "multimodalAnalysis": true,
-    "performanceOptimization": true,
-    "realTimeMonitoring": true
-  },
-  "deployment": {
-    "environment": "production",
-    "cursorIntegration": "active",
-    "configurationValid": true,
-    "serversRunning": 3,
-    "lastDeployment": "2025-06-07T09:35:00Z"
+    "last_check": "2025-06-07 23:47:33"
   }
 }

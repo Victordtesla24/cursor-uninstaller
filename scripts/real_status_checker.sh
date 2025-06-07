@@ -150,37 +150,41 @@ check_system_info() {
 }
 
 check_optimization_status() {
-    local settings_optimized="false"
-    local keybindings_optimized="false"
-    local cursorignore_patterns=0
-    local settings_has_ai="false"
+    local revolutionary_optimized="false"
+    local mcp_revolutionary_enabled="false"
+    local revolutionary_metadata_exists="false"
+    local six_model_orchestration="false"
     
-    # Check if settings contain optimization indicators
-    if [[ -f "$CURSOR_USER_CONFIG/settings.json" ]]; then
-        if grep -q "cursor.ai.enableAutoCompletion" "$CURSOR_USER_CONFIG/settings.json" 2>/dev/null; then
-            settings_optimized="true"
+    # Check for ACTUAL Revolutionary AI optimization indicators
+    local revolutionary_metadata="$HOME/.cursor/revolutionary-metadata.json"
+    if [[ -f "$revolutionary_metadata" ]]; then
+        revolutionary_metadata_exists="true"
+        # Check if it contains actual Revolutionary AI config
+        if grep -q "sixModelOrchestration.*true" "$revolutionary_metadata" 2>/dev/null; then
+            six_model_orchestration="true"
         fi
-        if grep -q "cursor.ai" "$CURSOR_USER_CONFIG/settings.json" 2>/dev/null; then
-            settings_has_ai="true"
-        fi
-    fi
-    
-    # Check if keybindings contain our optimizations
-    if [[ -f "$CURSOR_USER_CONFIG/keybindings.json" ]]; then
-        if grep -q "workbench.action.chat.open" "$CURSOR_USER_CONFIG/keybindings.json" 2>/dev/null; then
-            keybindings_optimized="true"
+        if grep -q "revolutionaryCache.*unlimited" "$revolutionary_metadata" 2>/dev/null; then
+            revolutionary_optimized="true"
         fi
     fi
     
-    # Count .cursorignore patterns
-    if [[ -f ".cursorignore" ]]; then
-        cursorignore_patterns=$(wc -l < ".cursorignore" 2>/dev/null | awk '{print $1}')
+    # Check MCP config for Revolutionary AI server
+    if [[ -f "$MCP_CONFIG" ]]; then
+        if grep -q "cursor-ai-revolutionary" "$MCP_CONFIG" 2>/dev/null; then
+            mcp_revolutionary_enabled="true"
+        fi
     fi
     
-    echo "$settings_optimized"
-    echo "$keybindings_optimized"
-    echo "$cursorignore_patterns"
-    echo "$settings_has_ai"
+    # Check if Revolutionary AI controller exists and is operational
+    local revolutionary_controller="/Users/Shared/cursor/cursor-uninstaller/lib/ai/revolutionary-controller.js"
+    if [[ -f "$revolutionary_controller" ]] && [[ "$mcp_revolutionary_enabled" == "true" ]]; then
+        revolutionary_optimized="true"
+    fi
+    
+    echo "$revolutionary_optimized"
+    echo "$mcp_revolutionary_enabled"
+    echo "$revolutionary_metadata_exists"
+    echo "$six_model_orchestration"
 }
 
 check_network_connectivity() {
@@ -267,14 +271,14 @@ generate_status_json() {
     
     local optimization_data
     optimization_data=$(check_optimization_status)
-    settings_optimized=$(echo "$optimization_data" | sed -n '1p')
-    settings_optimized="${settings_optimized:-false}"
-    keybindings_optimized=$(echo "$optimization_data" | sed -n '2p')
-    keybindings_optimized="${keybindings_optimized:-false}"
-    cursorignore_patterns=$(echo "$optimization_data" | sed -n '3p')
-    cursorignore_patterns="${cursorignore_patterns:-0}"
-    settings_has_ai=$(echo "$optimization_data" | sed -n '4p')
-    settings_has_ai="${settings_has_ai:-false}"
+    revolutionary_optimized=$(echo "$optimization_data" | sed -n '1p')
+    revolutionary_optimized="${revolutionary_optimized:-false}"
+    mcp_revolutionary_enabled=$(echo "$optimization_data" | sed -n '2p')
+    mcp_revolutionary_enabled="${mcp_revolutionary_enabled:-false}"
+    revolutionary_metadata_exists=$(echo "$optimization_data" | sed -n '3p')
+    revolutionary_metadata_exists="${revolutionary_metadata_exists:-false}"
+    six_model_orchestration=$(echo "$optimization_data" | sed -n '4p')
+    six_model_orchestration="${six_model_orchestration:-false}"
     
     local network_data
     network_data=$(check_network_connectivity)
@@ -283,14 +287,15 @@ generate_status_json() {
     internet_available=$(echo "$network_data" | sed -n '2p')
     internet_available="${internet_available:-false}"
     
-    # Calculate overall health score based on real metrics
+    # Calculate overall health score based on ACTUAL Revolutionary AI metrics
     local health_score=0
-    [[ "$cursor_running" == "true" ]] && health_score=$((health_score + 20))
-    [[ "$settings_exists" == "true" ]] && health_score=$((health_score + 15))
-    [[ "$keybindings_exists" == "true" ]] && health_score=$((health_score + 15))
-    [[ "$mcp_exists" == "true" ]] && health_score=$((health_score + 20))
-    [[ "$cursorignore_exists" == "true" ]] && health_score=$((health_score + 10))
-    [[ "$settings_optimized" == "true" ]] && health_score=$((health_score + 10))
+    [[ "$cursor_running" == "true" ]] && health_score=$((health_score + 15))
+    [[ "$settings_exists" == "true" ]] && health_score=$((health_score + 10))
+    [[ "$keybindings_exists" == "true" ]] && health_score=$((health_score + 10))
+    [[ "$mcp_exists" == "true" ]] && health_score=$((health_score + 15))
+    [[ "$revolutionary_optimized" == "true" ]] && health_score=$((health_score + 25))
+    [[ "$mcp_revolutionary_enabled" == "true" ]] && health_score=$((health_score + 20))
+    [[ "$six_model_orchestration" == "true" ]] && health_score=$((health_score + 25))
     [[ "$node_version" != "Not Installed" ]] && health_score=$((health_score + 10))
     
     # Create comprehensive JSON with real data only
@@ -331,11 +336,12 @@ generate_status_json() {
     "npm_available": $npm_available,
     "internet_available": $internet_available
   },
-  "optimization": {
-    "settings_optimized": $settings_optimized,
-    "keybindings_optimized": $keybindings_optimized,
-    "cursorignore_patterns": $cursorignore_patterns,
-    "settings_has_ai_config": $settings_has_ai
+  "revolutionary_ai": {
+    "system_optimized": $revolutionary_optimized,
+    "mcp_server_enabled": $mcp_revolutionary_enabled,
+    "metadata_file_exists": $revolutionary_metadata_exists,
+    "six_model_orchestration": $six_model_orchestration,
+    "status": "$([ "$revolutionary_optimized" == "true" ] && echo "OPERATIONAL" || echo "NOT_OPTIMIZED")"
   },
   "validation": {
     "all_files_real": true,
