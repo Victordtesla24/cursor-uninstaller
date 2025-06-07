@@ -154,12 +154,45 @@ apply_revolutionary_optimizations() {
         return 1
     fi
     
-    # Create the revolutionary MCP configuration with actual AI integration
-    local revolutionary_json
-    revolutionary_json=$(jq -n \
+    # Create the correct MCP configuration following official Cursor documentation format
+    # Reference: https://docs.cursor.com/context/model-context-protocol
+    local mcp_json
+    mcp_json=$(jq -n \
+      --arg workspace_root "$WORKSPACE_ROOT" \
+      '{
+        "mcpServers": {
+          "cursor-ai-revolutionary": {
+            "command": "node",
+            "args": [
+              ($workspace_root + "/lib/ai/revolutionary-controller.js")
+            ],
+            "env": {
+              "CURSOR_AI_MODE": "revolutionary",
+              "REVOLUTIONARY_CACHE": "unlimited",
+              "SIX_MODEL_ORCHESTRATION": "enabled"
+            }
+          },
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "@modelcontextprotocol/server-filesystem",
+              $workspace_root
+            ],
+            "env": {}
+          },
+          "git": {
+            "command": "npx",
+            "args": ["@modelcontextprotocol/server-git"],
+            "env": {}
+          }
+        }
+      }')
+    
+    # Create separate metadata file for Revolutionary AI tracking
+    local metadata_json
+    metadata_json=$(jq -n \
       --arg version "$OPTIMIZER_VERSION" \
       --arg optimized_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-      --arg workspace_root "$WORKSPACE_ROOT" \
       '{
         "revolutionary": {
           "version": $version,
@@ -183,54 +216,40 @@ apply_revolutionary_optimizations() {
               "revolutionaryCaching": true
             }
           }
-        },
-        "servers": [
-          {
-            "name": "cursor-ai-revolutionary",
-            "command": "node",
-            "args": [
-              ($workspace_root + "/lib/ai/revolutionary-controller.js")
-            ],
-            "env": {
-              "CURSOR_AI_MODE": "revolutionary",
-              "REVOLUTIONARY_CACHE": "unlimited",
-              "SIX_MODEL_ORCHESTRATION": "enabled"
-            }
-          },
-          {
-            "name": "filesystem",
-            "command": "npx",
-            "args": [
-              "@modelcontextprotocol/server-filesystem",
-              $workspace_root
-            ],
-            "env": {}
-          },
-          {
-            "name": "git",
-            "command": "npx",
-            "args": ["@modelcontextprotocol/server-git"],
-            "env": {}
-          }
-        ]
+        }
       }')
       
-    # Write the revolutionary configuration
-    if echo "$revolutionary_json" > "$mcp_config_path"; then
-        print_success "Revolutionary AI configuration applied to $mcp_config_path."
+    # Write the correct MCP configuration
+    if echo "$mcp_json" > "$mcp_config_path"; then
+        print_success "Cursor MCP configuration applied to $mcp_config_path."
+        print_info "✅ MCP Format: Valid (mcpServers object structure)"
+        print_info "✅ Revolutionary AI Server: ENABLED"
+        print_info "✅ Filesystem Server: ENABLED"
+        print_info "✅ Git Server: ENABLED"
+    else
+        print_error "Failed to write MCP configuration."
+        return 1
+    fi
+    
+    # Write Revolutionary AI metadata to separate file
+    local metadata_path="$HOME/.cursor/revolutionary-metadata.json"
+    if echo "$metadata_json" > "$metadata_path"; then
+        print_success "Revolutionary AI metadata saved to $metadata_path."
         print_info "6-Model Orchestration: ENABLED"
         print_info "Unlimited Context Processing: ENABLED" 
         print_info "Revolutionary Caching: ENABLED"
         print_info "Thinking Modes: ENABLED"
     else
-        print_error "Failed to write revolutionary configurations."
-        return 1
+        print_warning "Failed to write Revolutionary AI metadata (non-critical)."
     fi
 }
 
 comprehensive_validation() {
     print_info "PHASE 5: REVOLUTIONARY AI SYSTEM VALIDATION"
     cd "$WORKSPACE_ROOT" || exit 1
+    
+    # Define the MCP config path for validation
+    local mcp_config_path="$CURSOR_MCP_PATH"
     
     # Test Revolutionary AI System Integration
     print_info "Running Revolutionary AI system validation..."
@@ -239,6 +258,17 @@ comprehensive_validation() {
     else
         TESTS_FAILED=true
         print_error "Revolutionary AI system tests FAILED. Run 'node scripts/test-revolutionary-system.cjs' for details."
+    fi
+    
+    # Test MCP Configuration Format
+    print_info "Validating MCP Configuration Format..."
+    if jq -e '.mcpServers | type == "object"' "$mcp_config_path" >/dev/null 2>&1; then
+        print_success "MCP Configuration Format VALIDATED."
+        local server_count=$(jq '.mcpServers | length' "$mcp_config_path")
+        print_info "Configured MCP Servers: $server_count"
+    else
+        TESTS_FAILED=true
+        print_error "MCP Configuration Format validation FAILED."
     fi
     
     # Test 6-Model Orchestration
