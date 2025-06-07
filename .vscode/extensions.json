@@ -1,14 +1,8 @@
 {
-  "recommendations": [
-    "ms-vscode.vscode-typescript-next",
-    "esbenp.prettier-vscode", 
-    "ms-vscode.vscode-eslint",
-    "ms-vscode.vscode-json",
-    "bradlc.vscode-tailwindcss",
-    "ms-vscode.test-adapter-converter",
-    "orta.vscode-jest",
-    "ms-vscode.node-debug2",
-    "ms-vscode.js-debug-nightly"
-  ],
-  "unwantedRecommendations": []
+    "recommendations": [
+        "nyxb.cursorrules",
+        "ms-vscode.vscode-typescript-next",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+    ]
 } 

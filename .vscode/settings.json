@@ -1,25 +1,18 @@
 {
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-  "eslint.workingDirectories": ["."],
-  "typescript.preferences.includePackageJsonAutoImports": "on",
-  "javascript.preferences.includePackageJsonAutoImports": "on",
-  "files.exclude": {
-    "**/node_modules": true,
-    "**/.git": true,
-    "**/coverage": true,
-    "**/.cache": true
-  },
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/coverage": true,
-    "**/.cache": true
-  },
-  "jest.jestCommandLine": "npm test",
-  "jest.rootPath": ".",
-  "terminal.integrated.env.osx": {
-    "NODE_ENV": "development"
-  }
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "editor.suggestSelection": "first",
+    "editor.inlineSuggest.enabled": true,
+    "editor.tabCompletion": "on",
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/coverage": true,
+        "**/.cache": true,
+        "**/logs": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/coverage": true,
+        "**/.cache": true,
+        "**/logs": true
+    }
 } 
