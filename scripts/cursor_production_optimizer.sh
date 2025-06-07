@@ -201,8 +201,12 @@ configure_mcp_servers() {
     # Read existing configuration if it exists
     local existing_servers=()
     if [[ -f "$CURSOR_MCP_PATH" ]]; then
-        # Extract existing servers using jq
-        readarray -t existing_servers < <(jq -r '.servers[]? | @json' "$CURSOR_MCP_PATH" 2>/dev/null || echo "")
+        # Extract existing servers using jq (compatible with older shells)
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+                existing_servers+=("$line")
+            fi
+        done < <(jq -r '.servers[]? | @json' "$CURSOR_MCP_PATH" 2>/dev/null || echo "")
     fi
 
     # Build enhanced MCP configuration
