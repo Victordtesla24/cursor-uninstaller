@@ -43,7 +43,7 @@ async function testComponents() {
     // Test 2: Try to load modules with better error handling
     test('Revolutionary Cache Module', () => {
         try {
-            delete require.cache[require.resolve('./lib/cache/revolutionary-cache.js')];
+            delete require.cache[require.resolve('../lib/cache/revolutionary-cache.js')];
             const RevolutionaryCache = require('../lib/cache/revolutionary-cache.js');
             const cache = new RevolutionaryCache({ unlimited: true });
             if (!cache) throw new Error('Cache initialization failed');
@@ -57,7 +57,7 @@ async function testComponents() {
     // Test 3: Error System
     test('Error System Module', () => {
         try {
-            delete require.cache[require.resolve('./lib/system/errors.js')];
+            delete require.cache[require.resolve('../lib/system/errors.js')];
             const { RevolutionaryError, RevolutionaryApiError } = require('../lib/system/errors.js');
             const error = new RevolutionaryApiError('Test error');
             if (!(error instanceof RevolutionaryError)) throw new Error('Error inheritance failed');
@@ -72,7 +72,7 @@ async function testComponents() {
             throw new Error('o3 client file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/clients/o3-client.js')];
+            delete require.cache[require.resolve('../lib/ai/clients/o3-client.js')];
             const o3Client = require('../lib/ai/clients/o3-client.js');
             if (typeof o3Client !== 'function') throw new Error('o3 client not a function');
         } catch (loadError) {
@@ -85,7 +85,7 @@ async function testComponents() {
             throw new Error('Claude client file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/clients/claude-client.js')];
+            delete require.cache[require.resolve('../lib/ai/clients/claude-client.js')];
             const claudeClient = require('../lib/ai/clients/claude-client.js');
             if (typeof claudeClient !== 'function') throw new Error('Claude client not a function');
         } catch (loadError) {
@@ -98,7 +98,7 @@ async function testComponents() {
             throw new Error('Gemini client file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/clients/gemini-client.js')];
+            delete require.cache[require.resolve('../lib/ai/clients/gemini-client.js')];
             const geminiClient = require('../lib/ai/clients/gemini-client.js');
             if (typeof geminiClient !== 'function') throw new Error('Gemini client not a function');
         } catch (loadError) {
@@ -111,7 +111,7 @@ async function testComponents() {
             throw new Error('GPT client file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/clients/gpt-client.js')];
+            delete require.cache[require.resolve('../lib/ai/clients/gpt-client.js')];
             const gptClient = require('../lib/ai/clients/gpt-client.js');
             if (typeof gptClient !== 'function') throw new Error('GPT client not a function');
         } catch (loadError) {
@@ -125,7 +125,7 @@ async function testComponents() {
             throw new Error('Context manager file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/unlimited-context-manager.js')];
+            delete require.cache[require.resolve('../lib/ai/unlimited-context-manager.js')];
             const UnlimitedContextManager = require('../lib/ai/unlimited-context-manager.js');
             // Create mock dependencies
             const mockCache = { set: () => {}, get: () => {} };
@@ -142,7 +142,7 @@ async function testComponents() {
             throw new Error('Orchestrator file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/6-model-orchestrator.js')];
+            delete require.cache[require.resolve('../lib/ai/6-model-orchestrator.js')];
             const SixModelOrchestrator = require('../lib/ai/6-model-orchestrator.js');
             // Create mock dependencies
             const mockCache = { set: () => {}, get: () => {} };
@@ -159,7 +159,7 @@ async function testComponents() {
             throw new Error('Controller file not found');
         }
         try {
-            delete require.cache[require.resolve('./lib/ai/revolutionary-controller.js')];
+            delete require.cache[require.resolve('../lib/ai/revolutionary-controller.js')];
             const RevolutionaryController = require('../lib/ai/revolutionary-controller.js');
             const controller = new RevolutionaryController();
             if (!controller) throw new Error('Controller initialization failed');
