@@ -44,7 +44,7 @@
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "autocannon": "^8.0.0",
-    "clinic": "^9.1.0",
+    "clinic": "^13.0.0",
     "eslint": "^9.28.0",
     "globals": "^16.2.0",
     "husky": "^9.1.7",
