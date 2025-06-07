@@ -104,15 +104,59 @@ backup_configurations() {
 
 apply_revolutionary_optimizations() {
     print_info "PHASE 3: APPLYING PRODUCTION CONFIGURATIONS"
-    # This function would contain the logic to apply settings.
-    # For this refactoring, we assume it succeeds.
-    print_success "Production configurations applied."
-}
-
-deploy_revolutionary_performance_optimization() {
-    print_info "PHASE 4: DEPLOYING PERFORMANCE OPTIMIZATIONS"
-    # This function would contain the logic for performance tuning.
-    print_success "Performance optimizations deployed."
+    
+    local mcp_config_path="$CURSOR_MCP_PATH"
+    
+    # Create the revolutionary JSON structure using jq
+    local revolutionary_json
+    revolutionary_json=$(jq -n \
+      --arg version "$OPTIMIZER_VERSION" \
+      --arg optimized_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      '{
+        "revolutionary": {
+          "version": $version,
+          "sixModelOrchestration": true,
+          "unlimitedContext": true,
+          "optimizedAt": $optimized_at
+        },
+        "servers": [
+          {
+            "name": "filesystem",
+            "command": "npx",
+            "args": [
+              "@modelcontextprotocol/server-filesystem",
+              "/Users/Shared/cursor/cursor-uninstaller"
+            ],
+            "env": {}
+          },
+          {
+            "name": "git",
+            "command": "npx",
+            "args": ["@modelcontextprotocol/server-git"],
+            "env": {}
+          },
+          {
+            "name": "everything",
+            "command": "npx",
+            "args": ["@modelcontextprotocol/server-everything"],
+            "env": {}
+          },
+          {
+            "name": "brave-search",
+            "command": "npx",
+            "args": ["@modelcontextprotocol/server-brave-search"],
+            "env": {}
+          }
+        ]
+      }')
+      
+    # Write the new configuration to the mcp.json file
+    if echo "$revolutionary_json" > "$mcp_config_path"; then
+        print_success "Production configurations applied to $mcp_config_path."
+    else
+        print_error "Failed to write production configurations."
+        return 1
+    fi
 }
 
 comprehensive_validation() {
@@ -146,22 +190,22 @@ convert_ansi_to_html() {
     cat > "$temp_file"
 
     # 2. HTML-escape the text to prevent issues with log content
-    sed -i '' 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$temp_file"
+    sed -i '' -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' "$temp_file"
     
     # 3. Convert ANSI color codes to spans. This handles the most common cases.
-    # We close and re-open spans for simplicity.
-    sed -i '' 's/\x1B\[31m/<\/span><span style="color: #CD3131;">/g' "$temp_file" # Red
-    sed -i '' 's/\x1B\[32m/<\/span><span style="color: #0DBC79;">/g' "$temp_file" # Green
-    sed -i '' 's/\x1B\[33m/<\/span><span style="color: #E5E510;">/g' "$temp_file" # Yellow
-    sed -i '' 's/\x1B\[90m/<\/span><span style="color: #666666;">/g' "$temp_file" # Gray for info
-    sed -i '' 's/\x1B\[0m/<\/span>/g' "$temp_file" # Reset color
+    # We close and re-open spans for simplicity. Using '#' as a delimiter to avoid conflicts.
+    sed -i '' 's#\x1B\[31m#</span><span style="color: \#CD3131;">#g' "$temp_file" # Red
+    sed -i '' 's#\x1B\[32m#</span><span style="color: \#0DBC79;">#g' "$temp_file" # Green
+    sed -i '' 's#\x1B\[33m#</span><span style="color: \#E5E510;">#g' "$temp_file" # Yellow
+    sed -i '' 's#\x1B\[90m#</span><span style="color: \#666666;">#g' "$temp_file" # Gray for info
+    sed -i '' 's#\x1B\[0m#</span>#g' "$temp_file" # Reset color
 
-    # 4. Wrap the entire log in a single span and pre tag
-    sed -i '' '1s;^;<pre style="background-color: #1E1E1E; color: #D4D4D4; font-family: monospace; padding: 1em;"><span>;' "$temp_file"
-    sed -i '' '$s;$;</span></pre>;' "$temp_file"
+    # 4. Wrap the entire log in a single span and pre tag. Use '#' as a delimiter to avoid issues with semicolons.
+    sed -i '' '1s#^#<pre style="background-color: \#1E1E1E; color: \#D4D4D4; font-family: monospace; padding: 1em;"><span>#' "$temp_file"
+    sed -i '' '$s#$#</span></pre>#' "$temp_file"
 
-    # 5. Clean up empty spans
-    sed -i '' 's/<span><\/span>//g' "$temp_file"
+    # 5. Clean up empty spans that can be created by the replacements above.
+    sed -i '' 's#<span></span>##g' "$temp_file"
     
     cat "$temp_file"
     rm "$temp_file"
@@ -172,7 +216,7 @@ generate_html_report() {
     local output_html=$2
     local template_html="$WORKSPACE_ROOT/scripts/dashboard.html"
 
-    if [[ ! -f "$log_file" || ! -f "$template_html" ]]; then
+    if [[ "$log_file" != "/dev/null" && ! -f "$log_file" ]] || [[ ! -f "$template_html" ]]; then
         echo "Error: Log file or template not found for report generation." >&2
         return 1
     fi
@@ -210,33 +254,71 @@ main() {
     log_file="/tmp/cursor_optimizer_log.ansi"
     # Ensure log is clean before starting
     >"$log_file"
-    trap 'rm -f "$log_file"' EXIT
+    local status_file_tests
+    status_file_tests=$(mktemp)
+    local status_file_vulns
+    status_file_vulns=$(mktemp)
+    local empty_log_file
+    empty_log_file=$(mktemp)
 
-    # Use a command group { ... } to run in the current shell. This is critical
-    # so that variable modifications (e.g., TESTS_FAILED) persist after the group.
+    # Clean up status files on exit
+    trap 'rm -f "$log_file" "$status_file_tests" "$status_file_vulns" "$empty_log_file"' EXIT
+
+    local final_dashboard_path="$WORKSPACE_ROOT/scripts/dashboard-report.html"
+
+    # Create an empty report file initially so it can be opened.
+    # The user can open this file and see live updates if they have an auto-refreshing browser.
+    generate_html_report "$empty_log_file" "$final_dashboard_path"
+    if command -v open >/dev/null; then
+        open "$final_dashboard_path"
+    elif command -v xdg-open >/dev/null; then
+        xdg-open "$final_dashboard_path"
+    fi
+
+    # The main logic is run in a command group to capture all output.
+    # Because it runs in a subshell, we need to use files to pass state back.
     {
         display_header
+        generate_html_report "$log_file" "$final_dashboard_path"
+
         validate_environment
+        generate_html_report "$log_file" "$final_dashboard_path"
+
         comprehensive_security_audit
+        generate_html_report "$log_file" "$final_dashboard_path"
+        
         backup_configurations
+        generate_html_report "$log_file" "$final_dashboard_path"
+
         apply_revolutionary_optimizations
-        deploy_revolutionary_performance_optimization
+        generate_html_report "$log_file" "$final_dashboard_path"
+
         comprehensive_validation
+        generate_html_report "$log_file" "$final_dashboard_path"
+
         display_summary
+        generate_html_report "$log_file" "$final_dashboard_path"
+
+        # Write final status to temp files
+        echo "$TESTS_FAILED" > "$status_file_tests"
+        echo "$REMAINING_VULNS" > "$status_file_vulns"
+
     } &> >(tee "$log_file")
 
+    wait # Wait for the background process group to finish
+
+    # Read status from temp files
+    TESTS_FAILED=$(cat "$status_file_tests")
+    REMAINING_VULNS=$(cat "$status_file_vulns")
+
     local overall_status=0
-    # This now works correctly because the command group runs in the current shell.
     if [[ "$TESTS_FAILED" = true || "$REMAINING_VULNS" -gt 0 ]]; then
         overall_status=1
     fi
     
-    local final_dashboard_path="$WORKSPACE_ROOT/scripts/dashboard-report.html"
-    generate_html_report "$log_file" "$final_dashboard_path"
-
-    # These messages will now print to the actual terminal, not the log file.
     echo # Adding a newline for cleaner output.
     print_info "HTML report generated: file://${final_dashboard_path}"
+    print_info "You may need to refresh the page to see the final report."
 
     if [[ "$overall_status" -eq 0 ]]; then
         print_success "Revolutionary deployment complete and validated."
