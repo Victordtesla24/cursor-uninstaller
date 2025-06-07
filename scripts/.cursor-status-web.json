@@ -34,13 +34,6 @@
     "npm_available": true,
     "internet_available": true
   },
-  "revolutionary_ai": {
-    "system_optimized": true,
-    "mcp_server_enabled": true,
-    "metadata_file_exists": true,
-    "six_model_orchestration": true,
-    "status": "OPERATIONAL"
-  },
   "validation": {
     "all_files_real": true,
     "no_fake_metrics": true,

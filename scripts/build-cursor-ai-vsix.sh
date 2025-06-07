@@ -232,8 +232,6 @@ EOF
     print_success "Extension JavaScript source created"
 }
 
-
-
 create_additional_files() {
     print_step "Creating additional extension files..."
     
@@ -260,7 +258,6 @@ This is a basic status indicator extension that:
 
 - Does not provide AI model integration
 - Does not enable special AI features
-- Does not provide "unlimited context" (this doesn't exist)
 - Does not access non-existent models
 
 ## Commands

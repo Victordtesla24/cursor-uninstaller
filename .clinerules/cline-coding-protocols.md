@@ -61,3 +61,11 @@ alwaysApply: true
     * **Token-Efficient Context References:** Use file paths and line numbers instead of full file contents when possible.
 
 ----
+
+# Coding Protocols
+
+- **Clarity & Simplicity:** Write clear, simple, and maintainable code.
+- **Single Responsibility:** Functions and classes should have a single responsibility.
+- **DRY Principle:** Don't Repeat Yourself. Avoid code duplication.
+- **Testing:** Write tests for new features and bug fixes.
+- **Documentation:** Add comments for complex logic.
