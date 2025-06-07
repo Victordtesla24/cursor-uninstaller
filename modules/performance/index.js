@@ -1,6 +1,6 @@
 /**
  * @fileoverview
- * Performance Monitoring System - Advanced performance tracking for the Revolutionary AI system.
+ * Performance Monitoring System - Basic performance tracking utilities.
  */
 
 class PerformanceMonitoringSystem {
@@ -14,7 +14,7 @@ class PerformanceMonitoringSystem {
       memoryUsage: 0
     };
     this.startTime = Date.now();
-    console.log('[Performance Monitor] Initialized for revolutionary performance tracking');
+    console.log('[Performance Monitor] Initialized for basic performance tracking');
   }
 
   async initialize() {
@@ -122,15 +122,15 @@ class PerformanceMonitoringSystem {
   }
 
   getModelPerformance() {
-    // Return model-specific performance data as expected by tests
-    const models = ['o3', 'claude-4-sonnet-thinking', 'claude-4-opus-thinking', 'gemini-2.5-pro', 'gpt-4.1', 'claude-3.7-sonnet-thinking'];
+    // Return basic performance data for available models
+    const models = ['gpt-3.5-turbo', 'gpt-4', 'claude-3-sonnet', 'claude-3-opus', 'gemini-pro'];
     const performance = {};
     
     models.forEach(modelName => {
       performance[modelName] = {
         model: modelName,
         usage: Math.floor(Math.random() * 100), // Mock usage percentage
-        targetLatency: modelName === 'o3' ? 10 : modelName.includes('thinking') ? 25 : 20,
+        targetLatency: 200, // Realistic target latency
         averageLatency: this.getAverageLatency(),
         requests: Math.floor(this.getTotalRequests() / models.length)
       };

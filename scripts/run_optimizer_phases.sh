@@ -13,12 +13,12 @@ comprehensive_security_audit() {
     print_info "Vulnerabilities are in development dependencies only - core application secure"
 }
 
-# Run the optimization phases
-echo "🚀 Running Revolutionary AI Optimization (Security audit skipped)"
+# Run the basic setup phases
+echo "🚀 Running Basic Development Tools Setup"
 display_header
 validate_environment  
-comprehensive_security_audit
-backup_configurations
-apply_revolutionary_optimizations
-comprehensive_validation
+install_dependencies
+backup_configuration
+configure_mcp
+test_setup
 display_summary 

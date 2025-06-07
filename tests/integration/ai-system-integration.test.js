@@ -321,6 +321,46 @@ describe('AI System Integration', () => {
       expect(stats.resultCache.memoryUsageMB).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe('Model Processing', () => {
+    test('should handle completion requests', async () => {
+      const request = {
+        code: 'const result = ',
+        language: 'javascript',
+        type: 'completion'
+      };
+
+      const result = await aiSystem.requestCompletion(request);
+      
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('metadata');
+      expect(result.metadata).toHaveProperty('model');
+      expect(result.metadata).toHaveProperty('fromCache');
+      expect(result.metadata).toHaveProperty('timestamp');
+      
+      // Should be using placeholder models
+      expect(result.metadata.model).toBeDefined();
+    });
+
+    test('should handle instruction execution', async () => {
+      const instruction = {
+        instruction: 'Explain this code',
+        code: 'const add = (a, b) => a + b;',
+        language: 'javascript'
+      };
+
+      const result = await aiSystem.executeInstruction(instruction);
+      
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('result');
+      expect(result).toHaveProperty('metadata');
+      expect(result.metadata).toHaveProperty('model');
+      
+      // Should be using placeholder models
+      expect(result.metadata.model).toBeDefined();
+    });
+  });
 });
 
 // Performance test for latency requirements

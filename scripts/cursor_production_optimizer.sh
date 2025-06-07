@@ -1,9 +1,23 @@
 #!/bin/bash
 # =============================================================================
-# CURSOR AI BASIC SETUP SCRIPT v1.0
-#
-# This script performs basic setup and validation for Cursor AI integration.
-# It does NOT provide any special features or optimizations.
+# Cursor AI Development Tools Setup Script
+# =============================================================================
+# 
+# This script sets up basic development tools and MCP servers for Cursor AI.
+# 
+# What this actually does:
+# - Validates environment (Cursor, Node.js, etc.)
+# - Backs up existing configurations
+# - Sets up MCP server configurations
+# - Installs basic helper scripts
+# 
+# IMPORTANT: This does NOT provide:
+# - Enhanced AI models or capabilities
+# - Unlimited context processing
+# - Special "thinking modes"
+# - Performance improvements beyond basic caching
+# 
+# All AI functionality requires proper API keys and configuration.
 # =============================================================================
 
 set -euo pipefail

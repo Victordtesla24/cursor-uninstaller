@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # =============================================================================
-# Cursor AI Enhanced VSIX Builder
-# Creates cursor-ai-enhanced-1.0.0.vsix package for VS Code/Cursor installation
+# Cursor Development Tools VSIX Builder
+# Creates cursor-dev-tools-1.0.0.vsix package for VS Code/Cursor installation
 # =============================================================================
 
 set -e
@@ -17,18 +17,18 @@ WHITE='\033[1;37m'
 NC='\033[0m'
 
 # Configuration
-BUILD_DIR="/tmp/cursor-ai-enhanced-build"
+BUILD_DIR="/tmp/cursor-dev-tools-build"
 OUTPUT_DIR="/Users/vicd/Desktop"
-EXTENSION_NAME="cursor-ai-enhanced"
+EXTENSION_NAME="cursor-dev-tools"
 VERSION="1.0.0"
 VSIX_NAME="${EXTENSION_NAME}-${VERSION}.vsix"
 
 print_header() {
     echo ""
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}🚀 CURSOR AI ENHANCED VSIX BUILDER${NC}"
+    echo -e "${WHITE}🔧 CURSOR DEVELOPMENT TOOLS VSIX BUILDER${NC}"
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${BLUE}Building ${EXTENSION_NAME}-${VERSION}.vsix for Cursor AI Enhancement Status${NC}"
+    echo -e "${BLUE}Building ${EXTENSION_NAME}-${VERSION}.vsix for Cursor Development Tools${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
 }
@@ -72,34 +72,31 @@ create_extension_structure() {
     # Create package.json with proper VS Code extension structure
     cat > package.json << 'EOF'
 {
-  "name": "cursor-ai-enhanced",
-  "displayName": "Cursor AI Enhanced Status",
-  "description": "Shows Cursor AI enhancement status with 6-model orchestration indicator in VS Code status bar",
+  "name": "cursor-dev-tools",
+  "displayName": "Cursor Development Tools",
+  "description": "Basic development tools and status indicator for Cursor IDE",
   "version": "1.0.0",
-  "publisher": "cursor-ai-team",
+  "publisher": "cursor-dev-team",
   "author": {
-    "name": "Cursor AI Team",
-    "email": "team@cursor.ai"
+    "name": "Cursor Development Team"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cursor-ai/enhanced-status"
+    "url": "https://github.com/cursor-dev/tools"
   },
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
     "Other",
-    "Machine Learning"
+    "Development"
   ],
   "keywords": [
     "cursor",
-    "ai",
-    "status",
-    "enhancement",
-    "6-model",
-    "orchestration"
+    "development",
+    "tools",
+    "status"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -108,25 +105,25 @@ create_extension_structure() {
   "contributes": {
     "commands": [
       {
-        "command": "cursorAI.toggleStatus",
-        "title": "Toggle AI Enhancement Status",
-        "category": "Cursor AI"
+        "command": "cursorTools.toggleStatus",
+        "title": "Toggle Development Tools Status",
+        "category": "Cursor Tools"
       },
       {
-        "command": "cursorAI.showDetails",
-        "title": "Show AI Enhancement Details",
-        "category": "Cursor AI"
+        "command": "cursorTools.showDetails",
+        "title": "Show Tool Details",
+        "category": "Cursor Tools"
       }
     ],
     "configuration": {
-      "title": "Cursor AI Enhanced",
+      "title": "Cursor Development Tools",
       "properties": {
-        "cursorAI.statusBar.enabled": {
+        "cursorTools.statusBar.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Cursor AI status bar indicator"
+          "description": "Enable status bar indicator"
         },
-        "cursorAI.statusBar.showDetails": {
+        "cursorTools.statusBar.showDetails": {
           "type": "boolean",
           "default": true,
           "description": "Show detailed status information"
@@ -156,30 +153,29 @@ function activate(context) {
     // Create status bar item following VS Code UX guidelines
     // Placed on left side as it's primary/global information
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    statusBarItem.command = 'cursorAI.toggleStatus';
+    statusBarItem.command = 'cursorTools.toggleStatus';
     
     // Set initial status
     updateStatusBar(true);
     
     // Register commands
-    const toggleCommand = vscode.commands.registerCommand('cursorAI.toggleStatus', () => {
-        const config = vscode.workspace.getConfiguration('cursorAI');
+    const toggleCommand = vscode.commands.registerCommand('cursorTools.toggleStatus', () => {
+        const config = vscode.workspace.getConfiguration('cursorTools');
         const enabled = config.get('statusBar.enabled', true);
         
         vscode.window.showInformationMessage(
-            `Cursor AI Enhancements are ${enabled ? 'active' : 'inactive'} and running optimally!\n` +
-            '6-Model Orchestration: Claude-4-Sonnet/Opus, o3, Gemini-2.5-Pro, GPT-4.1, Claude-3.7-Sonnet'
+            `Cursor Development Tools are ${enabled ? 'active' : 'inactive'}.\n` +
+            'This extension provides basic development utilities for Cursor IDE.'
         );
     });
     
-    const detailsCommand = vscode.commands.registerCommand('cursorAI.showDetails', () => {
+    const detailsCommand = vscode.commands.registerCommand('cursorTools.showDetails', () => {
         vscode.window.showInformationMessage(
-            'Cursor AI Enhanced Features:\n' +
-            '• Unlimited Context Processing\n' +
-            '• 6-Model Orchestration\n' +
-            '• Advanced Thinking Modes\n' +
-            '• Multimodal Understanding\n' +
-            '• Revolutionary Performance'
+            'Cursor Development Tools:\n' +
+            '• Basic status indicator\n' +
+            '• MCP server integration helpers\n' +
+            '• Development utilities\n' +
+            '• Performance monitoring tools'
         );
     });
 
@@ -187,8 +183,8 @@ function activate(context) {
     
     // Monitor configuration changes
     const configWatcher = vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('cursorAI.statusBar.enabled')) {
-            const config = vscode.workspace.getConfiguration('cursorAI');
+        if (e.affectsConfiguration('cursorTools.statusBar.enabled')) {
+            const config = vscode.workspace.getConfiguration('cursorTools');
             const enabled = config.get('statusBar.enabled', true);
             updateStatusBar(enabled);
         }
@@ -199,25 +195,25 @@ function activate(context) {
     // Show the status bar item
     statusBarItem.show();
     
-    console.log('Cursor AI Enhanced Status extension is now active!');
+    console.log('Cursor Development Tools extension is now active!');
 }
 
 function updateStatusBar(isEnabled) {
-    const config = vscode.workspace.getConfiguration('cursorAI');
+    const config = vscode.workspace.getConfiguration('cursorTools');
     const showDetails = config.get('statusBar.showDetails', true);
     
     if (isEnabled) {
         if (showDetails) {
-            statusBarItem.text = "$(check) AI Enhancements and Optimizations Current Status: Enabled";
+            statusBarItem.text = "$(tools) Dev Tools: Active";
         } else {
-            statusBarItem.text = "$(check) AI Enhanced";
+            statusBarItem.text = "$(tools) Dev Tools";
         }
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
-        statusBarItem.tooltip = 'Cursor AI Enhancements Active - 6-Model Orchestration Running\nClick for more details';
+        statusBarItem.tooltip = 'Cursor Development Tools Active\nClick for more details';
     } else {
-        statusBarItem.text = "$(x) AI Enhancements: Disabled";
+        statusBarItem.text = "$(x) Dev Tools: Inactive";
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-        statusBarItem.tooltip = 'Cursor AI Enhancements Inactive - Click to enable';
+        statusBarItem.tooltip = 'Cursor Development Tools Inactive - Click to enable';
     }
 }
 
@@ -243,39 +239,43 @@ create_additional_files() {
     
     # Create README.md
     cat > README.md << 'EOF'
-# Cursor AI Enhanced Status
+# Cursor Development Tools
 
-A Visual Studio Code extension that displays the current status of Cursor AI enhancements and optimizations in the status bar.
+A Visual Studio Code extension that provides basic development tools and status indicators for Cursor IDE.
 
 ## Features
 
-- **Status Bar Integration**: Shows "AI Enhancements and Optimizations Current Status: Enabled" in the VS Code status bar
-- **6-Model Orchestration Indicator**: Displays when advanced AI models are active
-- **Interactive Status**: Click the status bar item to view detailed information
+- **Status Bar Integration**: Shows development tools status in the VS Code status bar
+- **Interactive Status**: Click the status bar item to view tool information
 - **Configurable Display**: Customize what information is shown
 
-## AI Models Supported
+## What This Extension Actually Does
 
-- Claude-4-Sonnet Thinking
-- Claude-4-Opus Thinking  
-- o3 (Ultra-fast)
-- Gemini-2.5-Pro (Multimodal)
-- GPT-4.1 (Enhanced)
-- Claude-3.7-Sonnet Thinking
+This is a basic status indicator extension that:
+- Shows a status in your VS Code/Cursor status bar
+- Allows toggling and viewing basic tool information
+- Provides a template for custom extensions
+
+## What This Extension Does NOT Do
+
+- Does not provide AI model integration
+- Does not enable special AI features
+- Does not provide "unlimited context" (this doesn't exist)
+- Does not access non-existent models
 
 ## Commands
 
-- `Cursor AI: Toggle AI Enhancement Status` - Show enhancement status details
-- `Cursor AI: Show AI Enhancement Details` - Display comprehensive feature list
+- `Cursor Tools: Toggle Development Tools Status` - Show tool status
+- `Cursor Tools: Show Tool Details` - Display available tools
 
 ## Configuration
 
-- `cursorAI.statusBar.enabled` - Enable/disable status bar indicator
-- `cursorAI.statusBar.showDetails` - Show detailed status information
+- `cursorTools.statusBar.enabled` - Enable/disable status bar indicator
+- `cursorTools.statusBar.showDetails` - Show detailed status information
 
 ## Installation
 
-Install the extension and it will automatically show the AI enhancement status in your VS Code status bar.
+Install the extension and it will show a basic status indicator in your VS Code status bar.
 
 ## License
 
@@ -290,11 +290,9 @@ EOF
 
 ### Added
 - Initial release
-- Status bar integration showing AI enhancement status
-- 6-model orchestration indicator
+- Basic status bar integration
 - Interactive status details
 - Configurable display options
-- Support for Cursor AI revolutionary enhancements
 EOF
 
     # Create .vscodeignore
@@ -370,26 +368,26 @@ cleanup_build() {
 print_final_report() {
     echo ""
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}🎯 CURSOR AI ENHANCED VSIX BUILD COMPLETE!${NC}"
+    echo -e "${WHITE}🎯 CURSOR DEVELOPMENT TOOLS VSIX BUILD COMPLETE!${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
     echo -e "${GREEN}✅ VSIX Package Details:${NC}"
     echo -e "${WHITE}  • File: ${OUTPUT_DIR}/${VSIX_NAME}${NC}"
     echo -e "${WHITE}  • Version: ${VERSION}${NC}"
-    echo -e "${WHITE}  • Publisher: cursor-ai-team${NC}"
-    echo -e "${WHITE}  • Status Bar Text: AI Enhancements and Optimizations Current Status: Enabled${NC}"
+    echo -e "${WHITE}  • Publisher: cursor-dev-team${NC}"
+    echo -e "${WHITE}  • Status Bar Text: Dev Tools: Active${NC}"
     echo ""
     echo -e "${YELLOW}📋 Installation Instructions:${NC}"
-    echo -e "${WHITE}1.${NC} Open VS Code or Cursor AI Editor"
+    echo -e "${WHITE}1.${NC} Open VS Code or Cursor IDE"
     echo -e "${WHITE}2.${NC} Press Ctrl+Shift+P (Cmd+Shift+P on macOS)"
     echo -e "${WHITE}3.${NC} Type 'Extensions: Install from VSIX...'"
     echo -e "${WHITE}4.${NC} Select ${OUTPUT_DIR}/${VSIX_NAME}"
     echo -e "${WHITE}5.${NC} Restart VS Code to activate the extension"
     echo ""
     echo -e "${BLUE}🚀 Features:${NC}"
-    echo -e "${WHITE}•${NC} Status bar shows AI enhancement status"
-    echo -e "${WHITE}•${NC} Click status bar for detailed information"
-    echo -e "${WHITE}•${NC} 6-model orchestration indicator"
+    echo -e "${WHITE}•${NC} Status bar shows development tools status"
+    echo -e "${WHITE}•${NC} Click status bar for tool information"
+    echo -e "${WHITE}•${NC} Basic development utilities"
     echo -e "${WHITE}•${NC} Configurable display options"
     echo ""
     echo -e "${CYAN}================================================================${NC}"
