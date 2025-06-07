@@ -63,15 +63,10 @@
     "status": "operational",
     "configurationFile": "/Users/vicd/.cursor/mcp.json",
     "servers": {
-      "revolutionary-ai": {
+      "cursor-ai-revolutionary": {
         "status": "operational",
-        "toolsEnabled": 4,
-        "tools": [
-          "ai_completion",
-          "ai_instruction",
-          "ai_metrics",
-          "model_selection"
-        ]
+        "toolsEnabled": 0,
+        "tools": []
       },
       "browser-tools": {
         "status": "operational",
@@ -93,10 +88,15 @@
           "list_directory",
           "create_directory"
         ]
+      },
+      "git": {
+        "status": "operational",
+        "toolsEnabled": 0,
+        "tools": []
       }
     },
-    "totalToolsEnabled": 13,
-    "lastValidated": "2025-06-07T09:53:36.851Z"
+    "totalToolsEnabled": 9,
+    "lastValidated": "2025-06-07T11:42:07.553Z"
   },
   "systemHealth": {
     "overall": "excellent",

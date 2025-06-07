@@ -185,6 +185,13 @@ apply_revolutionary_optimizations() {
               "SIX_MODEL_ORCHESTRATION": "enabled"
             }
           },
+          "browser-tools": {
+            "command": "node",
+            "args": [
+              ($workspace_root + "/lib/tools/browser-mcp-server.js")
+            ],
+            "env": {}
+          },
           "filesystem": {
             "command": "npx",
             "args": [
@@ -237,6 +244,7 @@ apply_revolutionary_optimizations() {
         print_success "Cursor MCP configuration applied to $mcp_config_path."
         print_info "✅ MCP Format: Valid (mcpServers object structure)"
         print_info "✅ Revolutionary AI Server: ENABLED"
+        print_info "✅ Browser Tools Server: ENABLED"
         print_info "✅ Filesystem Server: ENABLED"
         print_info "✅ Git Server: ENABLED"
     else
