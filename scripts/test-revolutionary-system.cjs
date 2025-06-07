@@ -44,7 +44,7 @@ async function testComponents() {
     test('Revolutionary Cache Module', () => {
         try {
             delete require.cache[require.resolve('./lib/cache/revolutionary-cache.js')];
-            const RevolutionaryCache = require('./lib/cache/revolutionary-cache.js');
+            const RevolutionaryCache = require('../lib/cache/revolutionary-cache.js');
             const cache = new RevolutionaryCache({ unlimited: true });
             if (!cache) throw new Error('Cache initialization failed');
             if (typeof cache.set !== 'function') throw new Error('Cache missing set method');
@@ -58,7 +58,7 @@ async function testComponents() {
     test('Error System Module', () => {
         try {
             delete require.cache[require.resolve('./lib/system/errors.js')];
-            const { RevolutionaryError, RevolutionaryApiError } = require('./lib/system/errors.js');
+            const { RevolutionaryError, RevolutionaryApiError } = require('../lib/system/errors.js');
             const error = new RevolutionaryApiError('Test error');
             if (!(error instanceof RevolutionaryError)) throw new Error('Error inheritance failed');
         } catch (loadError) {
@@ -73,7 +73,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/clients/o3-client.js')];
-            const o3Client = require('./lib/ai/clients/o3-client.js');
+            const o3Client = require('../lib/ai/clients/o3-client.js');
             if (typeof o3Client !== 'function') throw new Error('o3 client not a function');
         } catch (loadError) {
             throw new Error(`Module loading failed: ${loadError.message}`);
@@ -86,7 +86,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/clients/claude-client.js')];
-            const claudeClient = require('./lib/ai/clients/claude-client.js');
+            const claudeClient = require('../lib/ai/clients/claude-client.js');
             if (typeof claudeClient !== 'function') throw new Error('Claude client not a function');
         } catch (loadError) {
             throw new Error(`Module loading failed: ${loadError.message}`);
@@ -99,7 +99,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/clients/gemini-client.js')];
-            const geminiClient = require('./lib/ai/clients/gemini-client.js');
+            const geminiClient = require('../lib/ai/clients/gemini-client.js');
             if (typeof geminiClient !== 'function') throw new Error('Gemini client not a function');
         } catch (loadError) {
             throw new Error(`Module loading failed: ${loadError.message}`);
@@ -112,7 +112,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/clients/gpt-client.js')];
-            const gptClient = require('./lib/ai/clients/gpt-client.js');
+            const gptClient = require('../lib/ai/clients/gpt-client.js');
             if (typeof gptClient !== 'function') throw new Error('GPT client not a function');
         } catch (loadError) {
             throw new Error(`Module loading failed: ${loadError.message}`);
@@ -126,7 +126,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/unlimited-context-manager.js')];
-            const UnlimitedContextManager = require('./lib/ai/unlimited-context-manager.js');
+            const UnlimitedContextManager = require('../lib/ai/unlimited-context-manager.js');
             // Create mock dependencies
             const mockCache = { set: () => {}, get: () => {} };
             const manager = new UnlimitedContextManager({}, mockCache);
@@ -143,7 +143,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/6-model-orchestrator.js')];
-            const SixModelOrchestrator = require('./lib/ai/6-model-orchestrator.js');
+            const SixModelOrchestrator = require('../lib/ai/6-model-orchestrator.js');
             // Create mock dependencies
             const mockCache = { set: () => {}, get: () => {} };
             const orchestrator = new SixModelOrchestrator({}, mockCache);
@@ -160,7 +160,7 @@ async function testComponents() {
         }
         try {
             delete require.cache[require.resolve('./lib/ai/revolutionary-controller.js')];
-            const RevolutionaryController = require('./lib/ai/revolutionary-controller.js');
+            const RevolutionaryController = require('../lib/ai/revolutionary-controller.js');
             const controller = new RevolutionaryController();
             if (!controller) throw new Error('Controller initialization failed');
             if (typeof controller.requestCompletion !== 'function') {
