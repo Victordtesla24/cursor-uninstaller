@@ -136,6 +136,36 @@ run_shellcheck() {
   fi
 }
 
+execute_optimize() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+  local project_root
+  project_root="$(dirname "$script_dir")"
+  local optimize_script="$project_root/scripts/optimize_system.sh"
+  
+  if [[ -f "$optimize_script" ]]; then
+    warn "Running system optimization..."
+    if bash "$optimize_script" optimize; then
+      ok "System optimization completed successfully."
+    else
+      error "System optimization failed."
+      return 1
+    fi
+  else
+    error "Optimization script not found at: $optimize_script"
+    return 1
+  fi
+}
+
+error_handler() {
+  local exit_code=$?
+  local line_number=$1
+  error "Script failed at line $line_number with exit code $exit_code"
+  exit $exit_code
+}
+
+trap 'error_handler $LINENO' ERR
+
 print_header() {
   log "\n${GREEN}Cursor AI Editor Removal Utility — v${VERSION}${NC}"
   log "${GREEN}───────────────────────────────────────────────${NC}\n"

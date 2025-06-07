@@ -150,8 +150,8 @@ npm audit fix --force
 vicd@Vics-MacBook-Air cursor-uninstaller % ./scripts/syntax_and_shellcheck.sh
 
 ╔═════════════════════════════════════════════════════════════════════════╗
-║ Comprehensive Code Validation Tool v3.5.1 ║
-║ Shell • JavaScript • TypeScript • JSON ║
+║ Comprehensive Code Validation Tool v3.5.1                               ║
+║ Shell • JavaScript • TypeScript • JSON                                  ║
 ╚═════════════════════════════════════════════════════════════════════════╝
 
 === File Discovery ===
@@ -236,4 +236,37 @@ File Statistics:
 • Total files: 47
 
 🎉 ALL VALIDATIONS PASSED! All 47 files are valid.
-vicd@Vics-MacBook-Air cursor-uninstaller %
+vicd@Vics-MacBook-Air cursor-uninstaller % ./scripts/test-optimization-install.sh                             
+
+================================================================
+🔍 CURSOR AI OPTIMIZATION INSTALLATION TEST
+================================================================
+Testing optimizations applied based on successful installation
+================================================================
+
+🔍 TESTING CURSOR DIRECTORIES
+
+[✓] Cursor user config directory exists
+[✓] Cursor settings directory exists
+[✓] Cursor AI Editor application found
+
+🔍 TESTING CONFIGURATION FILES
+
+[✓] Configuration found: mcp.json
+[WARNING] Content validation failed for mcp.json (missing: mcp)
+[INFO] File size:      175 bytes
+
+[✗] Configuration missing: yolo-enhanced.json
+[INFO] Expected location: /Users/vicd/Library/Application Support/Cursor/User/settings/yolo-enhanced.json
+
+[✗] Configuration missing: context-optimization.json
+[INFO] Expected location: /Users/vicd/Library/Application Support/Cursor/User/settings/context-optimization.json
+
+[✓] Configuration found: .cursorignore
+[INFO] ✓ Content validation passed for .cursorignore
+[INFO] File size:     1940 bytes
+
+[✗] Configuration missing: performance-monitor.js
+[INFO] Checked locations: /Users/vicd/Library/Application Support/Cursor/User/performance-monitor.js, /Users/vicd/Library/Application Support/Cursor/User/revolutionary-performance-monitor.js, /Users/vicd/Library/Application Support/Cursor/User/settings/performance-monitor.js
+
+vicd@Vics-MacBook-Air cursor-uninstaller % 
