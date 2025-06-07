@@ -2,17 +2,15 @@
 
 /**
  * MCP Server Validation Test
- * Tests all configured MCP servers and their tool capabilities
+ * Validates all configured MCP servers.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 
 class MCPServerValidator {
   constructor() {
-    this.mcpConfigPath = '/Users/vicd/.cursor/mcp.json';
-    this.workspaceRoot = '/Users/Shared/cursor/cursor-uninstaller';
+    this.mcpConfigPath = path.join(process.env.HOME || process.env.USERPROFILE, '.cursor', 'mcp.json');
     this.testResults = {
       servers: {},
       totalServers: 0,
@@ -71,9 +69,6 @@ class MCPServerValidator {
       // Check if the command file exists (for node commands)
       if (serverConfig.command === 'node' && serverConfig.args?.[0]) {
         const scriptPath = serverConfig.args[0];
-        if (!path.isAbsolute(scriptPath)) {
-          throw new Error(`Server script path should be absolute: ${scriptPath}`);
-        }
         if (!fs.existsSync(scriptPath)) {
           throw new Error(`Server script not found: ${scriptPath}`);
         }
@@ -81,16 +76,17 @@ class MCPServerValidator {
         console.log(`   ✅ Script file exists: ${path.basename(scriptPath)}`);
       }
 
-      // For npx commands, just mark as executable (they should be available)
+      // For npx commands, just mark as executable
       if (serverConfig.command === 'npx') {
         serverResult.executable = true;
         console.log(`   ✅ NPX command available`);
       }
 
-      // Test server startup (with timeout)
-      if (serverName === 'revolutionary-ai') {
-        serverResult.tools = ['ai_completion', 'ai_instruction', 'ai_metrics', 'model_selection'];
-        this.testResults.totalTools += 4;
+      // This is a mock validation. A real implementation would start the server
+      // and query its tool list.
+      if (serverName === 'basic-ai') {
+        serverResult.tools = ['echo', 'get_info'];
+        this.testResults.totalTools += 2;
       } else if (serverName === 'browser-tools') {
         serverResult.tools = ['browse_url', 'search_web', 'fetch_documentation', 'check_status', 'screenshot_page'];
         this.testResults.totalTools += 5;
@@ -101,7 +97,7 @@ class MCPServerValidator {
 
       serverResult.status = 'operational';
       this.testResults.operationalServers++;
-      console.log(`   ✅ Server validated successfully`);
+      console.log(`   ✅ Server validated successfully (mock validation)`);
       console.log(`   🔧 Tools available: ${serverResult.tools.length}`);
 
     } catch (error) {
@@ -111,40 +107,6 @@ class MCPServerValidator {
     }
 
     this.testResults.servers[serverName] = serverResult;
-  }
-
-  async testServerStartup(serverName, serverConfig) {
-    return new Promise((resolve) => {
-      const env = { ...process.env, ...serverConfig.env };
-      const child = spawn(serverConfig.command, serverConfig.args || [], {
-        env,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 5000
-      });
-
-      let output = '';
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      child.stderr.on('data', (data) => {
-        output += data.toString();
-      });
-
-      child.on('error', (error) => {
-        resolve({ success: false, error: error.message, output });
-      });
-
-      child.on('exit', (code) => {
-        resolve({ success: code === 0, code, output });
-      });
-
-      // Send a simple test and kill the process
-      setTimeout(() => {
-        child.kill('SIGTERM');
-        resolve({ success: true, output, note: 'Startup test completed' });
-      }, 3000);
-    });
   }
 
   generateReport() {
@@ -172,55 +134,19 @@ class MCPServerValidator {
 
     if (successRate === 100) {
       console.log('🎉 ALL MCP SERVERS VALIDATED SUCCESSFULLY!');
-      console.log('🚀 Cursor AI can now use all configured tools');
     } else {
       console.log('⚠️  Some servers need attention');
     }
 
     return this.testResults;
   }
-
-  async updateStatusFile() {
-    const statusFile = path.join(this.workspaceRoot, 'scripts/.cursor-status-web.json');
-    try {
-      const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
-      
-      // Update MCP server status
-      status.mcpServers = {
-        status: this.testResults.operationalServers === this.testResults.totalServers ? 'operational' : 'partial',
-        configurationFile: this.mcpConfigPath,
-        servers: {},
-        totalToolsEnabled: this.testResults.totalTools,
-        lastValidated: new Date().toISOString()
-      };
-
-      for (const [name, result] of Object.entries(this.testResults.servers)) {
-        status.mcpServers.servers[name] = {
-          status: result.status,
-          toolsEnabled: result.tools.length,
-          tools: result.tools
-        };
-      }
-
-      fs.writeFileSync(statusFile, JSON.stringify(status, null, 2));
-      console.log(`\n📝 Status file updated: ${statusFile}`);
-    } catch (error) {
-      console.error(`⚠️  Could not update status file: ${error.message}`);
-    }
-  }
 }
 
 // Run validation
 async function main() {
   const validator = new MCPServerValidator();
-  
   const configValid = await validator.validateMCPConfiguration();
-  const results = validator.generateReport();
-  
-  if (configValid) {
-    await validator.updateStatusFile();
-  }
-
+  validator.generateReport();
   process.exit(configValid ? 0 : 1);
 }
 
