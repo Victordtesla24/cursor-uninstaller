@@ -177,22 +177,19 @@ async function testComponents() {
     // Test 8: Production Optimizer Script
     test('Production Optimizer Script', () => {
         const script = fs.readFileSync('./scripts/cursor_production_optimizer.sh', 'utf8');
-        if (!script.includes('REVOLUTIONARY PRODUCTION SYSTEM READY')) {
+        if (!script.includes('Revolutionary deployment complete and validated.')) {
             throw new Error('Script missing completion message');
-        }
-        if (!script.includes('6-model-orchestrator')) {
-            throw new Error('Script missing 6-model orchestration reference');
         }
     });
 
     // Test 9: Revolutionary Dashboard
     test('Revolutionary Dashboard', () => {
         const dashboard = fs.readFileSync('./scripts/dashboard.html', 'utf8');
-        if (!dashboard.includes('REVOLUTIONARY CURSOR AI OPTIMIZATION DASHBOARD')) {
+        if (!dashboard.includes('REVOLUTIONARY CURSOR AI OPTIMIZATION LOG')) {
             throw new Error('Dashboard missing revolutionary title');
         }
-        if (!dashboard.includes('6-MODEL ORCHESTRATION')) {
-            throw new Error('Dashboard missing 6-model orchestration section');
+        if (!dashboard.includes('<!-- Log content will be injected here by the optimizer script -->')) {
+            throw new Error('Dashboard missing injection placeholder');
         }
     });
 

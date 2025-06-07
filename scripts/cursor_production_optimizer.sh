@@ -53,22 +53,41 @@ comprehensive_security_audit() {
     print_info "PHASE 1.5: SECURITY AUDIT & REMEDIATION"
     cd "$WORKSPACE_ROOT" || exit 1
     print_info "Running comprehensive npm audit..."
-    if ! npm audit --json > /tmp/audit.json; then
-        print_warning "npm audit failed to produce a report. Attempting fix..."
+    # Suppress error output for the first audit, as we handle the failure case.
+    if ! npm audit --json > /tmp/audit.json 2>/dev/null; then
+        print_warning "Initial npm audit failed or found vulnerabilities. Attempting fix..."
     fi
+    
     local vulnerabilities
+    # Ensure audit file exists before parsing
+    if [[ ! -f /tmp/audit.json ]]; then
+        # Create an empty json object if file does not exist
+        echo "{}" > /tmp/audit.json
+    fi
     vulnerabilities=$(jq '.metadata.vulnerabilities.total // 0' /tmp/audit.json)
+    
     if [[ "$vulnerabilities" -gt 0 ]]; then
         print_warning "$vulnerabilities vulnerabilities detected. Forcing fix..."
-        npm audit fix --force --quiet || print_warning "npm audit fix --force failed."
-        npm audit --json > /tmp/audit.json # Re-run audit
+        print_info "Using 'sudo' for 'npm audit fix' due to permissions. You may be prompted for your password."
+        
+        # Run sudo command and check its exit status
+        if sudo npm audit fix --force --quiet; then
+            print_success "Forced audit fix completed successfully."
+        else
+            print_warning "'sudo npm audit fix --force' failed. Some vulnerabilities may remain."
+        fi
+        
+        # Re-run audit to get the final count
+        npm audit --json > /tmp/audit.json 2>/dev/null
         REMAINING_VULNS=$(jq '.metadata.vulnerabilities.total // 0' /tmp/audit.json)
     fi
+    
     if [[ "$REMAINING_VULNS" -gt 0 ]]; then
         print_warning "Vulnerabilities remain: $REMAINING_VULNS"
     else
         print_success "Security audit complete. No vulnerabilities remain."
     fi
+    
     rm -f /tmp/audit.json
 }
 
@@ -154,25 +173,34 @@ generate_html_report() {
     local template_html="$WORKSPACE_ROOT/scripts/dashboard.html"
 
     if [[ ! -f "$log_file" || ! -f "$template_html" ]]; then
-        # This will be logged to the file, which is fine.
-        echo "Error: Log file or template not found for report generation."
+        echo "Error: Log file or template not found for report generation." >&2
         return 1
     fi
     
-    local html_content
-    html_content=$(convert_ansi_to_html < "$log_file")
+    local html_content_file
+    html_content_file=$(mktemp)
+    # Using trap with RETURN ensures the temp file is cleaned up when the function exits.
+    trap 'rm -f "$html_content_file"' RETURN
+    convert_ansi_to_html < "$log_file" > "$html_content_file"
 
-    # This is tricky with sed because html_content can contain special characters.
-    # A safer way is to use a placeholder that is unlikely to be in the content.
-    local placeholder="<!-- PLACEHOLDER_FOR_LOGS -->"
-    sed "s|<!-- Log content will be injected here by the optimizer script -->|${placeholder}|" "$template_html" > "$output_html"
-    
-    # Now, read the template with placeholder and replace it with the actual content.
-    # This prevents shell expansion issues with the content.
-    local template_content
-    template_content=$(cat "$output_html")
-    # Using a different delimiter for printf to avoid conflicts
-    printf "%s" "${template_content//${placeholder}/${html_content}}" > "$output_html"
+    # Use awk to safely replace the placeholder with the content of the log file.
+    # This is safer than sed/shell expansion for large, multi-line content with special characters.
+    awk '
+      NR==FNR {
+        # Read the entire html content file into the "content" variable
+        content = content $0 ORS
+        next
+      }
+      /<!-- Log content will be injected here by the optimizer script -->/ {
+        # When we find the placeholder line, print the content and skip the line
+        printf "%s", content
+        next
+      }
+      { 
+        # Print all other lines from the template
+        print 
+      }
+    ' "$html_content_file" "$template_html" > "$output_html"
 }
 
 
@@ -184,9 +212,9 @@ main() {
     >"$log_file"
     trap 'rm -f "$log_file"' EXIT
 
-    # Run the main logic in a subshell to capture all output,
-    # then return to the main shell for final user-facing commands.
-    (
+    # Use a command group { ... } to run in the current shell. This is critical
+    # so that variable modifications (e.g., TESTS_FAILED) persist after the group.
+    {
         display_header
         validate_environment
         comprehensive_security_audit
@@ -195,19 +223,18 @@ main() {
         deploy_revolutionary_performance_optimization
         comprehensive_validation
         display_summary
-    ) &> >(tee "$log_file")
+    } &> >(tee "$log_file")
 
     local overall_status=0
-    # The variables TESTS_FAILED and REMAINING_VULNS are modified in the subshell,
-    # so their values won't be reflected here. We must check the log content instead.
-    if grep -q "FAILED" "$log_file" || grep -q "Vulnerabilities remain" "$log_file"; then
+    # This now works correctly because the command group runs in the current shell.
+    if [[ "$TESTS_FAILED" = true || "$REMAINING_VULNS" -gt 0 ]]; then
         overall_status=1
     fi
     
     local final_dashboard_path="$WORKSPACE_ROOT/scripts/dashboard-report.html"
     generate_html_report "$log_file" "$final_dashboard_path"
 
-    # These messages will now print to the actual terminal.
+    # These messages will now print to the actual terminal, not the log file.
     echo # Adding a newline for cleaner output.
     print_info "HTML report generated: file://${final_dashboard_path}"
 
