@@ -31,7 +31,7 @@ describe('Project Directory Structure Protocol Validation', () => {
           isFile: stats.isFile()
         });
       }
-    } catch (error) {
+    } catch (_error) {
       // Directory doesn't exist or can't be read
       return [];
     }
@@ -86,7 +86,7 @@ describe('Project Directory Structure Protocol Validation', () => {
         } else if (packageJson.type === 'module' || packageJson.main) {
           projectType = 'node';
         }
-      } catch (error) {
+      } catch (_error) {
         // Invalid package.json
       }
     }
@@ -95,7 +95,7 @@ describe('Project Directory Structure Protocol Validation', () => {
   }
 
   test('Directory structure should follow established conventions', () => {
-    const { projectType } = validateProjectConventions();
+    validateProjectConventions();
     const rootItems = scanDirectory(projectRoot);
 
     // Verify essential project files exist
@@ -203,7 +203,7 @@ describe('Project Directory Structure Protocol Validation', () => {
             }
           });
         }
-      } catch (error) {
+      } catch (_error) {
         // File read error - skip
       }
     });
