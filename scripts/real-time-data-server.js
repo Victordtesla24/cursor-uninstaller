@@ -487,7 +487,7 @@ class RealTimeDataServer {
    */
   generateMockModelPerformance() {
     return {
-      'claude-3.5-sonnet': {
+      'claude-3-5-sonnet-20241022': {
         requests: 247,
         averageLatency: 850,
         successRate: 95,
@@ -499,7 +499,7 @@ class RealTimeDataServer {
         successRate: 93,
         efficiency: 91
       },
-      'claude-3-haiku': {
+      'claude-3-haiku-20240307': {
         requests: 89,
         averageLatency: 380,
         successRate: 88,
@@ -540,7 +540,7 @@ class RealTimeDataServer {
         }
         
         // Occasionally simulate errors for realistic metrics
-        if (Math.random() < 0.05) {
+        if (Math.random() < 0.01) {
           try {
             await this.aiSystem.requestCompletion({ invalid: 'request' });
           } catch (error) {
