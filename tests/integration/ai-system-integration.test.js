@@ -4,7 +4,7 @@
  * Tests all components working together
  */
 
-const { AISystem } = require('../../lib/ai');
+import { AISystem } from '../../lib/ai/index.js';
 
 describe('AI System Integration', () => {
   let aiSystem;

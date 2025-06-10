@@ -3,8 +3,13 @@
  * Tests core functionality
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Cursor Uninstaller Basic Tests', () => {
   test('main uninstaller script exists and is readable', () => {
@@ -53,4 +58,4 @@ describe('Cursor Uninstaller Basic Tests', () => {
       expect(fs.existsSync(filePath)).toBe(true);
     });
   });
-}); 
+});

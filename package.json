@@ -5,11 +5,11 @@
   "type": "module",
   "main": "bin/uninstall_cursor.sh",
   "scripts": {
-    "test": "jest --config=jest.config.js --testTimeout=30000",
-    "test:integration": "jest tests/integration/",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config=jest.config.enhanced.js --testTimeout=30000",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration/ --config=jest.config.enhanced.js",
     "test:all": "npm run test:integration",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch --config=jest.config.enhanced.js",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --config=jest.config.enhanced.js",
     "lint": "eslint lib modules tests --ext .ts,.js --fix",
     "lint:check": "eslint lib modules tests --ext .ts,.js",
     "dev": "nodemon --exec 'node --experimental-modules' --ext js,ts,json",
@@ -19,7 +19,11 @@
     "audit:fix": "npm audit fix",
     "audit:check": "npm audit --audit-level=moderate",
     "security:scan": "npm audit --json > security-audit.json",
-    "mcp:validate": "npx @modelcontextprotocol/server-filesystem --help"
+    "mcp:validate": "npx @modelcontextprotocol/server-filesystem --help",
+    "start:monitoring": "bash scripts/start-monitoring.sh",
+    "stop:monitoring": "bash scripts/stop-monitoring.sh",
+    "dashboard": "open http://localhost:8080/dashboard",
+    "optimize": "node scripts/systematic-optimization.js"
   },
   "keywords": [
     "cursor",
