@@ -1,23 +1,42 @@
 #!/bin/bash
-# Monitoring Integration Script
-# Starts real-time AI enhancement monitoring
+# Start the AI Enhancement Monitoring System
 
 echo "🚀 Starting AI Enhancement Monitoring System"
-
-# Start the real-time data server
 echo "📊 Launching real-time metrics server..."
-node scripts/real-time-data-server.js &
-SERVER_PID=$!
 
-echo "✅ Monitoring server started (PID: $SERVER_PID)"
-echo "📈 Dashboard available at: http://localhost:8080/dashboard"
-echo "🔍 Metrics API at: http://localhost:8080/api/metrics"
+# Create logs directory if it doesn't exist
+mkdir -p logs
 
-# Save PID for cleanup
-echo $SERVER_PID > scripts/.monitoring-server.pid
+# Kill any existing process
+if [ -f .monitoring.pid ]; then
+  OLD_PID=$(cat .monitoring.pid)
+  if ps -p $OLD_PID > /dev/null; then
+    echo "⚠️ Found existing monitoring server (PID: $OLD_PID), stopping it..."
+    kill $OLD_PID 2>/dev/null
+    sleep 1
+  fi
+  rm .monitoring.pid
+fi
 
-echo "🎯 AI Enhancement Monitoring System is LIVE!"
-echo "Press Ctrl+C to stop monitoring"
+# Start the server in the background
+node scripts/real-time-data-server.js > logs/monitoring.log 2>&1 &
+PID=$!
 
-# Keep script running
-wait $SERVER_PID
+# Save the PID to a file for later use
+echo $PID > .monitoring.pid
+
+# Check if server started successfully
+sleep 2
+if ps -p $PID > /dev/null; then
+  echo "✅ Monitoring server started (PID: $PID)"
+  echo "📈 Dashboard available at: http://localhost:8080/dashboard"
+  echo "🔍 Metrics API at: http://localhost:8080/api/metrics"
+  echo "🎯 AI Enhancement Monitoring System is LIVE!"
+  echo "Press Ctrl+C to stop monitoring"
+  
+  # Keep monitoring the log
+  tail -f logs/monitoring.log
+else
+  echo "❌ Failed to start monitoring server"
+  exit 1
+fi

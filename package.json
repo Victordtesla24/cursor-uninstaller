@@ -23,7 +23,9 @@
     "start:monitoring": "bash scripts/start-monitoring.sh",
     "stop:monitoring": "bash scripts/stop-monitoring.sh",
     "dashboard": "open http://localhost:8080/dashboard",
-    "optimize": "node scripts/systematic-optimization.js"
+    "optimize": "node scripts/systematic-optimization.js",
+    "env:setup": "cp .env.example .env && echo '✅ .env file created! Please edit .env and add your API keys.'",
+    "env:check": "node -e \"require('dotenv/config'); console.log('🔍 Environment Check:'); console.log('ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? '✅ Set' : '❌ Missing'); console.log('GOOGLE_AI_API_KEY:', process.env.GOOGLE_AI_API_KEY ? '✅ Set' : '⚠️ Optional'); console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅ Set' : '⚠️ Optional');\""
   },
   "keywords": [
     "cursor",
@@ -51,6 +53,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "chalk": "^5.4.1",
+    "dotenv": "^16.5.0",
     "puppeteer": "^24.10.0"
   },
   "overrides": {

@@ -1,50 +1,96 @@
-# Cursor AI Integration Template
+# Cursor AI Performance Dashboard
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A starter template for building custom integrations and tools for the Cursor AI editor.
+An AI Performance Dashboard and monitoring system for tracking and optimizing AI model usage within the Cursor AI editor.
 
 ## Overview
 
-This repository provides a foundational template for developers looking to create their own tools, language adapters, and extensions for the Cursor AI editor. It includes a basic project structure, placeholder modules, and example scripts to help you get started quickly.
+This project provides a comprehensive AI Performance Dashboard that works alongside Cursor AI editor's built-in models (like Claude-sonnet-4-thinking) while also supporting external API integrations for performance monitoring and analysis.
 
-The core philosophy is to provide a clean, well-organized starting point that you can adapt and expand upon. All "AI" features in this template are placeholders and require you to integrate your own API keys and logic.
+**Key Features:**
+- **Real-time Performance Monitoring:** Live metrics for AI model performance, latency, and usage
+- **Dual AI Support:** Works with Cursor's built-in AI models AND external API keys
+- **Performance Dashboard:** Web-based dashboard for monitoring AI performance
+- **Alert System:** Automated performance alerts and reporting
+- **Model Comparison:** Compare performance across different AI models
+- **Security First:** API keys stored locally in `.env` file (never committed to git)
 
 ## Features
 
--   **Project Structure:** A sensible directory layout for organizing your code.
--   **Language Adapters:** Basic stubs for supporting different programming languages.
--   **MCP Servers:** Example Model Context Protocol (MCP) servers for `filesystem` and `browser-tools`.
--   **Placeholder Modules:** Skeletons for AI clients, context management, and more.
--   **Utility Scripts:** Basic shell and Node.js scripts for testing and development.
--   **Testing Setup:** A pre-configured testing environment with Jest.
+-   **🚀 Real-time AI Performance Dashboard:** Monitor AI model performance with live metrics
+-   **🔧 Multi-Provider Support:** Claude (Anthropic), GPT (OpenAI), and Gemini (Google AI)
+-   **📊 Performance Analytics:** Track latency, error rates, and model efficiency
+-   **⚠️ Alert System:** Automated performance monitoring with configurable alerts
+-   **🔄 Intelligent Fallback:** Automatic failover between AI providers
+-   **📈 Historical Data:** Performance trends and reporting
+-   **🎯 Production-Ready:** Robust error handling and monitoring
 
 ## Getting Started
 
 ### Prerequisites
 
 -   [Node.js](https://nodejs.org/) (v18 or higher)
--   [Cursor](https://cursor.sh/)
+-   [Cursor AI Editor](https://cursor.sh/)
+-   API keys for AI providers (optional but recommended)
 
-### Installation
+### Quick Setup
 
-1.  **Clone the repository:**
+1.  **Clone and install:**
     ```bash
-    git clone https://github.com/your-username/cursor-ai-template.git
-    cd cursor-ai-template
-    ```
-
-2.  **Install dependencies:**
-    ```bash
+    git clone <repository-url>
+    cd cursor-uninstaller
     npm install
     ```
 
-3.  **Configure your environment:**
-    Create a `.env` file in the root directory to store your API keys:
+2.  **Set up API keys:**
+    ```bash
+    # Create .env file from template
+    npm run env:setup
+    
+    # Edit .env file and add your API keys
+    # (Use any text editor or open in Cursor)
     ```
-    OPENAI_API_KEY=your_openai_api_key
-    ANTHROPIC_API_KEY=your_anthropic_api_key
+
+3.  **Configure your API keys in `.env`:**
+    ```env
+    # Required for real API functionality
+    ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+    
+    # Optional (for additional providers)
+    GOOGLE_AI_API_KEY=your-google-key-here
+    OPENAI_API_KEY=sk-proj-your-openai-key-here
     ```
+
+4.  **Start the monitoring system:**
+    ```bash
+    npm run start:monitoring
+    ```
+
+5.  **Open the dashboard:**
+    ```bash
+    npm run dashboard
+    # Or visit: http://localhost:8080/dashboard
+    ```
+
+### API Key Setup (Detailed)
+
+#### Required: Anthropic Claude API Key
+1. Visit [https://console.anthropic.com/](https://console.anthropic.com/)
+2. Create an account or sign in
+3. Navigate to API Keys section
+4. Create a new API key
+5. Copy the key to your `.env` file
+
+#### Optional: Additional Providers
+- **Google AI (Gemini):** [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+- **OpenAI (GPT):** [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+
+### Verify Setup
+```bash
+# Check if your API keys are properly configured
+npm run env:check
+```
 
 ## Project Structure
 

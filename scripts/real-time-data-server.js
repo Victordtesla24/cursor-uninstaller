@@ -4,11 +4,15 @@
  * Provides live performance metrics to the dashboard with actual system data
  */
 
+import 'dotenv/config';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { AISystem } from '../lib/ai/index.js';
+import { trackModelMetrics, getAllModelMetrics } from './model-metrics.js';
+import { generatePerformanceReport, scheduleDailyReports, trackError } from './performance-reporter.js';
+import { checkPerformanceAlerts, getRecentAlerts } from './performance-alerts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +26,8 @@ class RealTimeDataServer {
     this.isRunning = false;
     this.server = null;
     this.metricsInterval = null;
+    this.alertCheckInterval = null;
+    this.reportGenerationInterval = null;
     
     // Performance tracking
     this.startTime = Date.now();
@@ -56,6 +62,12 @@ class RealTimeDataServer {
       
       // Start metrics collection
       this.startMetricsCollection();
+      
+      // Start alert checking
+      this.startAlertChecking();
+      
+      // Schedule daily reports
+      this.scheduleDailyReports();
       
       // Start server
       this.server.listen(this.port, () => {
@@ -110,6 +122,15 @@ class RealTimeDataServer {
         break;
       case '/api/system-health':
         this.serveSystemHealth(res);
+        break;
+      case '/api/alerts':
+        this.serveAlerts(res);
+        break;
+      case '/api/detailed-model-metrics':
+        this.serveDetailedModelMetrics(res);
+        break;
+      case '/api/generate-report':
+        this.generateAndServeReport(res);
         break;
       default:
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -255,10 +276,21 @@ class RealTimeDataServer {
         this.aiSystem.getModelPerformance() : 
         this.generateMockModelPerformance();
       
+      // Track model metrics for each model
+      Object.entries(modelPerformance).forEach(([modelName, metrics]) => {
+        trackModelMetrics(
+          modelName,
+          metrics.averageLatency,
+          metrics.successRate > 90, // Success if rate > 90%
+          metrics.tokenUsage || 0
+        );
+      });
+      
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(modelPerformance, null, 2));
     } catch (error) {
       console.error('Error serving model performance:', error);
+      trackError('model_performance', error.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to get model performance' }));
     }
@@ -287,6 +319,72 @@ class RealTimeDataServer {
       res.end(JSON.stringify({ error: 'Failed to get system health' }));
     }
   }
+  
+  /**
+   * Serve performance alerts
+   */
+  serveAlerts(res) {
+    try {
+      const alerts = getRecentAlerts();
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        alerts,
+        count: alerts.length,
+        timestamp: new Date().toISOString()
+      }, null, 2));
+    } catch (error) {
+      console.error('Error serving alerts:', error);
+      trackError('alerts_api', error.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to get alerts' }));
+    }
+  }
+  
+  /**
+   * Serve detailed model metrics
+   */
+  serveDetailedModelMetrics(res) {
+    try {
+      const modelMetrics = getAllModelMetrics();
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        metrics: modelMetrics,
+        models: Object.keys(modelMetrics),
+        count: Object.keys(modelMetrics).length,
+        timestamp: new Date().toISOString()
+      }, null, 2));
+    } catch (error) {
+      console.error('Error serving detailed model metrics:', error);
+      trackError('model_metrics_api', error.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to get detailed model metrics' }));
+    }
+  }
+  
+  /**
+   * Generate and serve a performance report
+   */
+  generateAndServeReport(res) {
+    try {
+      const metrics = this.generateCurrentMetrics();
+      const result = generatePerformanceReport(metrics);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        report: result.report,
+        filePath: result.filePath,
+        timestamp: new Date().toISOString()
+      }, null, 2));
+    } catch (error) {
+      console.error('Error generating report:', error);
+      trackError('report_generation', error.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to generate report' }));
+    }
+  }
 
   /**
    * Start metrics collection
@@ -304,6 +402,45 @@ class RealTimeDataServer {
         this.metricsHistory.shift();
       }
     }, 2000); // Collect every 2 seconds
+  }
+  
+  /**
+   * Start alert checking
+   */
+  startAlertChecking() {
+    this.alertCheckInterval = setInterval(() => {
+      const metrics = this.generateCurrentMetrics();
+      
+      // Add model metrics to the metrics object
+      metrics.modelMetrics = getAllModelMetrics();
+      
+      // Check for alerts
+      const alerts = checkPerformanceAlerts(metrics);
+      
+      if (alerts.length > 0) {
+        console.log(`⚠️ ${alerts.length} performance alert(s) triggered`);
+      }
+    }, 10000); // Check every 10 seconds
+    
+    console.log('🔔 Performance alert monitoring started');
+  }
+  
+  /**
+   * Schedule daily reports
+   */
+  scheduleDailyReports() {
+    // Generate a report every 24 hours
+    this.reportGenerationInterval = setInterval(() => {
+      try {
+        const metrics = this.generateCurrentMetrics();
+        const result = generatePerformanceReport(metrics);
+        console.log(`📊 Daily performance report generated: ${result.filePath}`);
+      } catch (error) {
+        console.error('Failed to generate daily performance report:', error);
+      }
+    }, 24 * 60 * 60 * 1000); // 24 hours
+    
+    console.log('📅 Daily performance reports scheduled');
   }
 
   /**
@@ -332,7 +469,8 @@ class RealTimeDataServer {
           requestsPerSecond: systemStats.performanceMonitor.requestsPerSecond || baseMetrics.requestsPerSecond,
           totalRequests: systemStats.system.totalRequests,
           cacheHitRate: systemStats.resultCache.hitRate,
-          uptime: systemStats.system.uptime
+          uptime: systemStats.system.uptime,
+          modelMetrics: getAllModelMetrics()
         };
         
         return realMetrics;
@@ -427,13 +565,21 @@ class RealTimeDataServer {
         clearInterval(this.metricsInterval);
       }
       
-      if (this.server) {
-        this.server.close();
-      }
-      
-      if (this.aiSystem) {
-        await this.aiSystem.shutdown();
-      }
+    if (this.alertCheckInterval) {
+      clearInterval(this.alertCheckInterval);
+    }
+    
+    if (this.reportGenerationInterval) {
+      clearInterval(this.reportGenerationInterval);
+    }
+    
+    if (this.server) {
+      this.server.close();
+    }
+    
+    if (this.aiSystem) {
+      await this.aiSystem.shutdown();
+    }
       
       console.log('Real-time data server stopped');
     } catch (error) {
