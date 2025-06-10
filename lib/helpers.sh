@@ -199,12 +199,77 @@ get_project_root() {
 }
 
 # =============================================================================
+# Additional Validation Functions (for test compatibility)
+# =============================================================================
+
+validate_system() {
+    print_info "Running comprehensive system validation"
+    
+    local validation_result=0
+    
+    if ! validate_macos; then
+        validation_result=1
+    fi
+    
+    if ! validate_nodejs; then
+        validation_result=1
+    fi
+    
+    if ! validate_npm; then
+        validation_result=1
+    fi
+    
+    if ! validate_cursor_installation; then
+        validation_result=1
+    fi
+    
+    return $validation_result
+}
+
+terminate_cursor() {
+    print_info "Terminating Cursor processes"
+    stop_cursor
+    
+    # Additional termination logic
+    if is_cursor_running; then
+        print_warning "Force terminating remaining Cursor processes"
+        pkill -9 "Cursor" 2>/dev/null || true
+        sleep 1
+    fi
+    
+    return 0
+}
+
+system_spec() {
+    print_info "Gathering system specifications"
+    
+    local os_version=$(sw_vers -productVersion)
+    local hardware=$(system_profiler SPHardwareDataType | grep "Model Name" | cut -d: -f2 | xargs)
+    local memory=$(system_profiler SPHardwareDataType | grep "Memory" | cut -d: -f2 | xargs)
+    
+    echo "System Specifications:"
+    echo "- OS: macOS $os_version"
+    echo "- Hardware: $hardware"
+    echo "- Memory: $memory"
+    
+    if command -v node &> /dev/null; then
+        echo "- Node.js: $(node --version)"
+    fi
+    
+    if command -v npm &> /dev/null; then
+        echo "- npm: $(npm --version)"
+    fi
+    
+    return 0
+}
+
+# =============================================================================
 # Export Functions
 # =============================================================================
 
 # Export all functions for use in other scripts
 export -f print_header print_step print_success print_error print_warning print_info
-export -f validate_macos validate_cursor_installation validate_nodejs validate_npm
+export -f validate_macos validate_cursor_installation validate_nodejs validate_npm validate_system
 export -f ensure_directory backup_file
-export -f is_cursor_running stop_cursor
-export -f handle_error confirm_action get_script_dir get_project_root
+export -f is_cursor_running stop_cursor terminate_cursor
+export -f handle_error confirm_action get_script_dir get_project_root system_spec
