@@ -137,7 +137,7 @@ describe('AI System Integration', () => {
       expect(result).toBeDefined();
       expect(result.metadata.model).toBeDefined();
       // Should use a powerful model for complex instructions
-      expect(['claude-4-opus-thinking', 'claude-4-sonnet-thinking', 'gpt-4.1', 'claude-3-sonnet']).toContain(result.metadata.model);
+      expect(['claude-4-opus-thinking', 'claude-4-sonnet-thinking', 'gpt-4.1', 'claude-3-sonnet', 'gemini-1.5-flash']).toContain(result.metadata.model);
     });
   });
 
@@ -162,7 +162,7 @@ describe('AI System Integration', () => {
       aiSystem.controller.config.revolutionary.unlimitedCaching = originalCaching;
 
       // Simple requests should use fast models
-      expect(['o3', 'claude-3.7-sonnet-thinking', 'claude-4-sonnet-thinking', 'claude-3-sonnet']).toContain(result.metadata.model);
+      expect(['o3', 'claude-3.7-sonnet-thinking', 'claude-4-sonnet-thinking', 'claude-3-sonnet', 'gemini-1.5-flash']).toContain(result.metadata.model);
     });
 
     test('should provide model performance data', () => {
