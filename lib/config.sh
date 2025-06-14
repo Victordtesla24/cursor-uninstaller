@@ -14,6 +14,7 @@ readonly CONFIG_MODULE_VERSION="1.0.0"
 # Application paths and identifiers
 readonly CURSOR_APP_PATH="/Applications/Cursor.app"
 readonly CURSOR_BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+readonly CURSOR_CLI_PATH="/usr/local/bin/cursor"  # Primary CLI path
 readonly CURSOR_CLI_PATHS=(
     "/usr/local/bin/cursor"
     "/opt/homebrew/bin/cursor"
@@ -53,6 +54,7 @@ readonly FILE_DESCRIPTOR_LIMIT=65536  # Increased limit for AI model loading and
 readonly AI_MEMORY_LIMIT_GB=8  # Memory limit for Node.js/Electron AI processing
 readonly MAX_OPEN_FILES=65536  # Maximum open files for large projects
 readonly PROCESS_NICE_LEVEL=0  # Process priority adjustment
+readonly MAX_REMOVAL_ATTEMPTS=3  # Maximum attempts for file/directory removal operations
 
 # Color definitions for UI
 if [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]]; then
@@ -88,17 +90,17 @@ get_cursor_user_dirs() {
         "$HOME/Library/WebKit/com.todesktop.230313mzl4w4u92"
         "$HOME/Library/Logs/Cursor"
     )
-    
+
     printf '%s\n' "${user_dirs[@]}"
 }
 
 # Function to validate configuration
 validate_configuration() {
     local validation_errors=0
-    
+
     # Validate required directories exist or can be created
     local required_dirs=("$LOG_DIR" "$CONFIG_DIR" "$BACKUP_DIR")
-    
+
     for dir in "${required_dirs[@]}"; do
         if [[ ! -d "$dir" ]]; then
             if ! mkdir -p "$dir" 2>/dev/null; then
@@ -107,7 +109,7 @@ validate_configuration() {
             fi
         fi
     done
-    
+
     # Validate timeout values
     local timeout_vars=(
         "NETWORK_TIMEOUT:$NETWORK_TIMEOUT"
@@ -117,29 +119,29 @@ validate_configuration() {
         "SPOTLIGHT_OPERATION_TIMEOUT:$SPOTLIGHT_OPERATION_TIMEOUT"
         "PROCESS_TERMINATION_GRACE_TIMEOUT:$PROCESS_TERMINATION_GRACE_TIMEOUT"
     )
-    
+
     for timeout_var in "${timeout_vars[@]}"; do
         local name="${timeout_var%%:*}"
         local value="${timeout_var##*:}"
-        
+
         if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value <= 0 )) || (( value > 3600 )); then
             printf '[CONFIG ERROR] Invalid timeout value for %s: %s\n' "$name" "$value" >&2
             ((validation_errors++))
         fi
     done
-    
+
     # Validate memory requirements
     if [[ ! "$MIN_MEMORY_GB" =~ ^[0-9]+$ ]] || (( MIN_MEMORY_GB <= 0 )); then
         printf '[CONFIG ERROR] Invalid minimum memory requirement: %s\n' "$MIN_MEMORY_GB" >&2
         ((validation_errors++))
     fi
-    
+
     # Validate disk space requirements
     if [[ ! "$MIN_DISK_SPACE_GB" =~ ^[0-9]+$ ]] || (( MIN_DISK_SPACE_GB <= 0 )); then
         printf '[CONFIG ERROR] Invalid minimum disk space requirement: %s\n' "$MIN_DISK_SPACE_GB" >&2
         ((validation_errors++))
     fi
-    
+
     return $validation_errors
 }
 
@@ -166,35 +168,35 @@ detect_environment() {
         printf '[CONFIG ERROR] Unsupported operating system: %s\n' "$OSTYPE" >&2
         return 1
     fi
-    
+
     # Detect macOS version
     if command -v sw_vers >/dev/null 2>&1; then
         local macos_version
         macos_version=$(sw_vers -productVersion 2>/dev/null || echo "0.0")
-        
+
         # Basic version check
         if [[ ! "$macos_version" =~ ^[0-9]+\.[0-9]+ ]]; then
             printf '[CONFIG WARNING] Cannot determine macOS version\n' >&2
         fi
     fi
-    
+
     # Detect architecture
     local arch
     arch=$(uname -m 2>/dev/null || echo "unknown")
     export SYSTEM_ARCHITECTURE="$arch"
-    
+
     # Detect shell
     local shell_name
     shell_name=$(basename "${SHELL:-/bin/bash}")
     export CURRENT_SHELL="$shell_name"
-    
+
     # Detect terminal capabilities
     if [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]]; then
         export TERMINAL_INTERACTIVE=true
     else
         export TERMINAL_INTERACTIVE=false
     fi
-    
+
     return 0
 }
 
@@ -205,44 +207,62 @@ initialize_configuration() {
         printf '[CONFIG ERROR] Configuration validation failed\n' >&2
         return 1
     fi
-    
+
     # Detect environment
     if ! detect_environment; then
         printf '[CONFIG ERROR] Environment detection failed\n' >&2
         return 1
     fi
-    
+
     # Create required directories securely
     local dirs_to_create=("$TEMP_DIR" "$LOG_DIR" "$CONFIG_DIR" "$BACKUP_DIR")
     local current_user_id
     current_user_id=$(id -u)
-    
+
     for dir in "${dirs_to_create[@]}"; do
         if [[ -d "$dir" ]]; then
             # Directory exists, check ownership and permissions
             local dir_owner_id
             dir_owner_id=$(stat -f "%u" "$dir" 2>/dev/null || echo "-1")
-            
+
             if [[ "$dir_owner_id" == "$current_user_id" ]]; then
+                # Directory is owned by current user, ensure proper permissions
                 if ! chmod 700 "$dir" 2>/dev/null; then
-                    printf '[CONFIG WARNING] Cannot set permissions for existing directory: %s\n' "$dir" >&2
+                    printf '[CONFIG DEBUG] Cannot set permissions for existing directory: %s\n' "$dir" >&2
                 fi
             else
-                printf '[CONFIG WARNING] Directory exists but is not owned by current user: %s\n' "$dir" >&2
-                # Consider not using this directory or failing if ownership is critical
+                # Directory exists but different owner - try to use it if possible
+                if [[ -w "$dir" ]]; then
+                    # Directory is writable, we can use it
+                    printf '[CONFIG DEBUG] Using existing writable directory: %s (owner: %s)\n' "$dir" "$dir_owner_id" >&2
+                else
+                    # Directory is not writable, try alternative approach
+                    printf '[CONFIG WARNING] Directory exists but is not writable: %s\n' "$dir" >&2
+                    # Try to create user-specific subdirectory instead
+                    local user_subdir="$dir/user_$current_user_id"
+                    if mkdir -p "$user_subdir" 2>/dev/null && chmod 700 "$user_subdir" 2>/dev/null; then
+                        # Update the directory path to use user-specific subdirectory
+                        case "$dir" in
+                            *logs) LOG_DIR="$user_subdir" && export LOG_DIR ;;
+                            *config) CONFIG_DIR="$user_subdir" && export CONFIG_DIR ;;
+                            *backups) BACKUP_DIR="$user_subdir" && export BACKUP_DIR ;;
+                        esac
+                        printf '[CONFIG INFO] Created user-specific directory: %s\n' "$user_subdir" >&2
+                    fi
+                fi
             fi
         else
             # Directory does not exist, create it
             if mkdir -p "$dir" 2>/dev/null; then
                 if ! chmod 700 "$dir" 2>/dev/null; then
-                    printf '[CONFIG WARNING] Cannot set permissions for new directory: %s\n' "$dir" >&2
+                    printf '[CONFIG DEBUG] Cannot set permissions for new directory: %s\n' "$dir" >&2
                 fi
-                # Double check ownership after creation (especially if running as root then sudoing)
+                # Verify ownership after creation
                 local new_dir_owner_id
                 new_dir_owner_id=$(stat -f "%u" "$dir" 2>/dev/null || echo "-1")
                 if [[ "$new_dir_owner_id" != "$current_user_id" ]]; then
                     if ! chown "$current_user_id" "$dir" 2>/dev/null; then
-                         printf '[CONFIG WARNING] Cannot set ownership for new directory: %s\n' "$dir" >&2
+                        printf '[CONFIG DEBUG] Cannot set ownership for new directory: %s\n' "$dir" >&2
                     fi
                 fi
             else
@@ -250,19 +270,19 @@ initialize_configuration() {
             fi
         fi
     done
-    
+
     return 0
 }
 
 # Export all configuration variables
-export CURSOR_APP_PATH CURSOR_BUNDLE_ID
+export CURSOR_APP_PATH CURSOR_BUNDLE_ID CURSOR_CLI_PATH
 export MIN_MACOS_VERSION MIN_MEMORY_GB MIN_DISK_SPACE_GB
 export RECOMMENDED_MEMORY_GB RECOMMENDED_DISK_SPACE_GB
-export NETWORK_TIMEOUT PROCESS_TIMEOUT DMG_MOUNT_TIMEOUT FILE_OPERATION_TIMEOUT
+export NETWORK_TIMEOUT PROCESS_TIMEOUT DMG_MOUNT_TIMEOUT FILE_OPERATION_TIMEOUT SPOTLIGHT_OPERATION_TIMEOUT PROCESS_TERMINATION_GRACE_TIMEOUT
 export TEMP_DIR LOG_DIR CONFIG_DIR BACKUP_DIR
 export MAX_PATH_LENGTH MAX_MESSAGE_LENGTH MAX_LOG_FILE_SIZE
 export ENABLE_BACKUPS SUDO_REMOVAL_CONFIRMED
-export FILE_DESCRIPTOR_LIMIT AI_MEMORY_LIMIT_GB MAX_OPEN_FILES PROCESS_NICE_LEVEL
+export FILE_DESCRIPTOR_LIMIT AI_MEMORY_LIMIT_GB MAX_OPEN_FILES PROCESS_NICE_LEVEL MAX_REMOVAL_ATTEMPTS
 export RED GREEN YELLOW BLUE CYAN BOLD NC
 export LAUNCH_SERVICES_CMD
 
@@ -277,11 +297,11 @@ export -f detect_environment initialize_configuration
 if initialize_configuration; then
     readonly CONFIG_LOADED=true
     export CONFIG_LOADED
-    
+
     if declare -f log_with_level >/dev/null 2>&1; then
         log_with_level "DEBUG" "Configuration module v$CONFIG_MODULE_VERSION loaded successfully"
     fi
 else
     printf '[CONFIG ERROR] Failed to initialize configuration\n' >&2
     exit 1
-fi 
+fi

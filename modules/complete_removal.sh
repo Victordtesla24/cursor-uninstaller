@@ -12,7 +12,7 @@ set -euo pipefail
 readonly MODULE_NAME="complete_removal"
 readonly MODULE_VERSION="2.0.0"
 # readonly SPOTLIGHT_TIMEOUT=30 # Now in config.sh as SPOTLIGHT_OPERATION_TIMEOUT
-# readonly MAX_REMOVAL_ATTEMPTS=3 # This can remain local if not shared
+# MAX_REMOVAL_ATTEMPTS is now defined in config.sh and exported
 # readonly PROCESS_TERMINATION_TIMEOUT=15 # Now in config.sh as PROCESS_TERMINATION_GRACE_TIMEOUT
 
 # Enhanced logging for this module

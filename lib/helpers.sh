@@ -35,24 +35,52 @@ log_with_level() {
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date)
 
-    # Color coding with security-aware output
+        # Color coding with enhanced terminal detection and security-aware output
     local color=""
-    case "$level" in
-        "ERROR") color="${RED:-}" ;;
-        "WARNING") color="${YELLOW:-}" ;;
-        "SUCCESS") color="${GREEN:-}" ;;
-        "INFO") color="${CYAN:-}" ;;
-        "DEBUG") color="${BLUE:-}" ;;
-    esac
+    local reset_color=""
+
+    # Enhanced terminal detection - only use colors if ALL conditions are met:
+    # 1. stdout is a terminal (interactive)
+    # 2. stderr is a terminal (for error messages)
+    # 3. TERM is set and not "dumb"
+    # 4. NO_COLOR is not set
+    # 5. We're not in a pipe or redirection
+    # 6. Not being run as root for security
+    local use_colors=false
+    if [[ -t 1 ]] && [[ -t 2 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]] && [[ -z "${CI:-}" ]] && [[ $EUID -ne 0 ]]; then
+        # Additional check: ensure color variables are actually defined
+        if [[ -n "${RED:-}" ]] && [[ -n "${NC:-}" ]]; then
+            use_colors=true
+        fi
+    fi
+
+    if [[ "$use_colors" == "true" ]]; then
+        case "$level" in
+            "ERROR") color="${RED:-}" ;;
+            "WARNING") color="${YELLOW:-}" ;;
+            "SUCCESS") color="${GREEN:-}" ;;
+            "INFO") color="${CYAN:-}" ;;
+            "DEBUG") color="${BLUE:-}" ;;
+        esac
+        reset_color="${NC:-}"
+    fi
 
     local formatted_message
     formatted_message=$(printf '[%s] [%s] %s' "$timestamp" "$level" "$message")
 
-    # Route output appropriately
+    # Route output appropriately with proper color handling
     if [[ "$level" == "ERROR" || "$level" == "WARNING" ]]; then
-        printf '%s%s%s\n' "$color" "$formatted_message" "${NC:-}" >&2
+        if [[ -n "$color" ]]; then
+            printf '%s%s%s\n' "$color" "$formatted_message" "$reset_color" >&2
+        else
+            printf '%s\n' "$formatted_message" >&2
+        fi
     else
-        printf '%s%s%s\n' "$color" "$formatted_message" "${NC:-}"
+        if [[ -n "$color" ]]; then
+            printf '%s%s%s\n' "$color" "$formatted_message" "$reset_color"
+        else
+            printf '%s\n' "$formatted_message"
+        fi
     fi
 
     # Log to file if available (with rotation)
@@ -692,7 +720,7 @@ get_system_specs() {
         system_info[total_memory_gb]=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo "unknown")
 
         local vm_info
-        vm_info=$(vm_stat 2>/dev/null)
+        vm_info=$(timeout 5 vm_stat 2>/dev/null || echo "")
         if [[ -n "$vm_info" ]]; then
             local -i page_size=4096
             local -i free_pages active_pages inactive_pages

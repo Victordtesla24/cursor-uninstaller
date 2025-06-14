@@ -765,11 +765,8 @@ init_ui() {
     # Detect terminal capabilities
     detect_terminal_capabilities
 
-    # Set up UI defaults based on capabilities
-    if [[ ! "$TERMINAL_CAPABILITIES" =~ color ]]; then
-        # Disable color variables
-        export RED="" GREEN="" YELLOW="" BLUE="" CYAN="" BOLD="" NC=""
-    fi
+    # Note: Color variables are already set in config.sh as readonly
+    # No need to reassign them here
 
     readonly UI_INITIALIZED=true
     export UI_INITIALIZED
@@ -823,7 +820,7 @@ start_performance_monitor() {
 
             # Memory usage
             local memory_info
-            memory_info=$(vm_stat)
+            memory_info=$(timeout 5 vm_stat 2>/dev/null || echo "")
             local pages_free pages_inactive page_size total_memory
             pages_free=$(echo "$memory_info" | awk '/free:/ {print $3}' | tr -d '.')
             pages_inactive=$(echo "$memory_info" | awk '/inactive:/ {print $3}' | tr -d '.')
