@@ -1566,21 +1566,7 @@ echo -e " ${CYAN}Bundle Identifier:${NC} $bundle_id"
 
 # Expected details from user provided information
 
-echo -e " ${CYAN}Expected Version:${NC} 1.1.2 (Universal)"
-
-echo -e " ${CYAN}Expected VSCode Version:${NC} 1.96.2"
-
-echo -e " ${CYAN}Expected Commit:${NC} 87ea1604be1f602f173c5fb67582e647fcef6c40"
-
-echo -e " ${CYAN}Expected Date:${NC} 2025-06-13T00:26:52.696Z"
-
-echo -e " ${CYAN}Expected Electron:${NC} 34.5.1"
-
-echo -e " ${CYAN}Expected Chromium:${NC} 132.0.6834.210"
-
-echo -e " ${CYAN}Expected Node.js:${NC} 20.19.0"
-
-echo -e " ${CYAN}Expected V8:${NC} 13.2.152.41-electron.0"
+# Removed hardcoded fake "expected" values that would produce false positives
 
 # App size and installation date
 

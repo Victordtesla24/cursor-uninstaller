@@ -24,7 +24,7 @@ mkdir -p "$BACKUP_DIR" && chmod 700 "$BACKUP_DIR"
 backup_settings() {
     local source_file="${USER_SETTINGS_DIR}/settings.json"
     local backup_file="${BACKUP_DIR}/settings.json.backup.${SCRIPT_START_TIME}"
-    
+
     if [[ -f "$source_file" ]]; then
         cp -p "$source_file" "$backup_file"
         chmod 600 "$backup_file"
@@ -42,56 +42,98 @@ safe_realpath() {
     fi
 }
 
-# Validate and apply settings
+# Validate and apply settings with proper error handling
 apply_optimized_settings() {
     local script_dir
     script_dir=$(dirname "$(safe_realpath "$0")")
     local optimized_settings="${script_dir}/../config/optimized-settings.json"
 
+    # Validate optimized settings file exists and is readable
     if [[ ! -f "$optimized_settings" ]]; then
-        echo "Error: Optimized settings file missing" >&2
-        exit 1
+        echo "Error: Optimized settings file not found at: $optimized_settings" >&2
+        return 1
     fi
 
-    # Atomic settings replacement
-    cp -f "$optimized_settings" "${USER_SETTINGS_DIR}/settings.json"
-    chmod 600 "${USER_SETTINGS_DIR}/settings.json"
+    if [[ ! -r "$optimized_settings" ]]; then
+        echo "Error: Cannot read optimized settings file: $optimized_settings" >&2
+        return 1
+    fi
+
+    # Validate JSON syntax before applying
+    if command -v python3 >/dev/null 2>&1; then
+        if ! python3 -m json.tool "$optimized_settings" >/dev/null 2>&1; then
+            echo "Error: Invalid JSON in optimized settings file" >&2
+            return 1
+        fi
+    elif command -v jq >/dev/null 2>&1; then
+        if ! jq empty "$optimized_settings" >/dev/null 2>&1; then
+            echo "Error: Invalid JSON in optimized settings file" >&2
+            return 1
+        fi
+    else
+        echo "Warning: Cannot validate JSON syntax (python3 or jq not available)"
+    fi
+
+    # Ensure user settings directory exists
+    if [[ ! -d "$USER_SETTINGS_DIR" ]]; then
+        mkdir -p "$USER_SETTINGS_DIR"
+        chmod 700 "$USER_SETTINGS_DIR"
+    fi
+
+    # Atomic settings replacement with validation
+    if cp "$optimized_settings" "${USER_SETTINGS_DIR}/settings.json"; then
+        chmod 600 "${USER_SETTINGS_DIR}/settings.json"
+        echo "Successfully applied optimized settings"
+        return 0
+    else
+        echo "Error: Failed to copy settings file" >&2
+        return 1
+    fi
 }
 
-# macOS-specific performance optimizations
+# Safe macOS-specific optimizations for Cursor AI
 apply_macos_optimizations() {
-    echo "Applying macOS-specific optimizations..."
-    
-    # Valid macOS sysctl parameters
-    sudo sysctl kern.ipc.somaxconn=2048
-    sudo sysctl kern.maxfiles=524288
-    sudo sysctl kern.maxfilesperproc=262144
-    
-    # Network optimization
-    sudo sysctl net.inet.tcp.delayed_ack=0
-    
-    # SSD optimization
-    sudo sysctl vm.swapusage=0
-    
-    # DNS cache flush
-    sudo killall -HUP mDNSResponder
-    
-    # Launch Services database update
-    sudo /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
+    echo "Applying safe macOS-specific optimizations..."
+
+    # Safe DNS cache flush (improves network performance)
+    if command -v dscacheutil >/dev/null 2>&1; then
+        if sudo dscacheutil -flushcache 2>/dev/null; then
+            echo "✓ DNS cache flushed successfully"
+        else
+            echo "⚠ Could not flush DNS cache (may require admin privileges)"
+        fi
+    fi
+
+    # Safe Launch Services database update (improves app detection)
+    local lsregister_path="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+    if [[ -x "$lsregister_path" ]]; then
+        if "$lsregister_path" -kill -r -domain user 2>/dev/null; then
+            echo "✓ Launch Services database updated for current user"
+        else
+            echo "⚠ Could not update Launch Services database"
+        fi
+    fi
+
+    # Restart Cursor processes to apply changes
+    if pgrep -f "[Cc]ursor" >/dev/null 2>&1; then
+        echo "Found running Cursor processes - will need restart to apply optimizations"
+    fi
+
+    echo "Safe macOS optimizations completed"
 }
 
 # Main execution flow
 main() {
     echo "Starting Cursor AI Settings Upgrade (Secure macOS Edition)"
     print_separator "="
-    
+
     backup_settings
     apply_optimized_settings
     apply_macos_optimizations
-    
+
     # Create .cursor-rules file
     create_cursor_rules_file
-    
+
     echo "System optimizations applied successfully"
     print_separator "="
     echo "Please restart Cursor AI to complete the upgrade process"

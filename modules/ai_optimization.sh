@@ -384,22 +384,72 @@ profile_cursor_ai_performance() {
             peak_memory=$current_memory
         fi
 
-        # Monitor AI operation logs (simplified simulation for demo)
-        if [[ $((RANDOM % 10)) -eq 0 ]]; then  # Simulate AI request
-            local response_time=$((200 + RANDOM % 800))  # 200-1000ms range
-            local context_size=$((50 + RANDOM % 200))    # 50-250KB range
+        # Monitor actual Cursor AI operations through log analysis
+        local cursor_log_dirs=(
+            "$HOME/Library/Logs/Cursor"
+            "$HOME/Library/Application Support/Cursor/logs"
+        )
 
-            response_times+=("$response_time")
-            context_sizes+=("$context_size")
-            ((request_count++))
+        for log_dir in "${cursor_log_dirs[@]}"; do
+            if [[ -d "$log_dir" ]]; then
+                # Parse recent log entries for AI requests
+                find "$log_dir" -name "*.log" -mtime -1 2>/dev/null | while read -r log_file; do
+                    if [[ -r "$log_file" ]]; then
+                        # Look for actual AI completion timestamps and response data
+                        local recent_requests
+                        recent_requests=$(grep -E "(completion|response|request)" "$log_file" 2>/dev/null | tail -10 || true)
 
-            if [[ $((RANDOM % 20)) -eq 0 ]]; then
-                ((error_count++))
+                        if [[ -n "$recent_requests" ]]; then
+                            # Count actual requests found in logs
+                            local found_requests
+                            found_requests=$(echo "$recent_requests" | wc -l)
+                            request_count=$((request_count + found_requests))
+
+                            # Extract real timing data, errors, and context data if available
+                            while IFS= read -r line; do
+                                # Extract response times
+                                if [[ "$line" =~ [0-9]+ms ]]; then
+                                    local timing
+                                    timing=$(echo "$line" | grep -o '[0-9]*ms' | grep -o '[0-9]*' || echo "")
+                                    if [[ -n "$timing" && "$timing" -gt 0 ]]; then
+                                        response_times+=("$timing")
+                                    fi
+                                fi
+
+                                # Count actual errors from logs
+                                if echo "$line" | grep -qiE "(error|failed|exception|timeout)"; then
+                                    if echo "$line" | grep -qiE "(timeout|timed.out)"; then
+                                        ((timeout_count++))
+                                    else
+                                        ((error_count++))
+                                    fi
+                                fi
+
+                                # Extract context size data if available
+                                if [[ "$line" =~ [0-9]+[kK][bB] ]] || [[ "$line" =~ [0-9]+.bytes ]]; then
+                                    local size_match
+                                    size_match=$(echo "$line" | grep -o '[0-9]*[kK][bB]\|[0-9]*\.bytes' | head -1)
+                                    if [[ -n "$size_match" ]]; then
+                                        local context_kb
+                                        if [[ "$size_match" =~ [kK][bB] ]]; then
+                                            context_kb=$(echo "$size_match" | grep -o '[0-9]*')
+                                        else
+                                            # Convert bytes to KB
+                                            local bytes
+                                            bytes=$(echo "$size_match" | grep -o '[0-9]*')
+                                            context_kb=$((bytes / 1024))
+                                        fi
+                                        if [[ -n "$context_kb" && "$context_kb" -gt 0 ]]; then
+                                            context_sizes+=("$context_kb")
+                                        fi
+                                    fi
+                                fi
+                            done <<< "$recent_requests"
+                        fi
+                    fi
+                done
             fi
-            if [[ $((RANDOM % 50)) -eq 0 ]]; then
-                ((timeout_count++))
-            fi
-        fi
+        done
 
         local elapsed_time=$(( $(date +%s) - start_time ))
         local current_avg_response_time="N/A"
@@ -428,16 +478,25 @@ profile_cursor_ai_performance() {
             status_color="${YELLOW}"
         fi
 
-        printf "\\033[2A\\033[K${BOLD}%sTime Elapsed: %2ds / %2ds | Requests: %-3d | Avg Resp: %-4s ms | Peak Mem: %-4s MB ${status_color}%s %s%s %s${RESET}\\n" \\
-            "${BLUE}" "$elapsed_time" "$duration" "$request_count" "$current_avg_response_time" "$peak_memory" \
-            "${progress_chars[$progress_index]}" "${filled_bar}${empty_bar}" "$percentage_done%" "${NORMAL}"
+        # Move cursor up two lines and clear them using tput to avoid raw escape sequences
+        if command -v tput >/dev/null 2>&1; then
+            tput cuu 2 2>/dev/null || true   # Cursor up two lines
+            tput el        2>/dev/null || true   # Clear to end of line
+        fi
+
+        printf "Time Elapsed: %2ds / %2ds | Requests: %-3d | Avg Resp: %-4s ms | Peak Mem: %-4s MB | %s %s%s %s\n" \
+            "$elapsed_time" "$duration" "$request_count" "$current_avg_response_time" "$peak_memory" \
+            "${progress_chars[$progress_index]}" "$filled_bar" "$empty_bar" "$percentage_done%"
 
         progress_index=$(( (progress_index + 1) % ${#progress_chars[@]} ))
         sleep 1
     done
 
     # Clear the real-time display lines after profiling
-    printf "\\033[2A\\033[J" # Move up 2 lines and clear from cursor to end of screen
+    if command -v tput >/dev/null 2>&1; then
+        tput cuu 2 2>/dev/null || true   # Move up two lines
+        tput ed      2>/dev/null || true   # Clear to end of screen
+    fi
 
     # Calculate metrics
     local total_requests=$request_count
