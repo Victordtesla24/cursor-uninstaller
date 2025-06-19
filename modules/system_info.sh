@@ -492,7 +492,7 @@ production_system_specifications() {
     local kernel_version
     kernel_version=$(uname -r 2>/dev/null || echo "Unknown")
     local uptime_info
-    uptime_info=$(uptime 2>/dev/null | sed 's/.*up \\([^,]*\\).*/\1/' || echo "Unknown")
+    uptime_info=$(uptime 2>/dev/null | awk -F'up ' '{print $2}' | awk -F', ' '{print $1}' || echo "Unknown")
     local architecture
     architecture=$(uname -m 2>/dev/null || echo "Unknown")
 
@@ -509,13 +509,13 @@ production_system_specifications() {
         cpu_brand=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "Unknown")
         local cpu_cores
         cpu_cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "Unknown")
-        local cpu_speed
-        cpu_speed=$(sysctl -n hw.cpufrequency_max 2>/dev/null | awk '{printf "%.2f GHz", $1/1000000000}' 2>/dev/null || echo "Unknown")
+        local cpu_freq_mhz
+        cpu_freq_mhz=$(sysctl -n hw.cpufrequency_max 2>/dev/null | awk '{printf "%.0f", $1/1000000}' 2>/dev/null || echo "Unknown")
 
         echo -e "   ${CYAN}CPU:${NC} $cpu_brand"
         echo -e "   ${CYAN}CPU Cores:${NC} $cpu_cores"
-        if [[ "$cpu_speed" != "Unknown" ]]; then
-            echo -e "   ${CYAN}CPU Speed:${NC} $cpu_speed"
+        if [[ "$cpu_freq_mhz" != "Unknown" ]]; then
+            echo -e "   ${CYAN}CPU Speed:${NC} ${cpu_freq_mhz} MHz"
         fi
     fi
 
@@ -682,7 +682,14 @@ production_system_specifications() {
                 "node") tool_version=$(node --version 2>/dev/null || echo "Unknown") ;;
                 "npm") tool_version=$(npm --version 2>/dev/null || echo "Unknown") ;;
                 "python3") tool_version=$(python3 --version 2>/dev/null | awk '{print $2}' || echo "Unknown") ;;
-                "java") tool_version=$(java -version 2>&1 | head -1 | awk -F'"' '{print $2}' || echo "Unknown") ;;
+                "java")
+                    if command -v java >/dev/null 2>&1; then
+                        # Attempt to get Java version, handling different output formats
+                        tool_version=$(java -version 2>&1 | grep -E 'version|openjdk version' | head -1 | sed -E 's/.*(version|openjdk version) "([^"]*)".*/\2/' || echo "Unknown")
+                    else
+                        tool_version="Not installed"
+                    fi
+                    ;;
                 "code") tool_version=$(code --version 2>/dev/null | head -1 || echo "Unknown") ;;
                 *) tool_version="Available" ;;
             esac

@@ -498,18 +498,20 @@ check_installation_status() {
         if [[ -f "$product_json_path" ]]; then
             # Use jq for robust JSON parsing if available, otherwise fallback to grep/sed
             if command -v jq >/dev/null 2>&1; then
-                vscode_version=$(jq -r '.version' "$product_json_path" 2>/dev/null || echo "Unknown")
-                commit=$(jq -r '.commit' "$product_json_path" 2>/dev/null || echo "Unknown")
-                electron_version=$(jq -r '.electronVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
-                node_version=$(jq -r '.nodeVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
-                chromium_version=$(jq -r '.chromiumVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
+                vscode_version=$(jq -r '.version // "N/A"' "$product_json_path" 2>/dev/null)
+                commit=$(jq -r '.commit // "N/A"' "$product_json_path" 2>/dev/null)
+                electron_version=$(jq -r '.electronVersion // "N/A"' "$product_json_path" 2>/dev/null)
+                node_version=$(jq -r '.nodeVersion // "N/A"' "$product_json_path" 2>/dev/null)
+                chromium_version=$(jq -r '.chromiumVersion // "N/A"' "$product_json_path" 2>/dev/null)
             else
+                log_with_level "WARNING" "jq not found. Falling back to less reliable grep/sed for product.json parsing. Recommend 'brew install jq'."
                 # Fallback to grep/sed if jq is not available
-                vscode_version=$(grep -o '"version": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/version: *//' || echo "Unknown")
-                commit=$(grep -o '"commit": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/commit: *//' || echo "Unknown")
-                electron_version=$(grep -o '"electronVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/electronVersion: *//' || echo "Unknown")
-                node_version=$(grep -o '"nodeVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/nodeVersion: *//' || echo "Unknown")
-                chromium_version=$(grep -o '"chromiumVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/chromiumVersion: *//' || echo "Unknown")
+                # Use a more robust pattern to capture the value, and default to "N/A" if not found or null
+                vscode_version=$(grep -oP '"version":\s*"\K[^"]*' "$product_json_path" | head -1 || echo "N/A")
+                commit=$(grep -oP '"commit":\s*"\K[^"]*' "$product_json_path" | head -1 || echo "N/A")
+                electron_version=$(grep -oP '"electronVersion":\s*"\K[^"]*' "$product_json_path" | head -1 || echo "N/A")
+                node_version=$(grep -oP '"nodeVersion":\s*"\K[^"]*' "$product_json_path" | head -1 || echo "N/A")
+                chromium_version=$(grep -oP '"chromiumVersion":\s*"\K[^"]*' "$product_json_path" | head -1 || echo "N/A")
             fi
         fi
 
