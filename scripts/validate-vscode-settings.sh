@@ -69,7 +69,8 @@ validate_shellcheck_settings() {
 
     # Validate critical settings
     validate_setting "shellcheck.enable" "boolean" "true"
-    validate_setting "shellcheck.executablePath" "string" "${workspaceFolder}/shellcheck.sh"
+    # shellcheck disable=SC2154
+    validate_setting "shellcheck.executablePath" "string" "${PROJECT_ROOT}/shellcheck.sh"
     validate_setting "shellcheck.run" "string" "onType"
     validate_setting "shellcheck.enableQuickFix" "boolean" "true"
     validate_setting "shellcheck.useWorkspaceRootAsCwd" "boolean" "true"
