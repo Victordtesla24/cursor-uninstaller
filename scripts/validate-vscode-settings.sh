@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-readonly PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly PROJECT_ROOT
 readonly SETTINGS_FILE="${PROJECT_ROOT}/.vscode/settings.json"
 
 # Source professional console output library
@@ -68,7 +69,7 @@ validate_shellcheck_settings() {
 
     # Validate critical settings
     validate_setting "shellcheck.enable" "boolean" "true"
-    validate_setting "shellcheck.executablePath" "string" '${workspaceFolder}/shellcheck.sh'
+    validate_setting "shellcheck.executablePath" "string" "${workspaceFolder}/shellcheck.sh"
     validate_setting "shellcheck.run" "string" "onType"
     validate_setting "shellcheck.enableQuickFix" "boolean" "true"
     validate_setting "shellcheck.useWorkspaceRootAsCwd" "boolean" "true"
@@ -131,7 +132,7 @@ validate_docker_setup() {
 
         # Show shim content
         print_section "${I_FILE} ShellCheck Docker Shim Content"
-        cat "$shellcheck_shim" | sed 's/^/   /'
+        sed 's/^/   /' "$shellcheck_shim"
     else
         print_error "ShellCheck Docker shim not found: ${shellcheck_shim}"
     fi
