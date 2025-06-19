@@ -16,21 +16,49 @@ check_root() {
     fi
 }
 
-# Function to safely remove files/directories
+# Function to actually remove files/directories with real verification
 safe_remove() {
     local target="$1"
     if [ -e "$target" ]; then
-        rm -rf "$target"
-        log "Removed: $target"
+        log "Attempting to remove: $target"
+        if rm -rf "$target" 2>/dev/null; then
+            if [ ! -e "$target" ]; then
+                log "SUCCESS: Removed $target"
+                return 0
+            else
+                log "ERROR: Failed to remove $target (still exists)"
+                return 1
+            fi
+        else
+            log "ERROR: Remove command failed for $target"
+            return 1
+        fi
+    else
+        log "Not found: $target"
+        return 0
     fi
 }
 
-# Function to safely remove binaries
+# Function to actually remove binaries with real verification
 safe_remove_binary() {
     local binary="$1"
     if [ -f "$binary" ]; then
-        rm -f "$binary"
-        log "Removed binary: $binary"
+        log "Attempting to remove binary: $binary"
+        if rm -f "$binary" 2>/dev/null; then
+            if [ ! -f "$binary" ]; then
+                log "SUCCESS: Removed binary $binary"
+                return 0
+            else
+                log "ERROR: Failed to remove binary $binary (still exists)"
+                return 1
+            fi
+        else
+            log "ERROR: Remove command failed for binary $binary"
+            return 1
+        fi
+    else
+        log "Binary not found: $binary"
+        return 0
     fi
 }
 
@@ -57,13 +85,23 @@ fi
 # Remove Docker Desktop application
 safe_remove "/Applications/Docker.app"
 
-# Remove Docker CLI and related binaries
+# Remove Docker CLI and related binaries (comprehensive paths)
 safe_remove_binary "/usr/local/bin/docker"
 safe_remove_binary "/usr/local/bin/docker-compose"
 safe_remove_binary "/usr/local/bin/docker-credential-desktop"
 safe_remove_binary "/usr/local/bin/docker-credential-osxkeychain"
 safe_remove_binary "/usr/local/bin/hub-tool"
 safe_remove_binary "/usr/local/bin/kubectl.docker"
+
+# Remove Homebrew Docker installations
+safe_remove_binary "/opt/homebrew/bin/docker"
+safe_remove_binary "/opt/homebrew/bin/docker-compose"
+safe_remove_binary "/usr/local/Homebrew/bin/docker"
+safe_remove_binary "/usr/local/Homebrew/bin/docker-compose"
+
+# Remove additional Docker binaries
+safe_remove_binary "/usr/bin/docker"
+safe_remove_binary "/usr/bin/docker-compose"
 
 # Get actual user home directory (handles root execution properly)
 if [ "$SUDO_USER" ]; then
@@ -128,6 +166,48 @@ mdutil -i off / 2>/dev/null && log "Disabled Spotlight indexing temporarily."
 mdutil -E / 2>/dev/null && log "Erased Spotlight index."
 mdutil -i on / 2>/dev/null && log "Re-enabled Spotlight indexing."
 
-log "Docker Desktop uninstallation completed."
+# Final verification - check if Docker is actually removed
+log "Performing final verification..."
+
+ERRORS_FOUND=0
+
+# Check if Docker Desktop app still exists
+if [ -d "/Applications/Docker.app" ]; then
+    log "ERROR: Docker Desktop application still exists at /Applications/Docker.app"
+    ERRORS_FOUND=$((ERRORS_FOUND + 1))
+else
+    log "VERIFIED: Docker Desktop application removed"
+fi
+
+# Check if docker command still exists
+if command -v docker >/dev/null 2>&1; then
+    DOCKER_PATH=$(which docker)
+    log "ERROR: Docker command still exists at $DOCKER_PATH"
+    ERRORS_FOUND=$((ERRORS_FOUND + 1))
+else
+    log "VERIFIED: Docker command removed"
+fi
+
+# Check if Docker processes are still running
+if pgrep -f docker >/dev/null 2>&1; then
+    log "ERROR: Docker processes still running"
+    pgrep -f docker | while read -r pid; do
+        log "Running Docker process PID: $pid"
+    done
+    ERRORS_FOUND=$((ERRORS_FOUND + 1))
+else
+    log "VERIFIED: No Docker processes running"
+fi
+
+# Final result
+if [ $ERRORS_FOUND -eq 0 ]; then
+    log "SUCCESS: Docker Desktop uninstallation completed successfully"
+    log "All Docker components have been verified as removed"
+else
+    log "FAILURE: Docker Desktop uninstallation failed with $ERRORS_FOUND errors"
+    log "Some Docker components still exist on the system"
+    exit 1
+fi
+
 log "Please restart your computer to ensure all changes take effect."
 log "Check the log file at $LOG_FILE for detailed uninstallation information."
