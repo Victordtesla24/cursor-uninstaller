@@ -48,7 +48,11 @@ check_root
 log "Starting Docker Desktop uninstallation..."
 
 # Quit Docker Desktop (if running)
-osascript -e 'quit app "Docker"' 2>/dev/null || true
+if osascript -e 'quit app "Docker"' 2>/dev/null; then
+    log "Docker Desktop application quit successfully."
+else
+    log "Docker Desktop application not running or failed to quit."
+fi
 
 # Remove Docker Desktop application
 safe_remove "/Applications/Docker.app"
@@ -61,19 +65,26 @@ safe_remove_binary "/usr/local/bin/docker-credential-osxkeychain"
 safe_remove_binary "/usr/local/bin/hub-tool"
 safe_remove_binary "/usr/local/bin/kubectl.docker"
 
+# Get actual user home directory (handles root execution properly)
+if [ "$SUDO_USER" ]; then
+    USER_HOME=$(eval echo "~$SUDO_USER")
+else
+    USER_HOME="$HOME"
+fi
+
 # Remove Docker configuration files and directories
-safe_remove "~/.docker"
+safe_remove "$USER_HOME/.docker"
 safe_remove "/usr/local/lib/docker"
 
 # Remove Docker Desktop specific files and directories in Library folders
-safe_remove "~/Library/Group Containers/group.com.docker"
-safe_remove "~/Library/Containers/com.docker.docker"
-safe_remove "~/Library/Application Support/Docker Desktop"
-safe_remove "~/Library/Saved Application State/com.electron.docker-frontend.savedState"
-safe_remove "~/Library/Preferences/com.docker.docker.plist"
-safe_remove "~/Library/Preferences/com.electron.docker-frontend.plist"
-safe_remove "~/Library/Caches/com.docker.docker"
-safe_remove "~/Library/Logs/Docker Desktop"
+safe_remove "$USER_HOME/Library/Group Containers/group.com.docker"
+safe_remove "$USER_HOME/Library/Containers/com.docker.docker"
+safe_remove "$USER_HOME/Library/Application Support/Docker Desktop"
+safe_remove "$USER_HOME/Library/Saved Application State/com.electron.docker-frontend.savedState"
+safe_remove "$USER_HOME/Library/Preferences/com.docker.docker.plist"
+safe_remove "$USER_HOME/Library/Preferences/com.electron.docker-frontend.plist"
+safe_remove "$USER_HOME/Library/Caches/com.docker.docker"
+safe_remove "$USER_HOME/Library/Logs/Docker Desktop"
 
 # Remove Docker VM-related files (if any)
 safe_remove "/Library/PrivilegedHelperTools/com.docker.vmnetd"
@@ -84,10 +95,18 @@ safe_launchctl_remove "com.docker.helper"
 safe_launchctl_remove "com.docker.vmnetd"
 
 # Clean up any remaining Docker processes
-pkill -f docker && log "Terminated remaining Docker processes." || true
+if pkill -f docker; then
+    log "Terminated remaining Docker processes."
+else
+    log "No Docker processes found to terminate."
+fi
 
 # Remove Docker from login items (if listed)
-osascript -e 'tell application "System Events" to delete every login item whose name is "Docker"' 2>/dev/null || true
+if osascript -e 'tell application "System Events" to delete every login item whose name is "Docker"' 2>/dev/null; then
+    log "Removed Docker from login items."
+else
+    log "Docker not found in login items or removal failed."
+fi
 
 # Flush DNS cache to remove any lingering entries related to Docker networking
 dscacheutil -flushcache && log "Flushed DNS cache."
