@@ -25,7 +25,7 @@ export CURSOR_ELECTRON_VERSION CURSOR_CHROMIUM_VERSION CURSOR_NODEJS_VERSION CUR
 readonly INSTALL_MODULE_NAME="installation"
 readonly INSTALL_MODULE_VERSION="2.0.0"
 export INSTALL_MODULE_NAME INSTALL_MODULE_VERSION
-# readonly CURSOR_DOWNLOAD_URL="https://cursor.sh"  # Reserved for future use
+# readonly CURSOR_DOWNLOAD_URL="https://cursor.sh"
 # DMG_MOUNT_TIMEOUT is defined in config.sh
 readonly COPY_TIMEOUT=300
 

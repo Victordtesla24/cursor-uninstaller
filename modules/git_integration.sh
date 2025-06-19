@@ -161,7 +161,7 @@ perform_git_commit_and_push() {
     while IFS= read -r line; do
         local file_path="${line:3}"  # Remove the status prefix (e.g., "M  " or "?? ")
 
-        # Skip generated/temporary files
+        # Skip generated/temp files
         if [[ "$file_path" =~ ^coverage/ ]] || \
            [[ "$file_path" =~ ^node_modules/ ]] || \
            [[ "$file_path" =~ ^\.coverage/ ]] || \
