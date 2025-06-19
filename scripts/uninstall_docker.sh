@@ -75,15 +75,37 @@ check_root
 
 log "Starting Docker Desktop uninstallation..."
 
-# Quit Docker Desktop (if running)
-if osascript -e 'quit app "Docker"' 2>/dev/null; then
-    log "Docker Desktop application quit successfully."
+# Force-terminate ALL Docker processes before removal
+log "Force-terminating all Docker processes..."
+DOCKER_PIDS=$(pgrep -i docker 2>/dev/null)
+if [ -n "$DOCKER_PIDS" ]; then
+    log "Found Docker processes: $DOCKER_PIDS"
+    for pid in $DOCKER_PIDS; do
+        log "Force-killing Docker process PID: $pid"
+        sudo kill -9 "$pid" 2>/dev/null || true
+    done
 else
-    log "Docker Desktop application not running or failed to quit."
+    log "No Docker processes found"
 fi
 
-# Remove Docker Desktop application
-safe_remove "/Applications/Docker.app"
+# Aggressive Docker application removal
+log "Attempting aggressive Docker application removal..."
+if [ -d "/Applications/Docker.app" ]; then
+    log "Docker application found at /Applications/Docker.app"
+    if sudo rm -rf "/Applications/Docker.app" 2>/dev/null; then
+        if [ ! -d "/Applications/Docker.app" ]; then
+            log "SUCCESS: Docker application completely removed"
+        else
+            log "ERROR: Failed to remove Docker application - still exists"
+            exit 1
+        fi
+    else
+        log "ERROR: Remove command failed for Docker application"
+        exit 1
+    fi
+else
+    log "Docker application not found at /Applications/Docker.app"
+fi
 
 # Remove Docker CLI and related binaries (comprehensive paths)
 safe_remove_binary "/usr/local/bin/docker"
