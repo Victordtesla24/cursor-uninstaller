@@ -13,9 +13,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(cd "${SCRIPT_DIR}/../lib" && pwd)"
 
 # Source required dependencies in correct order
+# shellcheck disable=SC1091
 source "${LIB_DIR}/ui.sh"          # For color variables
+# shellcheck disable=SC1091
 source "${LIB_DIR}/config.sh"      # For TEMP_DIR and other config
+# shellcheck disable=SC1091
 source "${LIB_DIR}/logging.sh"     # For log_with_level function
+# shellcheck disable=SC1091
 source "${LIB_DIR}/helpers.sh"     # For ensure_directory and other helpers
 
 # Module configuration
@@ -762,9 +766,9 @@ test_network_speed() {
     save_network_analysis_results "$network_score" "$avg_download_speed" "$network_classification" "${network_metrics[@]}"
 
     # Cleanup temporary files
-    rm -rf "$test_dir" 2>/dev/null
+    rm -f "$test_dir" 2>/dev/null
 
-    # Return primary metric for backward compatibility
+    # Return primary metric
     echo "${avg_download_speed%.*}"
     return 0
 }

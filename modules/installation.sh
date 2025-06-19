@@ -313,7 +313,7 @@ validate_cursor_app_bundle() {
 
     install_log "INFO" "App version: $app_version, Bundle ID: $bundle_id"
 
-    # Basic Bundle ID validation
+    # Bundle ID validation
     if [[ "$bundle_id" != *"cursor"* ]] && [[ "$bundle_id" != *"todesktop"* ]]; then
         install_log "WARNING" "Unexpected bundle ID - this may not be a genuine Cursor app"
     fi

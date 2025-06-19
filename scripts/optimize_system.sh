@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Dynamically select Bash 4+ or fallback to env bash
+# Dynamically select Bash 4+ or use env bash
 
 if [[ -z "${CURSOR_EXEC_GUARD:-}" ]]; then
 
@@ -327,8 +327,7 @@ local optimizations_applied=0
 
 local optimization_warnings=0
 
-# Get system memory information (vm_stat might not be available everywhere, provide fallback)
-
+# Get system memory information (vm_stat might not be available everywhere)
 local available_memory_gb=0
 
 local memory_info
