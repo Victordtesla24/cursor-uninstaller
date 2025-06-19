@@ -296,7 +296,7 @@ display_cursor_performance_metrics() {
         echo -e "   ${GREEN}✅ Cursor is currently running.${NC}"
         local total_mem=0
         local process_count=0
-        
+
         local cursor_pids
         cursor_pids=$(pgrep -f "Cursor")
 
@@ -316,7 +316,7 @@ display_cursor_performance_metrics() {
         total_mem_mb=$((total_mem / 1024))
         echo -e "   ${CYAN}Process Count:${NC} $process_count processes"
         echo -e "   ${CYAN}Total Memory Usage:${NC} ${total_mem_mb}MB"
-        
+
         echo -e "   ${CYAN}CPU Usage (current snapshot):${NC}"
         local pids
         pids=$(pgrep -if "Cursor" | tr '\n' ',')
@@ -326,10 +326,142 @@ display_cursor_performance_metrics() {
             echo "     • No Cursor processes found for CPU usage."
         fi
 
-        echo -e "\n   ${YELLOW}AI & Optimization Metrics (Conceptual):${NC}"
-        echo -e "   ${CYAN}   AI Model Status:${NC} Not available via external script"
-        echo -e "   ${CYAN}   Token Usage:${NC} Not available via external script"
-        echo -e "   ${CYAN}   Active Optimizations:${NC} See 'Optimize System' menu"
+        # Real-time AI & Optimization Metrics Integration
+        echo -e "\n   ${BLUE}🤖 LIVE AI & OPTIMIZATION METRICS:${NC}"
+
+        # Source AI optimization module for real metrics
+        local MODULE_ROOT
+        MODULE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+        if [[ -f "$MODULE_ROOT/modules/ai_optimization.sh" ]]; then
+            # shellcheck source=../modules/ai_optimization.sh disable=SC1091
+            source "$MODULE_ROOT/modules/ai_optimization.sh" 2>/dev/null || true
+        fi
+
+        # Real AI Model Status Detection
+        local ai_model_status="Inactive"
+        local ai_response_time="N/A"
+        local optimization_score="N/A"
+
+        # Check for active AI processes and recent activity
+        if pgrep -f "Cursor" >/dev/null; then
+            # Check Cursor's log directories for recent AI activity
+            local cursor_log_dirs=(
+                "$HOME/Library/Logs/Cursor"
+                "$HOME/Library/Application Support/Cursor/logs"
+            )
+
+            local recent_ai_activity=false
+            for log_dir in "${cursor_log_dirs[@]}"; do
+                if [[ -d "$log_dir" ]]; then
+                    # Look for recent AI completions (within last 10 minutes)
+                    if find "$log_dir" -name "*.log" -mmin -10 -exec grep -l "completion\|response\|ai\|model" {} \; 2>/dev/null | head -1 | read -r; then
+                        recent_ai_activity=true
+                        ai_model_status="Active"
+                        break
+                    fi
+                fi
+            done
+
+            # If no recent activity but Cursor is running, check process activity
+            if [[ "$recent_ai_activity" == "false" ]]; then
+                local cursor_cpu_usage
+                cursor_cpu_usage=$(ps -p "$(pgrep -f "Cursor" | head -1)" -o %cpu= 2>/dev/null | xargs || echo "0")
+                if [[ "${cursor_cpu_usage%.*}" -gt 5 ]]; then
+                    ai_model_status="Processing"
+                else
+                    ai_model_status="Standby"
+                fi
+            fi
+
+            # Calculate approximate response time from recent logs
+            for log_dir in "${cursor_log_dirs[@]}"; do
+                if [[ -d "$log_dir" ]]; then
+                    local latest_response_time
+                    latest_response_time=$(find "$log_dir" -name "*.log" -mmin -60 -exec grep -o '[0-9]*ms' {} \; 2>/dev/null | tail -1 | tr -d 'ms' || echo "")
+                    if [[ -n "$latest_response_time" && "$latest_response_time" =~ ^[0-9]+$ ]]; then
+                        ai_response_time="${latest_response_time}ms"
+                        break
+                    fi
+                fi
+            done
+        fi
+
+        # Real Token Usage Tracking
+        local token_usage="N/A"
+        local session_requests=0
+
+        # Parse recent token usage from logs if available
+        for log_dir in "${cursor_log_dirs[@]}"; do
+            if [[ -d "$log_dir" ]]; then
+                # Look for token usage patterns in recent logs
+                local recent_tokens
+                recent_tokens=$(find "$log_dir" -name "*.log" -mmin -60 -exec grep -o "tokens.*[0-9][0-9]*" {} \; 2>/dev/null | grep -o '[0-9][0-9]*' | tail -5 | awk '{sum+=$1} END {print sum}' || echo "0")
+                if [[ "$recent_tokens" -gt 0 ]]; then
+                    token_usage="${recent_tokens} tokens (last hour)"
+                fi
+
+                # Count recent AI requests
+                session_requests=$(find "$log_dir" -name "*.log" -mmin -60 -exec grep -c "completion\|request" {} \; 2>/dev/null | awk '{sum+=$1} END {print sum}' || echo "0")
+                break
+            fi
+        done
+
+        # Live System Optimization Status
+        local active_optimizations=()
+
+        # Check if optimization functions are available and get real status
+        if command -v validate_ai_optimization_readiness >/dev/null 2>&1; then
+            # Run quick assessment to get optimization score
+            local readiness_result
+            readiness_result=$(validate_ai_optimization_readiness 2>/dev/null | grep -o '[0-9][0-9]*%' | tail -1 || echo "")
+            if [[ -n "$readiness_result" ]]; then
+                optimization_score="$readiness_result"
+            fi
+        fi
+
+        # Check active system optimizations
+        if [[ -f "/tmp/cursor_optimizations_active" ]]; then
+            while IFS= read -r optimization; do
+                active_optimizations+=("$optimization")
+            done < "/tmp/cursor_optimizations_active"
+        fi
+
+        # Check memory optimization status
+        local current_ulimit
+        current_ulimit=$(ulimit -n 2>/dev/null || echo "256")
+        if [[ "$current_ulimit" -gt 1024 ]]; then
+            active_optimizations+=("Enhanced file descriptor limits")
+        fi
+
+        # Check visual effects optimization
+        if defaults read com.apple.universalaccess reduceMotion 2>/dev/null | grep -q "1"; then
+            active_optimizations+=("Reduced visual effects")
+        fi
+
+        # Check network optimization
+        if [[ -f "/tmp/dns_cache_flushed" ]] && [[ $(find "/tmp/dns_cache_flushed" -mmin -60 2>/dev/null) ]]; then
+            active_optimizations+=("DNS cache optimized")
+        fi
+
+        # Display real metrics
+        echo -e "   ${CYAN}   AI Model Status:${NC} $ai_model_status"
+        if [[ "$ai_response_time" != "N/A" ]]; then
+            echo -e "   ${CYAN}   Last Response Time:${NC} $ai_response_time"
+        fi
+        echo -e "   ${CYAN}   Token Usage:${NC} $token_usage"
+        if [[ "$session_requests" -gt 0 ]]; then
+            echo -e "   ${CYAN}   Session Requests:${NC} $session_requests requests"
+        fi
+        echo -e "   ${CYAN}   Optimization Score:${NC} $optimization_score"
+
+        if [[ ${#active_optimizations[@]} -gt 0 ]]; then
+            echo -e "   ${CYAN}   Active Optimizations:${NC}"
+            for opt in "${active_optimizations[@]}"; do
+                echo -e "     ${GREEN}✓${NC} $opt"
+            done
+        else
+            echo -e "   ${CYAN}   Active Optimizations:${NC} ${YELLOW}None active - run optimization${NC}"
+        fi
 
     else
         echo -e "   ${YELLOW}⚠️ Cursor is not running. Performance metrics unavailable.${NC}"
@@ -446,7 +578,7 @@ production_system_specifications() {
     if command -v df >/dev/null 2>&1; then
         echo -e "   ${CYAN}Filesystem Usage:${NC}"
         df -h 2>/dev/null | grep -E '^/dev/' | while read -r _ size used avail capacity mount; do
-            echo -e "     ${CYAN}$mount:${NC} $used used / $size total ($capacity used) - $avail available"
+            echo -e "     $mount: $used used / $size total ($capacity used) - $avail available"
         done
     fi
 
@@ -457,7 +589,7 @@ production_system_specifications() {
             local disk_info
             disk_info=$(diskutil info "$disk" 2>/dev/null | grep -E "Device / Media Name|Total Size" | tr '\n' ' ' || echo "")
             if [[ -n "$disk_info" ]]; then
-                echo -e "     ${CYAN}$disk:${NC} $disk_info"
+                echo -e "     $disk: $disk_info"
             fi
         done
     fi
@@ -528,7 +660,7 @@ production_system_specifications() {
                 local ip_address
                 ip_address=$(ifconfig "$interface" 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | head -1 || echo "No IP")
                 if [[ "$ip_address" != "No IP" ]]; then
-                    echo -e "     ${CYAN}$interface:${NC} $ip_address"
+                    echo -e "     $interface: $ip_address"
                 fi
             done
         fi
@@ -546,6 +678,7 @@ production_system_specifications() {
     # 6. Development Environment
     echo -e "\n${BOLD}6. DEVELOPMENT ENVIRONMENT:${NC}"
 
+    # Check common development tools
     local dev_tools=("git" "node" "npm" "python3" "java" "code")
 
     echo -e "   ${CYAN}Available Development Tools:${NC}"
@@ -561,15 +694,15 @@ production_system_specifications() {
                 "code") tool_version=$(code --version 2>/dev/null | head -1 || echo "Unknown") ;;
                 *) tool_version="Available" ;;
             esac
-            echo -e "     ${GREEN}✅ $tool:${NC} $tool_version"
+            echo -e "     ${GREEN}✓${NC} $tool: $tool_version"
         else
-            echo -e "     ${YELLOW}⚠️ $tool:${NC} Not installed"
+            echo -e "     ${YELLOW}⚠️${NC} $tool: Not installed"
         fi
     done
 
     # Summary
-    echo -e "\n${BOLD}${BLUE}📊 SYSTEM COMPATIBILITY ASSESSMENT${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}"
+    echo -e "\n${CYAN}📊 SYSTEM COMPATIBILITY ASSESSMENT${NC}"
+    echo -e "═══════════════════════════════════════════════"
 
     local compatibility_score=0
     local total_checks=0
@@ -620,14 +753,14 @@ production_system_specifications() {
         compatibility_percentage=$(awk "BEGIN {printf \"%.0f\", ($compatibility_score / $total_checks) * 100}")
 
         if [[ $compatibility_percentage -ge 90 ]]; then
-            echo -e "\n${GREEN}${BOLD}🎉 COMPATIBILITY STATUS: EXCELLENT (${compatibility_percentage}%)${NC}"
-            echo -e "${GREEN}Your system is optimally configured for Cursor AI${NC}"
+            echo -e "\n${GREEN}🎉 COMPATIBILITY STATUS:${NC} EXCELLENT (${compatibility_percentage}%)"
+            echo -e "Your system is optimally configured for Cursor AI"
         elif [[ $compatibility_percentage -ge 70 ]]; then
-            echo -e "\n${YELLOW}${BOLD}✅ COMPATIBILITY STATUS: GOOD (${compatibility_percentage}%)${NC}"
-            echo -e "${YELLOW}Your system should run Cursor AI well with minor limitations${NC}"
+            echo -e "\n${CYAN}✅ COMPATIBILITY STATUS:${NC} GOOD (${compatibility_percentage}%)"
+            echo -e "Your system should run Cursor AI well with minor limitations"
         else
-            echo -e "\n${RED}${BOLD}⚠️ COMPATIBILITY STATUS: LIMITED (${compatibility_percentage}%)${NC}"
-            echo -e "${RED}Your system may have performance issues with Cursor AI${NC}"
+            echo -e "\n${YELLOW}⚠️ COMPATIBILITY STATUS:${NC} LIMITED (${compatibility_percentage}%)"
+            echo -e "Your system may have performance issues with Cursor AI"
         fi
     fi
 
@@ -636,7 +769,11 @@ production_system_specifications() {
     return 0
 }
 
-# Export functions for main script
-export -f basic_health_check
-export -f display_cursor_performance_metrics
-export -f production_system_specifications 
+# Color definitions for better readability
+BOLD='\033[1m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color

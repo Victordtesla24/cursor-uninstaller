@@ -7,8 +7,11 @@ set -euo pipefail
 
 # Configuration
 readonly DOCKER_IMAGE="koalaman/shellcheck:latest"
-readonly PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly LOGFILE="${PROJECT_ROOT}/shellcheck-test.log"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly PROJECT_ROOT
+
+LOGFILE="${PROJECT_ROOT}/shellcheck-test.log"
+readonly LOGFILE
 
 # Source professional console output library
 # shellcheck source=../lib/console.sh disable=SC1091
@@ -19,7 +22,7 @@ source "${PROJECT_ROOT}/lib/console.sh" || {
 
 # Global variables
 declare -a SHELL_FILES=()
-DOCKER_AVAILABLE=false
+# Note: Docker availability is checked dynamically; no need for a separate flag
 CONTINUOUS_MODE=false
 
 # Signal handling for clean exit
@@ -56,7 +59,6 @@ check_docker() {
     fi
 
     print_success "Docker is available and running"
-    DOCKER_AVAILABLE=true
 }
 
 # Pull latest ShellCheck image
@@ -85,7 +87,7 @@ discover_shell_files() {
 
     print_success "Found ${#SHELL_FILES[@]} shell scripts:"
     for file in "${SHELL_FILES[@]}"; do
-        local relative_path="${file#$PROJECT_ROOT/}"
+        local relative_path="${file#"${PROJECT_ROOT}/"}"
         print_list_item "${relative_path}" 1 "${I_FILE}"
     done
     printf "\n"
@@ -94,7 +96,7 @@ discover_shell_files() {
 # Run ShellCheck on a single file using Docker
 shellcheck_file() {
     local file="$1"
-    local relative_path="${file#$PROJECT_ROOT/}"
+    local relative_path="${file#"${PROJECT_ROOT}/"}"
 
     printf "%s%s %s\n" "$C_INFO" "$I_SEARCH" "Checking: ${relative_path}$C_RESET"
 
@@ -189,7 +191,7 @@ continuous_monitoring() {
         --include='\.sh$' "${PROJECT_ROOT}" | \
     while IFS= read -r -d '' file; do
         if [[ "$file" == *.sh ]]; then
-            print_info "File changed: ${file#$PROJECT_ROOT/}"
+            print_info "File changed: ${file#"${PROJECT_ROOT}/"}"
             shellcheck_file "$file"
         fi
     done
@@ -204,7 +206,8 @@ polling_mode() {
     local last_check=0
 
     while true; do
-        local current_time=$(date +%s)
+        local current_time
+        current_time=$(date +%s)
         local need_check=false
 
         for file in "${SHELL_FILES[@]}"; do

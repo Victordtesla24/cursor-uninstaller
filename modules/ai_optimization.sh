@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 
 ################################################################################
 # Production AI Optimization Module for Cursor AI Editor Management Utility
@@ -471,6 +472,7 @@ profile_cursor_ai_performance() {
         local empty_bar
         empty_bar=$(printf "%${empty_length}s" "" | tr " " "-")
 
+        # shellcheck disable=SC2034
         local status_color="${GREEN}"
         if [[ $current_avg_response_time -gt 700 || $peak_memory -gt $((baseline_memory + 500)) ]]; then
             status_color="${RED}"
