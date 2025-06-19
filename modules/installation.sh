@@ -496,23 +496,34 @@ check_installation_status() {
         # Extract more details from product.json for VSCode engine version
         local product_json_path="$CURSOR_APP_PATH/Contents/Resources/app/product.json"
         if [[ -f "$product_json_path" ]]; then
-            # Use a robust method to extract values to avoid complex JSON parsing in bash
-            vscode_version=$(grep -o '"version": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/version: *//')
-            commit=$(grep -o '"commit": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/commit: *//')
-            electron_version=$(grep -o '"electronVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/electronVersion: *//')
-            node_version=$(grep -o '"nodeVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/nodeVersion: *//')
-            chromium_version=$(grep -o '"chromiumVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/chromiumVersion: *//')
+            # Use jq for robust JSON parsing if available, otherwise fallback to grep/sed
+            if command -v jq >/dev/null 2>&1; then
+                vscode_version=$(jq -r '.version' "$product_json_path" 2>/dev/null || echo "Unknown")
+                commit=$(jq -r '.commit' "$product_json_path" 2>/dev/null || echo "Unknown")
+                electron_version=$(jq -r '.electronVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
+                node_version=$(jq -r '.nodeVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
+                chromium_version=$(jq -r '.chromiumVersion' "$product_json_path" 2>/dev/null || echo "Unknown")
+            else
+                # Fallback to grep/sed if jq is not available
+                vscode_version=$(grep -o '"version": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/version: *//' || echo "Unknown")
+                commit=$(grep -o '"commit": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/commit: *//' || echo "Unknown")
+                electron_version=$(grep -o '"electronVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/electronVersion: *//' || echo "Unknown")
+                node_version=$(grep -o '"nodeVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/nodeVersion: *//' || echo "Unknown")
+                chromium_version=$(grep -o '"chromiumVersion": *"[^"]*"' "$product_json_path" | head -1 | sed -e 's/"//g' -e 's/chromiumVersion: *//' || echo "Unknown")
+            fi
         fi
 
         # Calculate application size accurately
         app_size=$(du -sh "$CURSOR_APP_PATH" 2>/dev/null | awk '{print $1}' || echo "Unknown")
         echo -e "     ${CYAN}Size:${NC} $app_size"
 
-        # Compare versions
-        if [[ "$app_version" != "$CURSOR_EXPECTED_VERSION" ]]; then
-            log_with_level "WARNING" "⚠️ Version mismatch: Expected $CURSOR_EXPECTED_VERSION, found $app_version"
-            ((warnings_count++))
-        fi
+        # Display actual versions without hardcoded comparisons
+        log_with_level "INFO" "Actual Cursor Version: $app_version"
+        log_with_level "INFO" "Actual VSCode Engine: ${vscode_version:-Unknown}"
+        log_with_level "INFO" "Actual Commit: ${commit:-Unknown}"
+        log_with_level "INFO" "Actual Electron: ${electron_version:-Unknown}"
+        log_with_level "INFO" "Actual Chromium: ${chromium_version:-Unknown}"
+        log_with_level "INFO" "Actual Node.js: ${node_version:-Unknown}"
 
         # Validate app bundle structure more thoroughly
         if ! validate_cursor_app_bundle "$CURSOR_APP_PATH"; then
@@ -521,13 +532,6 @@ check_installation_status() {
         else
             log_with_level "SUCCESS" "✅ Bundle structure valid"
         fi
-
-        echo -e "     ${CYAN}VSCode Engine:${NC} ${vscode_version:-Unknown}"
-        if [[ -n "$vscode_version" && "$vscode_version" != "$CURSOR_VSCODE_VERSION" ]]; then
-            log_with_level "WARNING" "⚠️ VSCode engine version may not match expected ($CURSOR_VSCODE_VERSION)"
-            ((warnings_count++))
-        fi
-        echo -e "     ${CYAN}Commit:${NC} ${commit:-Unknown}"
 
     else
         log_with_level "ERROR" "Cursor.app not found"
@@ -567,13 +571,13 @@ check_installation_status() {
     if [[ -n "$spotlight_path" && -d "$spotlight_path" ]]; then
         log_with_level "SUCCESS" "✅ Application is registered with Launch Services (found via Spotlight)"
         echo -e "     ${CYAN}Registered Path:${NC} $spotlight_path"
-        
+
         # Check running processes
         local pids
         pids=$(pgrep -f "Cursor" || echo "")
         local process_count
         process_count=$(echo "$pids" | wc -w | tr -d ' ')
-        
+
         if [[ "$process_count" -gt 0 ]]; then
             echo -e "     ${CYAN}Currently running:${NC} $process_count Cursor processes"
             local total_mem_kb=0
@@ -586,7 +590,7 @@ check_installation_status() {
                     valid_pids+=" $pid"
                 fi
             done
-            
+
             if [[ -n "${valid_pids}" ]]; then
                 if [[ "$total_mem_kb" -gt 0 ]]; then
                     local total_mem_mb=$((total_mem_kb / 1024))
@@ -629,9 +633,6 @@ check_installation_status() {
     show_progress_with_dashboard $((++current_check)) $total_checks "Assessing Runtime Environment" "$start_time"
     echo -e "\n${BOLD}4. RUNTIME ENVIRONMENT:${NC}"
 
-    echo -e "     ${CYAN}Electron:${NC} ${electron_version:-Unknown (expected $CURSOR_ELECTRON_VERSION)}"
-    echo -e "     ${CYAN}Chromium:${NC} ${chromium_version:-Unknown (expected $CURSOR_CHROMIUM_VERSION)}"
-    echo -e "     ${CYAN}Node.js:${NC} ${node_version:-Unknown (expected $CURSOR_NODEJS_VERSION)}"
     echo -e "     ${CYAN}System Architecture:${NC} $(uname -m)"
     echo -e "     ${CYAN}macOS Version:${NC} $(sw_vers -productVersion)"
 
