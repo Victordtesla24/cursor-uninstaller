@@ -293,28 +293,64 @@ perform_git_commit_and_push() {
     return 0
 }
 
-# Simple git status function (legacy compatibility)
+# Production-grade Git backup function
 perform_pre_uninstall_backup() {
-    echo -e "\n${BOLD}${BLUE}📋 GIT REPOSITORY STATUS${NC}"
-    echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+    log_with_level "INFO" "Initiating Git pre-uninstall backup..."
 
-    log_with_level "INFO" "Showing current repository status instead of backup"
-
-    # Display current repository status
-    display_git_repository_info
-
-    # Suggest committing changes if there are any
-    local status_output
-    status_output=$(git status --porcelain 2>/dev/null)
-    if [[ -n "$status_output" ]]; then
-        echo -e "${YELLOW}${BOLD}RECOMMENDATION:${NC}"
-        echo -e "  • You have uncommitted changes in the cursor-uninstaller repository"
-        echo -e "  • Consider committing and pushing these changes before uninstalling Cursor"
-        echo -e "  • Use option 4 again to commit and push changes"
-        echo ""
+    # Check if we're in a git repository
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+        log_with_level "WARNING" "Not a Git repository. Skipping backup."
+        return 0
     fi
 
-    return 0
+    local backup_success=true
+
+    # 1. Check for uncommitted changes and stash them
+    local uncommitted_changes
+    uncommitted_changes=$(git status --porcelain 2>/dev/null | grep -E "^(M|A|D|R|C|U|\?\?)" || true)
+
+    if [[ -n "$uncommitted_changes" ]]; then
+        log_with_level "INFO" "Uncommitted changes detected. Stashing them..."
+        if git stash push -u -m "Pre-uninstall backup: $(date '+%Y-%m-%d %H:%M:%S')"; then
+            log_with_level "SUCCESS" "Uncommitted changes stashed successfully."
+        else
+            log_with_level "ERROR" "Failed to stash uncommitted changes."
+            backup_success=false
+        fi
+    else
+        log_with_level "INFO" "No uncommitted changes to stash."
+    fi
+
+    # 2. Check for local commits not yet pushed to remote and push them
+    local current_branch
+    current_branch=$(git branch --show-current 2>/dev/null)
+
+    if [[ -n "$current_branch" ]]; then
+        local local_only_commits
+        local_only_commits=$(git log origin/"$current_branch"..HEAD --oneline 2>/dev/null || true)
+
+        if [[ -n "$local_only_commits" ]]; then
+            log_with_level "INFO" "Local commits not yet pushed to '$current_branch' detected. Pushing them..."
+            if git push origin "$current_branch"; then
+                log_with_level "SUCCESS" "Local commits pushed successfully to '$current_branch'."
+            else
+                log_with_level "ERROR" "Failed to push local commits to '$current_branch'."
+                backup_success=false
+            fi
+        else
+            log_with_level "INFO" "No local commits to push on '$current_branch'."
+        fi
+    else
+        log_with_level "WARNING" "Could not determine current branch. Skipping push check."
+    fi
+
+    if [[ "$backup_success" == "true" ]]; then
+        log_with_level "SUCCESS" "Git pre-uninstall backup completed successfully."
+        return 0
+    else
+        log_with_level "ERROR" "Git pre-uninstall backup completed with errors."
+        return 1
+    fi
 }
 
 # Confirm git operations (simplified)
