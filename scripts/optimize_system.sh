@@ -1352,7 +1352,27 @@ echo "3. Validating output files..." | tee -a "$VALIDATION_LOG"
 
 if [[ -f "${VALIDATION_DIR}/integration_test.json" ]]; then
 
-echo "✅ Integration test completed successfully" | tee -a "$VALIDATION_LOG"
+# Perform actual functional validation before claiming success
+if [[ -f "${VALIDATION_DIR}/integration_test.json" ]]; then
+    # Verify the JSON file contains valid data and expected metrics
+    if jq empty "${VALIDATION_DIR}/integration_test.json" 2>/dev/null; then
+        # Check if the file contains the expected performance data structure
+        local has_profiling_data
+        has_profiling_data=$(jq -r '.profiling_session.total_requests // "missing"' "${VALIDATION_DIR}/integration_test.json" 2>/dev/null)
+        if [[ "$has_profiling_data" != "missing" && "$has_profiling_data" != "null" ]]; then
+            echo "✅ Integration test completed successfully - functional validation passed" | tee -a "$VALIDATION_LOG"
+        else
+            echo "⚠️ Integration test completed with incomplete data - validation partially failed" | tee -a "$VALIDATION_LOG"
+            return 1
+        fi
+    else
+        echo "❌ Integration test failed - invalid JSON output generated" | tee -a "$VALIDATION_LOG"
+        return 1
+    fi
+else
+    echo "❌ Integration test failed - no output file generated" | tee -a "$VALIDATION_LOG"
+    return 1
+fi
 
 echo " - Performance dashboard: Working" | tee -a "$VALIDATION_LOG"
 

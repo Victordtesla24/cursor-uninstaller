@@ -629,7 +629,19 @@ EOF
     echo -e "${BOLD}Timeout Rate: ${timeout_status_color}${timeout_rate}%${RESET} (${BOLD}Target: <1%${RESET})"
 
     echo -e "${BOLD}Total AI Requests: ${total_requests}${RESET}"
-    echo -e "${BOLD}Successful Requests: ${successful_requests}${RESET}\\n"
+
+    # Calculate actual success rate based on real error data rather than assumptions
+    local actual_success_rate=0
+    if [[ $total_requests -gt 0 ]]; then
+        actual_success_rate=$(((total_requests - error_count - timeout_count) * 100 / total_requests))
+    fi
+
+    # Only display successful requests if we have verifiable data
+    if [[ ${#response_times[@]} -gt 0 || $total_requests -gt 0 ]]; then
+        echo -e "${BOLD}Successful Requests: ${successful_requests} (${actual_success_rate}% success rate)${RESET}\\n"
+    else
+        echo -e "${BOLD}${YELLOW}⚠️ Request data insufficient for accurate success measurement${RESET}\\n"
+    fi
 
     return 0
 }

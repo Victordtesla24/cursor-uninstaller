@@ -122,25 +122,73 @@ rm -rf /private/var/run/docker*
 echo "=== Verifying cleanup ==="
 cleanup_successful=true
 
+# Comprehensive verification - check both existence and functional state
 if [[ -d "$docker_desktop_app" ]]; then
     echo "Verification: Docker Desktop application still present at: $docker_desktop_app"
     cleanup_successful=false
 else
-    echo "Verification: Docker Desktop application removed successfully."
+    # Verify removal by attempting to query bundle info
+    if pkgutil --pkgs | grep -q "com.docker"; then
+        echo "Verification: Docker package records still present in system"
+        cleanup_successful=false
+    elif system_profiler SPApplicationsDataType | grep -q "Docker"; then
+        echo "Verification: Docker still registered in system profiler"
+        cleanup_successful=false
+    else
+        echo "Verification: Docker Desktop application completely removed and unregistered"
+    fi
 fi
 
+# Comprehensive CLI verification - check existence and functionality
 if [[ -f "$docker_cli_path" ]]; then
     echo "Verification: Docker CLI binary still present at: $docker_cli_path"
     cleanup_successful=false
-else
-    echo "Verification: Docker CLI binary removed successfully."
-fi
-
-if [[ -d "$docker_user_data_dir" ]]; then
-    echo "Verification: Docker user data directory still present at: $docker_user_data_dir"
+elif command -v docker >/dev/null 2>&1; then
+    # Check if docker command is still accessible via PATH
+    docker_location=$(command -v docker)
+    echo "Verification: Docker CLI still accessible at: $docker_location"
+    cleanup_successful=false
+elif which docker >/dev/null 2>&1; then
+    # Additional check using which
+    docker_which=$(which docker)
+    echo "Verification: Docker CLI still found via which at: $docker_which"
     cleanup_successful=false
 else
-    echo "Verification: Docker user data directory removed successfully."
+    # Verify docker command is truly inaccessible
+    if docker --version >/dev/null 2>&1; then
+        echo "Verification: Docker CLI still functional (unexpected)"
+        cleanup_successful=false
+    else
+        echo "Verification: Docker CLI completely removed and non-functional"
+    fi
+fi
+
+# Comprehensive user data verification - check multiple locations
+docker_data_locations=(
+    "$HOME/.docker"
+    "$HOME/Library/Containers/com.docker.docker"
+    "$HOME/Library/Group Containers/group.com.docker"
+    "$HOME/Library/Application Support/Docker Desktop"
+    "$HOME/Library/Caches/com.docker.docker"
+)
+
+remaining_data_found=false
+for data_location in "${docker_data_locations[@]}"; do
+    if [[ -e "$data_location" ]]; then
+        echo "Verification: Docker data still present at: $data_location"
+        remaining_data_found=true
+        cleanup_successful=false
+    fi
+done
+
+if [[ "$remaining_data_found" == false ]]; then
+    # Additional verification - check for any docker-related files in user directories
+    if find "$HOME/Library" -name "*docker*" -type d 2>/dev/null | grep -q .; then
+        echo "Verification: Additional Docker-related directories found in user Library"
+        cleanup_successful=false
+    else
+        echo "Verification: All Docker user data and directories completely removed"
+    fi
 fi
 
 # Check for running Docker processes
