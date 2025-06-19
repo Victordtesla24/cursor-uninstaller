@@ -352,6 +352,8 @@ search_comment_keywords() {
   local keywords=(
     "conceptual"
     "reserved for future"
+    "fallback"
+    "backward compatibility"
     "for future implementation"
     "dry run"
     "test"
@@ -417,17 +419,17 @@ main() {
 
   search_critical_patterns "1. Critical Code Issues (High Priority)"
   search_patterns_with_context \
-    "\b(fake|mock|stub|dummy)\b.*\b(code|implementation|function|placeholder|reserved for future|conceptual)" \
+    "\b(fake|mock|stub|dummy)\b.*\b(code|Basic|implementation|function|placeholder|reserved for future|conceptual)" \
     "2. Fake Code Implementations" \
     "HIGH" \
     "true"
   search_patterns_with_context \
-    "^\s*#.*\b(TODO|FIXME|XXX|HACK)\b.*\b(implement|fix|complete|conceptual|future|reserved)" \
+    "^\s*#.*\b(TODO|FIXME|XXX|HACK)\b.*\b(implement|Basic|fix|complete|conceptual|future|reserved)" \
     "3. Incomplete Implementation Markers" \
     "MEDIUM" \
     "true"
   search_patterns_with_context \
-    "\b(placeholder|conceptual)\b.*\b(requires|needs|implementation|future|reserved|conceptual)" \
+    "\b(placeholder|conceptual)\b.*\b(requires|needs|Basic|implementation|future|reserved|conceptual)" \
     "4. Placeholder Code Requiring Implementation" \
     "MEDIUM" \
     "true"
@@ -437,7 +439,7 @@ main() {
     "MEDIUM" \
     "false"
   search_patterns_with_context \
-    "^\s*#.*\b(WIP|work.*in.*progress|unfinished|future|reserved|conceptual)\b" \
+    "^\s*#.*\b(WIP|work.*in.*progress|unfinished|Basic|future|reserved|conceptual)\b" \
     "6. Work in Progress Markers" \
     "LOW" \
     "true"

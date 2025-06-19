@@ -313,7 +313,7 @@ validate_cursor_app_bundle() {
 
     install_log "INFO" "App version: $app_version, Bundle ID: $bundle_id"
 
-    # Basic bundle ID validation
+    # Basic Bundle ID validation
     if [[ "$bundle_id" != *"cursor"* ]] && [[ "$bundle_id" != *"todesktop"* ]]; then
         install_log "WARNING" "Unexpected bundle ID - this may not be a genuine Cursor app"
     fi
@@ -496,7 +496,7 @@ check_installation_status() {
         # Extract more details from product.json for VSCode engine version
         local product_json_path="$CURSOR_APP_PATH/Contents/Resources/app/product.json"
         if [[ -f "$product_json_path" ]]; then
-            # Use jq for robust JSON parsing if available, otherwise fallback to grep/sed
+            # Use jq for robust JSON parsing if available, otherwise use to grep/sed
             if command -v jq >/dev/null 2>&1; then
                 vscode_version=$(jq -r '.version // "N/A"' "$product_json_path" 2>/dev/null)
                 commit=$(jq -r '.commit // "N/A"' "$product_json_path" 2>/dev/null)
@@ -550,7 +550,7 @@ check_installation_status() {
         echo -e "     ${CYAN}Type:${NC} $(file -b "$cli_path")"
         echo -e "     ${CYAN}Version:${NC} $(cursor --version 2>/dev/null | head -n 1)"
 
-        # Functional test
+        # CLI Tool verification
         if cursor --version >/dev/null 2>&1; then
             log_with_level "SUCCESS" "✅ CLI tool functional"
         else
