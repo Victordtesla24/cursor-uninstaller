@@ -1,11 +1,10 @@
 #!/bin/bash
-#
+
 # Enhanced Comprehensive Fake Code Detection Script
 # Purpose: Intelligently detect placeholder, mock, and fake code in shell scripts
 # Author: Vikram
 # Date: June 20, 2025
-# Version: 2.3 - Fixed arithmetic expression syntax errors
-#
+# Version: 2.4 - Fixed brace balance and syntax errors
 
 set -euo pipefail # Enhanced error handling with undefined variable protection
 
@@ -81,7 +80,6 @@ count_shell_files() {
   if command_exists find; then
     find . -name "*.sh" -not -path "./.git/*" -not -name "$SCRIPT_NAME" | wc -l
   else
-    # Fixed: Use proper glob expansion and counting
     local count=0
     for file in ./**/*.sh; do
       if [[ -f "$file" && "$(basename "$file")" != "$SCRIPT_NAME" ]]; then
@@ -101,7 +99,6 @@ search_patterns_with_context() {
 
   print_section "$section_name"
 
-  # Fixed SC2155: Separate declaration and assignment
   local temp_file
   temp_file=$(mktemp)
 
@@ -119,31 +116,25 @@ search_patterns_with_context() {
          -E "$pattern" . 2>/dev/null > "$temp_file" || true
   fi
 
-  # Enhanced filtering logic
   if [[ -s "$temp_file" ]]; then
     local line_count=0
 
     while IFS= read -r line; do
       local should_include=true
 
-      # Skip legitimate patterns if filtering is enabled
       if [[ "$exclude_legitimate" == "true" ]]; then
-        # Skip legitimate temporary file operations
         if [[ "$line" =~ (Clean\ up\ temporary|Removing.*temporary|secure.*temporary|Skip.*temporary) ]]; then
           should_include=false
         fi
 
-        # Skip legitimate documentation and comments
         if [[ "$line" =~ (ENHANCED:|REFACTORED:|Example\ of|Cache\ files\ and) ]]; then
           should_include=false
         fi
 
-        # Skip legitimate reserved URLs or constants
         if [[ "$line" =~ (readonly.*Reserved\ for\ future|URL.*Reserved) ]]; then
           should_include=false
         fi
 
-        # Skip version control and build system files
         if [[ "$line" =~ (generated/|build/|dist/|node_modules/) ]]; then
           should_include=false
         fi
@@ -180,13 +171,11 @@ search_patterns_with_context() {
 search_critical_patterns() {
   local section_name="$1"
 
-  # Fixed SC2155: Separate declaration and assignment
   local temp_file
   temp_file=$(mktemp)
 
   print_section "$section_name"
 
-  # Search for actual problematic patterns
   local critical_patterns=(
     "TODO.*FIXME"
     "XXX.*HACK"
@@ -232,15 +221,13 @@ search_critical_patterns() {
   echo
 }
 
-# Function to analyze code quality metrics - FIXED: Arithmetic expression errors
-# Function to analyze code quality metrics - Enhanced security pattern detection
+# Function to analyze code quality metrics
 analyze_code_quality() {
   print_section "Code Quality Analysis"
 
   local temp_dir
   temp_dir=$(mktemp -d)
 
-  # Check for shell script best practices
   if command_exists shellcheck; then
     echo -e "${CYAN}Running ShellCheck analysis...${RESET}"
     find . -name "*.sh" -not -name "$SCRIPT_NAME" -exec shellcheck -f json {} \; 2>/dev/null > "$temp_dir/shellcheck.json" || true
@@ -280,7 +267,6 @@ analyze_code_quality() {
     print_warning "ShellCheck not available for advanced analysis"
   fi
 
-  # Enhanced anti-pattern detection with context
   local antipatterns=(
     '^[[:space:]]*eval[[:space:]]*[\$"'"'"']'
     'rm[[:space:]]*-rf[[:space:]]*[\$"'"'"']'
@@ -319,7 +305,6 @@ analyze_code_quality() {
   echo
 }
 
-
 # Generate comprehensive summary
 generate_summary() {
   print_header "Analysis Summary"
@@ -340,7 +325,6 @@ generate_summary() {
   echo -e "${BOLD}Total Issues Found: ${RESET}${BOLD}$total_issues${RESET}"
   echo
 
-  # Provide recommendations
   if [[ $HIGH_SEVERITY -gt 0 ]]; then
     print_error "High severity issues require immediate attention"
     echo -e "  ${RED}→${RESET} Review and fix critical code quality problems"
@@ -361,69 +345,109 @@ generate_summary() {
   echo
 }
 
+# Function to search for specific keywords in comments
+search_comment_keywords() {
+  print_section "Comment Keyword Analysis"
+
+  local keywords=(
+    "conceptual"
+    "reserved for future"
+    "for future implementation"
+    "dry run"
+    "test"
+    "safe"
+    "update later"
+  )
+
+  local temp_file
+  temp_file=$(mktemp)
+
+  echo -e "${CYAN}Searching for specific keywords in comments...${RESET}"
+
+  for keyword in "${keywords[@]}"; do
+    echo -e "${BOLD}Keyword: ${keyword}${RESET}"
+
+    if command_exists rg; then
+      rg --type sh -n --color=always "#.*\\b${keyword}\\b" \
+        --glob "!$SCRIPT_NAME" \
+        --glob "!*.bak" \
+        --glob "!*.tmp" \
+        . 2>/dev/null > "$temp_file" || true
+    else
+      grep -rn --color=always --include="*.sh" \
+        --exclude="$SCRIPT_NAME" \
+        --exclude="*.bak" \
+        --exclude="*.tmp" \
+        -E "#.*\\b${keyword}\\b" . 2>/dev/null > "$temp_file" || true
+    fi
+
+    if [[ -s "$temp_file" ]]; then
+      while IFS= read -r line; do
+        print_medium_severity "$line"
+        ((MEDIUM_SEVERITY++))
+      done < "$temp_file"
+    else
+      echo -e "${DIM}No matches found for '${keyword}'${RESET}"
+    fi
+
+    echo
+  done
+
+  rm -f "$temp_file"
+  echo
+}
+
 # Main execution function
 main() {
   print_header "Enhanced Fake Code Detection Analysis"
 
-  # Initialize file count
   TOTAL_FILES_SCANNED=$(count_shell_files)
 
-  # Display scan information
   echo -e "${BOLD}Scan Configuration:${RESET}"
   echo -e "  ${CYAN}•${RESET} Target directory: $(pwd)"
   echo -e "  ${CYAN}•${RESET} Shell files to scan: $TOTAL_FILES_SCANNED"
   echo -e "  ${CYAN}•${RESET} Excluded files: $SCRIPT_NAME, *.bak, *.tmp"
   echo
 
-  # Check for ripgrep availability
   if ! command_exists rg; then
     print_warning "ripgrep (rg) not found. Using grep instead (slower performance)"
     print_warning "For better performance: brew install ripgrep (macOS) | apt install ripgrep (Linux)"
     echo
   fi
 
-  # Enhanced pattern searches with intelligent filtering
   search_critical_patterns "1. Critical Code Issues (High Priority)"
-
   search_patterns_with_context \
     "\b(fake|mock|stub|dummy)\b.*\b(code|implementation|function|placeholder|reserved for future|conceptual)" \
     "2. Fake Code Implementations" \
     "HIGH" \
     "true"
-
   search_patterns_with_context \
     "^\s*#.*\b(TODO|FIXME|XXX|HACK)\b.*\b(implement|fix|complete|conceptual|future|reserved)" \
     "3. Incomplete Implementation Markers" \
     "MEDIUM" \
     "true"
-
   search_patterns_with_context \
     "\b(placeholder|conceptual)\b.*\b(requires|needs|implementation|future|reserved|conceptual)" \
     "4. Placeholder Code Requiring Implementation" \
     "MEDIUM" \
     "true"
-
   search_patterns_with_context \
     "function.*\{\s*$" \
     "5. Empty Function Definitions" \
     "MEDIUM" \
     "false"
-
   search_patterns_with_context \
     "^\s*#.*\b(WIP|work.*in.*progress|unfinished|future|reserved|conceptual)\b" \
     "6. Work in Progress Markers" \
     "LOW" \
     "true"
 
-  # Advanced code quality analysis
+  search_comment_keywords
   analyze_code_quality
-
-  # Generate comprehensive summary
   generate_summary
 
   print_status "Enhanced scan completed successfully"
 
-  # Exit with appropriate code based on findings
   if [[ $HIGH_SEVERITY -gt 0 ]]; then
     exit 1
   elif [[ $MEDIUM_SEVERITY -gt 0 ]]; then
@@ -433,8 +457,5 @@ main() {
   fi
 }
 
-# Script initialization
 trap 'print_error "Script interrupted"; exit 130' INT TERM
-
-# Execute main function with all arguments
 main "$@"
