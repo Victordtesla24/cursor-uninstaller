@@ -33,7 +33,7 @@ draw_dashboard_frame() {
     printf "%s" "CPU USAGE"
     tput cup 4 $((width / 2))
     printf "%s" "MEMORY USAGE"
-    
+
     tput cup 10 2
     printf "%s" "DISK I/O"
     tput cup 10 $((width / 2))
@@ -79,10 +79,10 @@ update_dashboard_data() {
     used_mem_bytes=$(( (pages_active + pages_inactive + pages_wired) * page_size ))
     local used_mem_gb
     used_mem_gb=$(awk "BEGIN {printf \"%.1f\", $used_mem_bytes / 1073741824}")
-    
+
     local mem_percentage
     mem_percentage=$(awk "BEGIN {printf \"%d\", ($used_mem_gb / $total_mem_gb) * 100}")
-    
+
     local bar_width=$(( (width / 2) - 10 ))
     local filled_blocks
     filled_blocks=$(( (mem_percentage * bar_width) / 100 ))
@@ -128,14 +128,25 @@ update_dashboard_data() {
     local pids
     pids=$(pgrep -f "Cursor" | head -n 5)
     if [ -n "$pids" ]; then
+        # Convert newline-separated PIDs to comma-separated format
+        local pid_list
+        pid_list=$(echo "$pids" | tr '\n' ',' | sed 's/,$//')
         local process_list
-        process_list=$(ps -p "$pids" -o pid,pcpu,comm)
-        local line_num=19
-        while read -r line; do
-            tput cup $line_num 2
-            printf "%s" "$line"
-            line_num=$((line_num + 1))
-        done <<< "$process_list"
+        # Add error handling in case processes have terminated
+        if process_list=$(ps -p "$pid_list" -o pid,pcpu,comm 2>/dev/null); then
+            local line_num=19
+            while read -r line; do
+                tput cup $line_num 2
+                printf "%s" "$line"
+                line_num=$((line_num + 1))
+            done <<< "$process_list"
+        else
+            tput cup 19 2
+            printf "No active Cursor processes found"
+        fi
+    else
+        tput cup 19 2
+        printf "No Cursor processes running"
     fi
 }
 
@@ -168,4 +179,4 @@ else
     printf 'System Monitor Module v%s\n' "$SYSTEM_MONITOR_MODULE_VERSION"
     printf 'This module must be sourced, not executed directly\n'
     exit 1
-fi 
+fi
