@@ -845,8 +845,16 @@ perform_tcp_analysis() {
     local successful_connections=0
 
     for host_port in "${tcp_hosts[@]}"; do
+        local host=${host_port%%:*}           # google.com:443 -> google.com
         local connect_result
-        connect_result=$(curl -w "%{time_connect}" -s --max-time 5 --connect-timeout 3 -o /dev/null "https://$host_port" 2>/dev/null || echo "")
+        connect_result=$(curl -w '%{time_appconnect}' \
+                           -sS --max-time 5 --connect-timeout 3 \
+                           -o /dev/null "https://$host" 2>/dev/null)
+
+        # Bail out (or count as 999) if curl failed
+        if [[ $? -ne 0 || ! "$connect_result" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+          connect_result=999            # sentinel for "couldn't connect"
+        fi
 
         if [[ "$connect_result" =~ ^[0-9]+(\.[0-9]+)?$ ]] && (( $(echo "$connect_result > 0" | bc -l 2>/dev/null || echo "0") )); then
             total_connect_time=$(echo "$total_connect_time + $connect_result" | bc -l 2>/dev/null || echo "$total_connect_time")
@@ -1248,7 +1256,31 @@ EOF
     echo "" >> "$report_file"
     echo "Report saved to: $report_file" >> "$report_file"
 
-    opt_log "INFO" "Performance report generated: $report_file"
+    # --- NEW: Export JSON metrics for dashboard & external monitoring ---
+    local json_file="${TEMP_DIR}/performance_metrics.json"
+    local generated_ts
+    if command -v gdate >/dev/null 2>&1; then
+        generated_ts=$(gdate -u +"%Y-%m-%dT%H:%M:%SZ")
+    else
+        generated_ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    fi
+
+    cat > "$json_file" << JSON
+{
+  "generated": "${generated_ts}",
+  "score": ${score},
+  "maxScore": ${max_score},
+  "percentage": $(( score * 100 / max_score )),
+  "healthIssues": ${issues},
+  "systemTier": "${SYSTEM_OPTIMIZATION_TIER:-unknown}",
+  "macOS": "$(sw_vers -productVersion 2>/dev/null || echo "Unknown")",
+  "architecture": "$(uname -m)",
+  "cpu": "$(sysctl -n machdep.cpu.brand_string 2>/dev/null | sed 's/"/\\"/g' || echo "Unknown")",
+  "memoryGB": $(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo 0)
+}
+JSON
+
+    opt_log "INFO" "Performance report generated: $report_file (JSON: $json_file)"
 }
 
 # Display comprehensive system specifications with optimization readiness
