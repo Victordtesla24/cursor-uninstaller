@@ -13,6 +13,30 @@ set -euo pipefail
 readonly UNINSTALL_MODULE_NAME="uninstall"
 readonly UNINSTALL_MODULE_VERSION="2.1.0"
 
+# FIXED: Define color variables if not already defined
+if [[ -z "${RED:-}" ]]; then
+    readonly RED='\033[0;31m'
+    readonly GREEN='\033[0;32m'
+    readonly YELLOW='\033[1;33m'
+    readonly BLUE='\033[0;34m'
+    readonly CYAN='\033[0;36m'
+    readonly BOLD='\033[1m'
+    readonly NC='\033[0m'
+
+    # Export color variables for external use
+    export RED GREEN YELLOW BLUE CYAN BOLD NC
+fi
+
+# FIXED: Define CURSOR_APP_PATH if not already defined
+if [[ -z "${CURSOR_APP_PATH:-}" ]]; then
+    readonly CURSOR_APP_PATH="/Applications/Cursor.app"
+fi
+
+# FIXED: Define LAUNCH_SERVICES_CMD if not already defined
+if [[ -z "${LAUNCH_SERVICES_CMD:-}" ]]; then
+    readonly LAUNCH_SERVICES_CMD="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+fi
+
 # Module-specific logging
 uninstall_log() {
     local level="$1"

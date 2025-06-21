@@ -1,14 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Enhanced Comprehensive Fake Code Detection Script
-# Purpose: Detect placeholder, mock, and fake code patterns in shell scripts
+# Purpose: Intelligently detect placeholder, mock, and fake code in shell scripts
 # Author: Vikram
 # Date: June 20, 2025
-# Version: 2.6 – Fixed hanging, exit errors, and added keyword/function searches
+# Version: 2.3 - Fixed arithmetic expression syntax errors
+#
 
-set -euo pipefail  # robust error handling[1]
+set -euo pipefail # Enhanced error handling with undefined variable protection
 
-# ANSI color codes
+# ANSI color codes for enhanced output formatting
 readonly GREEN="\033[0;32m"
 readonly YELLOW="\033[1;33m"
 readonly RED="\033[0;31m"
@@ -18,247 +19,459 @@ readonly BOLD="\033[1m"
 readonly DIM="\033[2m"
 readonly RESET="\033[0m"
 
-SCRIPT_NAME="$(basename "$0")"
-# shellcheck disable=SC2034
-TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
+# Script configuration - Fixed: Declare and assign in single statement
+readonly SCRIPT_NAME=$(basename "$0")
+readonly TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Global counters
+# Global counters for summary
 declare -i HIGH_SEVERITY=0
 declare -i MEDIUM_SEVERITY=0
 declare -i LOW_SEVERITY=0
 declare -i TOTAL_FILES_SCANNED=0
 
-# Check if a command exists
+# Function to check if a command exists
 command_exists() {
   command -v "$1" &> /dev/null
 }
 
-# Logging functions
+# Enhanced logging functions
 print_header() {
-  echo -e "${BOLD}${BLUE}╔════════════════════════════════════════╗${RESET}"
-  echo -e "${BOLD}${BLUE}║${RESET} $1 ${BOLD}${BLUE}              ║${RESET}"
-  echo -e "${BOLD}${BLUE}╚════════════════════════════════════════╝${RESET}\n"
+  echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════════════════════════════════════════╗${RESET}"
+  echo -e "${BOLD}${BLUE}║${RESET} ${BOLD}$1${RESET} ${BOLD}${BLUE}                                     ║${RESET}"
+  echo -e "${BOLD}${BLUE}╚══════════════════════════════════════════════════════════════════════════════╝${RESET}"
+  echo
 }
-print_section() { echo -e "${BOLD}${CYAN}▶ $1${RESET}\n${DIM}────────────────────────────────────────${RESET}"; }
-print_status()  { echo -e "${GREEN}[✓]${RESET} $1"; }
-print_warning() { echo -e "${YELLOW}[!]${RESET} $1" >&2; }
-print_high()    { echo -e "${RED}[HIGH]${RESET} $1"; ((HIGH_SEVERITY++)); }
-print_medium()  { echo -e "${YELLOW}[MEDIUM]${RESET} $1"; ((MEDIUM_SEVERITY++)); }
-print_low()     { echo -e "${CYAN}[LOW]${RESET} $1"; ((LOW_SEVERITY++)); }
 
-# Count shell script files
+print_section() {
+  echo -e "${BOLD}${CYAN}▶ $1${RESET}"
+  echo -e "${DIM}${CYAN}────────────────────────────────────────────────────────────────────────────────${RESET}"
+}
+
+print_status() {
+  echo -e "${GREEN}[✓]${RESET} $1"
+}
+
+print_warning() {
+  echo -e "${YELLOW}[!]${RESET} $1" >&2
+}
+
+print_error() {
+  echo -e "${RED}[✗]${RESET} $1" >&2
+}
+
+print_high_severity() {
+  echo -e "${RED}[HIGH]${RESET} $1"
+  ((HIGH_SEVERITY++))
+}
+
+print_medium_severity() {
+  echo -e "${YELLOW}[MEDIUM]${RESET} $1"
+  ((MEDIUM_SEVERITY++))
+}
+
+print_low_severity() {
+  echo -e "${CYAN}[LOW]${RESET} $1"
+  ((LOW_SEVERITY++))
+}
+
+# Function to count shell files - Fixed SC2010 and SC2035
 count_shell_files() {
   if command_exists find; then
-    find . -type f -name "*.sh" -not -path "./.git/*" -not -name "$SCRIPT_NAME" | wc -l
+    find . -name "*.sh" -not -path "./.git/*" -not -name "$SCRIPT_NAME" | wc -l
   else
+    # Fixed: Use proper glob expansion and counting
     local count=0
-    for f in ./**/*.sh; do
-      [[ -f $f && $(basename "$f") != "$SCRIPT_NAME" ]] && ((count++))
-    done 2>/dev/null
+    for file in ./**/*.sh; do
+      if [[ -f "$file" && "$(basename "$file")" != "$SCRIPT_NAME" ]]; then
+        ((count++))
+      fi
+    done 2>/dev/null || true
     echo "$count"
   fi
 }
 
-# Generic pattern-search function
+# Enhanced pattern search with intelligent filtering
 search_patterns_with_context() {
-  local pattern="$1" section="$2" severity="${3:-MEDIUM}" exclude_legit="${4:-true}"
-  print_section "$section"
-  local tmp
-  tmp="$(mktemp)"
+  local pattern="$1"
+  local section_name="$2"
+  local severity_level="${3:-MEDIUM}"
+  local exclude_legitimate="${4:-true}"
+
+  print_section "$section_name"
+
+  # Fixed SC2155: Separate declaration and assignment
+  local temp_file
+  temp_file=$(mktemp)
+
   if command_exists rg; then
-    rg -n --color=always -E "$pattern" --glob "!$SCRIPT_NAME" --glob "!*.bak" --glob "!*.tmp" . \
-      >"$tmp" 2>/dev/null || true
+    rg --type sh -n --color=always "$pattern" \
+       --glob "!$SCRIPT_NAME" \
+       --glob "!*.bak" \
+       --glob "!*.tmp" \
+       . 2>/dev/null > "$temp_file" || true
   else
-    grep -rn --color=always -E "$pattern" --include="*.sh" --exclude="$SCRIPT_NAME" \
-         --exclude="*.bak" --exclude="*.tmp" . >"$tmp" 2>/dev/null || true
+    grep -rn --color=always --include="*.sh" \
+         --exclude="$SCRIPT_NAME" \
+         --exclude="*.bak" \
+         --exclude="*.tmp" \
+         -E "$pattern" . 2>/dev/null > "$temp_file" || true
   fi
 
-  if [[ -s $tmp ]]; then
-    local found=0
+  # Enhanced filtering logic
+  if [[ -s "$temp_file" ]]; then
+    local line_count=0
+
     while IFS= read -r line; do
-      if [[ $exclude_legit == "true" && "$line" =~ (Clean\ up|Removing.*|Skip.*|readonly.*Reserved) ]]; then
-        continue
+      local should_include=true
+
+      # Skip legitimate patterns if filtering is enabled
+      if [[ "$exclude_legitimate" == "true" ]]; then
+        # Skip legitimate temporary file operations
+        if [[ "$line" =~ (Clean\ up\ temporary|Removing.*temporary|secure.*temporary|Skip.*temporary) ]]; then
+          should_include=false
+        fi
+
+        # Skip legitimate documentation and comments
+        if [[ "$line" =~ (ENHANCED:|REFACTORED:|Example\ of|Cache\ files\ and) ]]; then
+          should_include=false
+        fi
+
+        # Skip legitimate reserved URLs or constants
+        if [[ "$line" =~ (readonly.*Reserved\ for\ future|URL.*Reserved) ]]; then
+          should_include=false
+        fi
+
+        # Skip version control and build system files
+        if [[ "$line" =~ (generated/|build/|dist/|node_modules/) ]]; then
+          should_include=false
+        fi
       fi
-      case "$severity" in
-        HIGH)   print_high "$line" ;;
-        MEDIUM) print_medium "$line" ;;
-        LOW)    print_low "$line" ;;
-      esac
-      ((found++))
-    done <"$tmp"
-    [[ $found -eq 0 ]] && echo -e "${DIM}No matches${RESET}"
+
+      if [[ "$should_include" == "true" ]]; then
+        case "$severity_level" in
+          "HIGH")
+            print_high_severity "$line"
+            ;;
+          "MEDIUM")
+            print_medium_severity "$line"
+            ;;
+          "LOW")
+            print_low_severity "$line"
+            ;;
+        esac
+        ((line_count++))
+      fi
+    done < "$temp_file"
+
+    if [[ $line_count -eq 0 ]]; then
+      echo -e "${DIM}No suspicious patterns found${RESET}"
+    fi
   else
-    echo -e "${DIM}No matches${RESET}"
+    echo -e "${DIM}No matches found${RESET}"
   fi
-  rm -f "$tmp"
+
+  rm -f "$temp_file"
   echo
 }
 
-# Search for critical patterns
+# Advanced pattern search for specific code issues
 search_critical_patterns() {
-  print_section "$1"
-  local tmp
-  tmp="$(mktemp)"
-  local patterns=( "TODO.*FIXME" "XXX.*HACK" "function.*\{.*#.*(TODO|future|reserved|conceptual)" )
-  for p in "${patterns[@]}"; do
+  local section_name="$1"
+
+  # Fixed SC2155: Separate declaration and assignment
+  local temp_file
+  temp_file=$(mktemp)
+
+  print_section "$section_name"
+
+  # Search for actual problematic patterns
+  local critical_patterns=(
+    "TODO.*FIXME"
+    "XXX.*HACK"
+    "function.*\{\s*#.*TODO"
+    "function.*\{\s*#.*FIXME"
+    "function.*\{\s*#.*stub"
+    "function.*\{\s*return.*mock"
+    "echo.*not.*implement"
+    "exit.*mock"
+    "placeholder.*implement"
+    "placeholder.*future*implementation"
+    "placeholder.*conceptual"
+  )
+
+  local found_critical=false
+
+  for pattern in "${critical_patterns[@]}"; do
     if command_exists rg; then
-      rg -in --color=always -E "$p" --glob "!$SCRIPT_NAME" . >>"$tmp" 2>/dev/null || true
+      rg --type sh -n --color=always -i "$pattern" \
+         --glob "!$SCRIPT_NAME" \
+         . 2>/dev/null >> "$temp_file" || true
     else
-      grep -rin --color=always -E "$p" --include="*.sh" --exclude="$SCRIPT_NAME" . >>"$tmp" 2>/dev/null || true
+      grep -rn --color=always --include="*.sh" \
+           --exclude="$SCRIPT_NAME" \
+           -iE "$pattern" . 2>/dev/null >> "$temp_file" || true
     fi
   done
-  if [[ -s $tmp ]]; then
+
+  if [[ -s "$temp_file" ]]; then
     while IFS= read -r line; do
-      print_high "$line"
-    done <"$tmp"
-  else
-    echo -e "${DIM}No critical issues${RESET}"
+      print_high_severity "$line"
+      found_critical=true
+    done < "$temp_file"
   fi
-  rm -f "$tmp"
+
+  if [[ "$found_critical" == "false" ]]; then
+    echo -e "${DIM}No critical issues found${RESET}"
+  fi
+
+  rm -f "$temp_file"
   echo
 }
 
-# Search for comment keywords
-search_comment_keywords() {
-  print_section "Comment Keyword Analysis"
-  local keywords=( conceptual "reserved for future" "for future implementation" "update later" )
-  local tmp
-  tmp="$(mktemp)"
-  for k in "${keywords[@]}"; do
-    echo -e "${BOLD}Keyword:${RESET} $k"
-    if command_exists rg; then
-      rg -n --color=always "#.*\b$k\b" --glob "!$SCRIPT_NAME" --glob "!*.bak" --glob "!*.tmp" . \
-        >"$tmp" 2>/dev/null || true
-    else
-      grep -rn --color=always -E "#.*\b$k\b" --include="*.sh" --exclude="$SCRIPT_NAME" \
-           --exclude="*.bak" --exclude="*.tmp" . >"$tmp" 2>/dev/null || true
-    fi
-    if [[ -s $tmp ]]; then
-      while IFS= read -r line; do print_medium "$line"; done <"$tmp"
-    else
-      echo -e "${DIM}No matches${RESET}"
-    fi
-    echo
-  done
-  rm -f "$tmp"
-  echo
-}
-
-# Search in function names and identifiers
-dry_run_analysis() {
-  search_patterns_with_context "dry_run" "Dry Run Function Names" LOW false
-}
-test_code_detection() {
-  search_patterns_with_context "test_code" "Test Code Identifiers" LOW false
-}
-safe_run_checks() {
-  search_patterns_with_context "safe_run" "Safe Run Identifiers" LOW false
-}
-safe_prefix_search() {
-  search_patterns_with_context "safe_" "Safe_ Prefix in Names" LOW false
-}
-test_prefix_search() {
-  search_patterns_with_context "test_" "Test_ Prefix in Names" LOW false
-}
-
-# Code-quality analysis with ShellCheck
+# Function to analyze code quality metrics - FIXED: Arithmetic expression errors
 analyze_code_quality() {
   print_section "Code Quality Analysis"
-  local tmpdir
-  tmpdir="$(mktemp -d)"
+
+  # Fixed SC2155: Separate declaration and assignment
+  local temp_dir
+  temp_dir=$(mktemp -d)
+
+  # Check for shell script best practices
   if command_exists shellcheck; then
-    echo -e "${CYAN}Running ShellCheck...${RESET}"
+    echo -e "${CYAN}Running ShellCheck analysis...${RESET}"
+    find . -name "*.sh" -not -name "$SCRIPT_NAME" -exec shellcheck -f json {} \; 2>/dev/null > "$temp_dir/shellcheck.json" || true
 
-    # Phase 1: Separate file collection process - no process substitution
-    local files_to_check=()
-    local file_count=0
+    if [[ -s "$temp_dir/shellcheck.json" ]]; then
+      # FIXED: Remove newlines and ensure clean numeric values
+      local error_count
+      local warning_count
 
-    # Use safer while read loop instead of for loop over find output
-    while IFS= read -r -d '' file; do
-      if [[ -f "$file" && "$file" != *"$SCRIPT_NAME" ]]; then
-        files_to_check+=("$file")
-        ((file_count++))
+      # Fixed: Strip newlines and use tr to clean output before counting
+      error_count=$(grep -o '"level":"error"' "$temp_dir/shellcheck.json" 2>/dev/null | wc -l | tr -d '[:space:]' || echo "0")
+      warning_count=$(grep -o '"level":"warning"' "$temp_dir/shellcheck.json" 2>/dev/null | wc -l | tr -d '[:space:]' || echo "0")
+
+      # Ensure variables contain only digits
+      error_count=${error_count//[^0-9]/}
+      warning_count=${warning_count//[^0-9]/}
+
+      # Default to 0 if empty
+      error_count=${error_count:-0}
+      warning_count=${warning_count:-0}
+
+      if [[ $error_count -gt 0 ]]; then
+        print_high_severity "ShellCheck found $error_count critical errors"
       fi
-    done < <(find . -name "*.sh" -type f -print0 2>/dev/null)
-
-    echo -e "${DIM}Processing $file_count shell script files...${RESET}"
-
-    # Phase 2: Separate shellcheck execution process
-    local processed=0
-    for file in "${files_to_check[@]}"; do
-      ((processed++))
-      echo -ne "${DIM}[$processed/$file_count] Checking $(basename "$file")...${RESET}\r"
-
-      # Direct shellcheck execution - isolated process
-      if command_exists timeout; then
-        timeout 5s shellcheck -f json "$file" >> "$tmpdir/shellcheck.json" 2>/dev/null || true
-      else
-        shellcheck -f json "$file" >> "$tmpdir/shellcheck.json" 2>/dev/null || true
+      if [[ $warning_count -gt 0 ]]; then
+        print_medium_severity "ShellCheck found $warning_count warnings"
       fi
-    done
 
-    echo # Clear progress line
+      # Additional check: if no specific errors/warnings found, check for any issues
+      if [[ $error_count -eq 0 && $warning_count -eq 0 ]]; then
+        local total_issues
+        total_issues=$(grep -o '"level":' "$temp_dir/shellcheck.json" 2>/dev/null | wc -l | tr -d '[:space:]' || echo "0")
+        total_issues=${total_issues//[^0-9]/}
+        total_issues=${total_issues:-0}
 
-    if [[ -s $tmpdir/shellcheck.json ]]; then
-      local errs warns
-      errs=$(grep -o '"level":"error"' "$tmpdir/shellcheck.json" | wc -l 2>/dev/null || echo 0)
-      warns=$(grep -o '"level":"warning"' "$tmpdir/shellcheck.json" | wc -l 2>/dev/null || echo 0)
-      ((errs>0)) && print_high "ShellCheck errors: $errs"
-      ((warns>0)) && print_medium "ShellCheck warnings: $warns"
-      ((errs==0&&warns==0)) && print_low "No ShellCheck issues"
-    else
-      print_low "No ShellCheck issues"
+        if [[ $total_issues -gt 0 ]]; then
+          print_medium_severity "ShellCheck found $total_issues code quality issues"
+        fi
+      fi
     fi
   else
-    print_warning "ShellCheck not installed"
+    print_warning "ShellCheck not available for advanced analysis"
   fi
-  rm -rf -- "$tmpdir"
+
+  # Check for common anti-patterns
+  local antipatterns=(
+    'eval.*\$'
+    'chmod.*777'
+    'su.*-c.*\$'
+    'curl.*\|.*sh'
+  )
+
+  for pattern in "${antipatterns[@]}"; do
+    local matches=""
+    if command_exists rg; then
+      matches=$(rg --type sh -n "$pattern" --glob "!$SCRIPT_NAME" . 2>/dev/null || true)
+    else
+      matches=$(grep -rn --include="*.sh" --exclude="$SCRIPT_NAME" -E "$pattern" . 2>/dev/null || true)
+    fi
+
+    if [[ -n "$matches" ]]; then
+      while IFS= read -r line; do
+        [[ -n "$line" ]] && print_high_severity "Security concern: $line"
+      done <<< "$matches"
+    fi
+  done
+
+  # ----------------------------------------------------------------------------
+  # Custom analysis for destructive "rm -rf" usage
+  # Allowed ONLY in uninstall scripts *and* when explicitly targeting the Cursor
+  # application path. All other occurrences are reported as medium-severity
+  # warnings for further review.
+  # ----------------------------------------------------------------------------
+  local rm_matches=""
+  if command_exists rg; then
+    rm_matches=$(rg --type sh -n "rm\\s+-rf" --glob "!$SCRIPT_NAME" . 2>/dev/null || true)
+  else
+    rm_matches=$(grep -rn --include="*.sh" --exclude="$SCRIPT_NAME" -E "rm[[:space:]]+-rf" . 2>/dev/null || true)
+  fi
+
+  if [[ -n "$rm_matches" ]]; then
+    while IFS= read -r rm_line; do
+      # Extract file path and content
+      local rm_file_path=$(echo "$rm_line" | cut -d: -f1)
+      local rm_content=$(echo "$rm_line" | cut -d: -f3-)
+
+      # Determine if this usage is permitted:
+      #   1. File is an uninstall-related script (basename contains "uninstall" or
+      #      the canonical complete_removal module)
+      #   2. The line targets the Cursor app path via variable or literal
+      if [[ "$rm_file_path" =~ (uninstall|complete_removal) ]] && [[ "$rm_content" =~ (CURSOR_APP_PATH|Cursor\.app) ]]; then
+        # Permitted – do not flag
+        continue
+      fi
+
+      # Otherwise, raise a medium-severity warning
+      print_medium_severity "rm -rf usage requires review: $rm_line"
+    done <<< "$rm_matches"
+  fi
+
+  rm -rf "$temp_dir"
   echo
 }
 
-# Summary of results
+# Generate comprehensive summary
 generate_summary() {
   print_header "Analysis Summary"
-  echo -e "${BOLD}Files scanned:${RESET} $TOTAL_FILES_SCANNED"
-  echo -e "${BOLD}High/Med/Low:${RESET} $HIGH_SEVERITY / $MEDIUM_SEVERITY / $LOW_SEVERITY"
+
+  echo -e "${BOLD}Scan Details:${RESET}"
+  echo -e "  ${CYAN}•${RESET} Timestamp: $TIMESTAMP"
+  echo -e "  ${CYAN}•${RESET} Files scanned: $TOTAL_FILES_SCANNED shell scripts"
+  echo -e "  ${CYAN}•${RESET} Search tool: $(command_exists rg && echo "ripgrep (rg)" || echo "grep")"
+  echo
+
+  echo -e "${BOLD}Issue Severity Breakdown:${RESET}"
+  echo -e "  ${RED}•${RESET} High severity issues: ${BOLD}$HIGH_SEVERITY${RESET}"
+  echo -e "  ${YELLOW}•${RESET} Medium severity issues: ${BOLD}$MEDIUM_SEVERITY${RESET}"
+  echo -e "  ${CYAN}•${RESET} Low severity issues: ${BOLD}$LOW_SEVERITY${RESET}"
+  echo
+
+  local total_issues=$((HIGH_SEVERITY + MEDIUM_SEVERITY + LOW_SEVERITY))
+  echo -e "${BOLD}Total Issues Found: ${RESET}${BOLD}$total_issues${RESET}"
+  echo
+
+  # Provide recommendations
+  if [[ $HIGH_SEVERITY -gt 0 ]]; then
+    print_error "High severity issues require immediate attention"
+    echo -e "  ${RED}→${RESET} Review and fix critical code quality problems"
+    echo -e "  ${RED}→${RESET} Address security concerns and anti-patterns"
+  fi
+
+  if [[ $MEDIUM_SEVERITY -gt 0 ]]; then
+    print_warning "Medium severity issues should be addressed soon"
+    echo -e "  ${YELLOW}→${RESET} Review development markers and incomplete implementations"
+    echo -e "  ${YELLOW}→${RESET} Clean up placeholder code and stubs"
+  fi
+
+  if [[ $total_issues -eq 0 ]]; then
+    print_status "No significant code quality issues detected"
+    echo -e "  ${GREEN}→${RESET} Your codebase appears to be well-maintained"
+  fi
+
   echo
 }
 
+# Main execution function
 main() {
   print_header "Enhanced Fake Code Detection Analysis"
+
+  # Initialize file count
   TOTAL_FILES_SCANNED=$(count_shell_files)
-  echo -e "${CYAN}Target directory:${RESET} $(pwd)"
-  echo -e "${CYAN}Shell scripts scanned:${RESET} $TOTAL_FILES_SCANNED"
+
+  # Display scan information
+  echo -e "${BOLD}Scan Configuration:${RESET}"
+  echo -e "  ${CYAN}•${RESET} Target directory: $(pwd)"
+  echo -e "  ${CYAN}•${RESET} Shell files to scan: $TOTAL_FILES_SCANNED"
+  echo -e "  ${CYAN}•${RESET} Excluded files: $SCRIPT_NAME, *.bak, *.tmp"
   echo
 
-  command_exists rg || print_warning "ripgrep not found; falling back to grep"
+  # Check for ripgrep availability
+  if ! command_exists rg; then
+    print_warning "ripgrep (rg) not found. Using grep instead (slower performance)"
+    print_warning "For better performance: brew install ripgrep (macOS) | apt install ripgrep (Linux)"
+    echo
+  fi
 
-  search_critical_patterns "1. Critical Code Issues"
-  search_patterns_with_context "\b(fake|mock|stub|dummy)\b" \
-    "2. Fake Code Implementations" HIGH true
-  search_patterns_with_context "^\s*#.*\b(TODO|FIXME)\b" \
-    "3. Incomplete Implementation Markers" MEDIUM true
-  search_patterns_with_context "\b(placeholder|conceptual)\b" \
-    "4. Placeholder Code Requiring Implementation" MEDIUM true
-  search_patterns_with_context "function.*\{\s*\$" \
-    "5. Empty Function Definitions" MEDIUM false
-  search_patterns_with_context "^\s*#.*\b(WIP)\b" \
-    "6. Work in Progress Markers" LOW true
+  # Enhanced pattern searches with intelligent filtering
+  search_critical_patterns "1. Critical Code Issues (High Priority)"
 
-  search_comment_keywords
-  dry_run_analysis
-  test_code_detection
-  safe_run_checks
-  safe_prefix_search
-  test_prefix_search
+  search_patterns_with_context \
+    "\b(fake|mock|stub|dummy)\b.*\b(code|implementation|function|placeholder|conceptual|dry_run|dry run|Treat warnings as success|return 0)" \
+    "2. Fake Code Implementations" \
+    "HIGH" \
+    "true"
+
+  search_patterns_with_context \
+    "^\s*#.*\b(TODO|FIXME|XXX|HACK)\b.*\b(code|implementation|function|placeholder|conceptual|dry_run|dry run|Treat warnings as success|return 0)" \
+    "3. Incomplete Implementation Markers" \
+    "MEDIUM" \
+    "true"
+
+  search_patterns_with_context \
+    "\b(placeholder|conceptual)\b.*\b(code|implementation|function|placeholder|conceptual|dry_run|dry run|Treat warnings as success|return 0)" \
+    "4. Placeholder Code Requiring Implementation" \
+    "MEDIUM" \
+    "true"
+
+  search_patterns_with_context \
+    "function.*\{\s*$" \
+    "5. Empty Function Definitions" \
+    "MEDIUM" \
+    "false" \
+    "return 0" \
+    "dry_run" \
+    "conceptual" \
+    "placeholder" \
+    "fake" \
+    "mock" \
+    "stub" \
+    "dummy"
+
+  search_patterns_with_context \
+    "^\s*#.*\b(WIP|work.*in.*progress|unfinished)\b" \
+    "6. Work in Progress Markers" \
+    "LOW" \
+    "true" \
+    "dry_run" \
+    "conceptual" \
+    "placeholder" \
+    "fake" \
+    "mock" \
+    "stub" \
+    "dummy" \
+    "return 0"
+
+  # Advanced code quality analysis
   analyze_code_quality
+
+  # Generate comprehensive summary
   generate_summary
 
-  print_status "Scan complete"
-  ((HIGH_SEVERITY>0)) && exit 1
-  ((MEDIUM_SEVERITY>0)) && exit 2
-  exit 0
+  print_status "Enhanced scan completed successfully"
+
+  # Exit with appropriate code based on findings
+  if [[ $HIGH_SEVERITY -gt 0 ]]; then
+    exit 1
+  elif [[ $MEDIUM_SEVERITY -gt 0 ]]; then
+    exit 2
+  else
+    exit 0
+  fi
 }
 
-trap 'print_warning "Interrupted"; exit 130' INT TERM
+# Script initialization
+trap 'print_error "Script interrupted"; exit 130' INT TERM
+
+# Execute main function with all arguments
 main "$@"

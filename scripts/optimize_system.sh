@@ -434,7 +434,7 @@ ai_config=$(cat << 'EOF'
 
 {
 
-  "cursor.chat.openaiApiKey": "",
+  "cursor.chat.openaiApiKey": "${OPENAI_API_KEY:-}",
 
   "cursor.general.enableLogging": false,
 

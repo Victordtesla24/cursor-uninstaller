@@ -187,17 +187,20 @@ perform_comprehensive_health_check() {
     # Get thermal state if available
     thermal_state="N/A"
     if command -v pmset >/dev/null 2>&1; then
-        # Try to use gtimeout (from brew coreutils) or timeout
+        # FIXED: macOS-compatible timeout implementation using Perl
         local TIMEOUT_CMD=""
         if command -v gtimeout >/dev/null; then
             TIMEOUT_CMD="gtimeout 5"
         elif command -v timeout >/dev/null; then
             TIMEOUT_CMD="timeout 5"
+        else
+            # FIXED: Custom timeout using Perl (available on macOS by default)
+            TIMEOUT_CMD=("perl" "-e" "alarm(5); exec @ARGV" "--")
         fi
 
-        if [[ -n "$TIMEOUT_CMD" ]]; then
+        if [[ -n "${TIMEOUT_CMD[*]}" ]]; then
             local therm_output
-            therm_output=$($TIMEOUT_CMD pmset -g therm 2>/dev/null || echo "")
+            therm_output=$("${TIMEOUT_CMD[@]}" pmset -g therm 2>/dev/null || echo "")
             if [[ -n "$therm_output" ]]; then
                 local limit
                 limit=$(echo "$therm_output" | grep "CPU_Scheduler_Limit" | awk '{print $NF}')

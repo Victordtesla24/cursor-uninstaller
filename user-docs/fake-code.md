@@ -55,18 +55,26 @@ This document lists all identified fake, mock, or simulated code segments that p
 +------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
 | modules/ai_optimization.sh               | 25-35         | check_network_connectivity usage                                 | Undefined function in this scope – import from helpers.sh or implement locally |
 +------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/optimization.sh                  | 60-66         | vm_output=$(timeout 5 vm_stat ...)                            | Uses 'timeout' command unavailable on macOS – integrate perl/gtimeout fallback or use built-in 'perl -e alarm' workaround |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| scripts/optimize_system.sh               | 690-700       | ulimit -n "$FILE_DESCRIPTOR_LIMIT"                              | Undefined variable FILE_DESCRIPTOR_LIMIT – declare constant in config.sh or guard with default value |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| scripts/optimize_system.sh               | 1060-1070     | if is_dry_run; then                                             | Undefined helper function – source helpers.sh or implement local is_dry_run check |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| scripts/optimize_system.sh               | 1335-1345     | start_performance_monitor ... / stop_performance_monitor       | Missing monitoring functions – implement in helpers module or replace with existing profiler |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
 ```
 
 ## Summary
 
-Total fake/mock/simulated segments identified: 21
+Total fake/mock/simulated segments identified: 25
 
 ### Categories of Issues:
 1. **False Verification Messages** (7 instances) - Scripts claim successful removal/completion without actual verification
 2. **Unverified Success Claims** (2 instances) - Success messages without functional testing
 3. **Fake Metrics** (1 instance) - Calculated metrics that don't reflect real performance data
-4. **Requirement Gaps / Undefined Dependencies** (6 instances) - Missing variables, external libs, or over-restrictive validations
-5. **Platform Incompatibilities / Missing Commands** (3 instances) - Reliance on commands not available on macOS
+4. **Requirement Gaps / Undefined Dependencies** (9 instances) - Missing variables, external libs, or over-restrictive validations
+5. **Platform Incompatibilities / Missing Commands** (4 instances) - Reliance on commands not available on macOS
 6. **Missing Credentials / Auth Configuration** (1 instance) - Blank API key leading to authentication failure
 
 ### Remediation Approach:
