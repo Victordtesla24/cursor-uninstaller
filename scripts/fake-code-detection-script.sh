@@ -173,13 +173,13 @@ analyze_code_quality() {
     local files_to_check=()
     local file_count=0
 
-    # Use simple for loop with command substitution instead of process substitution
-    for file in $(find . -name "*.sh" -type f 2>/dev/null); do
+    # Use safer while read loop instead of for loop over find output
+    while IFS= read -r -d '' file; do
       if [[ -f "$file" && "$file" != *"$SCRIPT_NAME" ]]; then
         files_to_check+=("$file")
         ((file_count++))
       fi
-    done
+    done < <(find . -name "*.sh" -type f -print0 2>/dev/null)
 
     echo -e "${DIM}Processing $file_count shell script files...${RESET}"
 

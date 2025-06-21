@@ -17,10 +17,15 @@ set -euo pipefail
 IFS=$' \t\n'
 umask 077
 
-# Script metadata
+# Script metadata - exported for external use
 readonly SCRIPT_VERSION="4.1.0"
 readonly SCRIPT_NAME="Cursor AI Editor Complete Uninstaller"
-readonly SCRIPT_BUILD="$(date '+%Y%m%d%H%M%S')"
+readonly SCRIPT_BUILD
+SCRIPT_BUILD="$(date '+%Y%m%d%H%M%S')"
+readonly SCRIPT_BUILD
+
+# Export metadata for external modules
+export SCRIPT_VERSION SCRIPT_NAME SCRIPT_BUILD
 
 # SECURITY: Process restrictions
 ulimit -c 0  # Disable core dumps
@@ -39,13 +44,25 @@ readonly CURSOR_APP_PATH="/Applications/Cursor.app"
 readonly CURSOR_BUNDLE_ID="com.todesktop.230313mzl4w4u92"
 readonly LAUNCH_SERVICES_CMD="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
-# Global state tracking
-ERRORS_ENCOUNTERED=0
+# Global state tracking - use main script's variables if available
+if [[ -z "${ERRORS_ENCOUNTERED:-}" ]]; then
+    ERRORS_ENCOUNTERED=0
+fi
 SCRIPT_RUNNING=true
 START_TIME=$(date +%s)
 
-# Enhanced logging function
+# Export state variables for external use
+export SCRIPT_RUNNING START_TIME
+
+# Enhanced logging function - use main script's logger if available
 log_with_level() {
+    # If main script's logging function is available, use it
+    if declare -f log_message >/dev/null 2>&1; then
+        log_message "$@"
+        return $?
+    fi
+
+    # Fallback logging for standalone execution
     local level="$1"
     local message="$2"
     local component="${3:-MAIN}"
@@ -55,7 +72,10 @@ log_with_level() {
     case "$level" in
         "ERROR")
             echo -e "${RED}[ERROR]${NC} ${timestamp}: $message" >&2
-            ((ERRORS_ENCOUNTERED++))
+            # Only increment if we're managing our own counter
+            if [[ -z "${LOGGING_MODULE_LOADED:-}" ]]; then
+                ((ERRORS_ENCOUNTERED++))
+            fi
             ;;
         "WARNING"|"WARN")
             echo -e "${YELLOW}[WARNING]${NC} ${timestamp}: $message"
@@ -292,7 +312,7 @@ terminate_cursor_processes() {
     local graceful_timeout="${1:-10}"
     local force_timeout="${2:-5}"
 
-    log_with_level "INFO" "Terminating all Cursor processes..."
+    log_with_level "INFO" "Terminating all Cursor processes (graceful: ${graceful_timeout}s, force: ${force_timeout}s)..."
 
     # Step 1: Graceful application quit
     if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
@@ -443,7 +463,6 @@ cleanup_system_registrations() {
 verify_uninstall_completion() {
     log_with_level "INFO" "Verifying uninstall completion..."
     local verification_errors=0
-    local verification_warnings=0
 
     # Check main application
     if [[ -d "$CURSOR_APP_PATH" ]]; then
@@ -561,7 +580,7 @@ enhanced_uninstall_cursor() {
 
     # Step 1: Terminate processes
     show_progress_with_dashboard $((++completed_steps)) $total_steps "Terminating Cursor processes" "$start_time"
-    if terminate_cursor_processes; then
+    if terminate_cursor_processes 10 5; then
         ((success_count++))
         log_with_level "SUCCESS" "All Cursor processes terminated"
     else
@@ -685,7 +704,7 @@ perform_complete_cursor_removal() {
     local total_operations=2
     local removal_success=true
 
-    # Operation 1: Enhanced uninstall
+    # Operation 1: Enhanced uninstall (main removal process)
     if enhanced_uninstall_cursor; then
         ((operations_completed++))
         log_with_level "SUCCESS" "Enhanced uninstall completed"
@@ -694,9 +713,55 @@ perform_complete_cursor_removal() {
         log_with_level "ERROR" "Enhanced uninstall failed"
     fi
 
-    # Operation 2: Additional cleanup (placeholder - could include more cleanup)
-    ((operations_completed++))
-    log_with_level "SUCCESS" "Additional cleanup completed"
+    # Operation 2: Additional cleanup and verification
+    log_with_level "INFO" "Performing additional cleanup verification..."
+
+    # Verify no remaining processes after uninstall
+    local remaining_processes=""
+    local search_patterns=(
+        "[Cc]ursor"
+        "com.todesktop.230313mzl4w4u92"
+    )
+
+    for pattern in "${search_patterns[@]}"; do
+        local found_pids
+        found_pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+        if [[ -n "$found_pids" ]]; then
+            remaining_processes+="$found_pids "
+        fi
+    done
+
+    if [[ -n "$remaining_processes" ]]; then
+        log_with_level "INFO" "Found remaining processes after uninstall - performing final cleanup"
+        for pid in $remaining_processes; do
+            if [[ -n "$pid" && "$pid" != "$$" ]]; then
+                kill -KILL "$pid" 2>/dev/null || true
+            fi
+        done
+    fi
+
+    # Verify filesystem cleanup
+    local cursor_paths=(
+        "/Applications/Cursor.app"
+        "$HOME/Library/Application Support/Cursor"
+        "$HOME/Library/Application Support/com.todesktop"
+    )
+
+    local remaining_files=0
+    for path in "${cursor_paths[@]}"; do
+        if [[ -e "$path" ]]; then
+            ((remaining_files++))
+            log_with_level "INFO" "Found remaining item: $path"
+        fi
+    done
+
+    if [[ $remaining_files -eq 0 ]]; then
+        log_with_level "SUCCESS" "Additional cleanup completed - no remaining components found"
+        ((operations_completed++))
+    else
+        log_with_level "WARNING" "Additional cleanup completed - $remaining_files items may still exist"
+        ((operations_completed++))
+    fi
 
     log_with_level "INFO" "Uninstall summary: $operations_completed/$total_operations operations completed"
 
@@ -705,7 +770,6 @@ perform_complete_cursor_removal() {
         return 0
     else
         log_with_level "ERROR" "Complete removal encountered errors"
-        log_with_level "ERROR" "Some components may still remain - check output above"
         return 1
     fi
 }

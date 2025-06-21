@@ -27,16 +27,47 @@ This document lists all identified fake, mock, or simulated code segments that p
 | modules/optimization.sh                  | 45-47         | echo -e "   ${GREEN}✅ System changes applied successfully       | False positive - claims success without  |
 |                                          |               | ${NC}"                                                           | verification of actual system changes    |
 +------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/uninstall.sh                      | 198-218       | return 0  # Treat warnings as success                            | False positive - verification passes even when warnings exist |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/uninstall.sh                      | 520-545       | echo -e "\n${BOLD}POST-UNINSTALL RECOMMENDATIONS:${NC}"          | Undefined color variables (BOLD, CYAN, NC) – requirement gap |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/uninstall.sh                      | 410-422       | timeout 30 "$LAUNCH_SERVICES_CMD" -kill -r ...                   | Uses 'timeout' command not available on macOS – platform incompatibility |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/uninstall.sh                      | 160-170       | if [[ -d "$CURSOR_APP_PATH" ]] ...                               | CURSOR_APP_PATH may be undefined – requirement gap |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/complete_removal.sh               | 460-470       | log_with_level "SUCCESS" "User data removed: $dir"               | False verification – logs success regardless of actual removal |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/complete_removal.sh               | 630-638       | return 0  # Treat as success for operational purposes            | False positive – verification always returns success even on errors |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| bin/uninstall_cursor.sh                   | 348-355       | real_path=$(realpath "$module_path" 2>/dev/null)                 | 'realpath' may be missing on macOS – add fallback implementation |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| bin/uninstall_cursor.sh                   | 339-342       | if [[ ! "$module_path" =~ ^/[^[:space:]]*\.sh$ ]]                | Overly restrictive regex – fails paths with spaces (requirement gap) |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| scripts/optimize_system.sh               | 430-440       | "cursor.chat.openaiApiKey": ""                                   | Missing credentials – causes 401/stream failure; populate from ENV or prompt user |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/ai_optimization.sh               | 12-14         | RESET="${NC}"                                                   | Undefined NC variable – source ui.sh first or define NC constant before use |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/ai_optimization.sh               | 1-20          | log_with_level / check_network_connectivity without sourcing deps | Requirement gap – must source logging.sh & helpers.sh or check function exists |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| scripts/optimize_system.sh               | 1354-1362     | jq empty "${VALIDATION_DIR}/integration_test.json"               | External dependency jq not verified – add command check or fallback parser |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/optimization.sh                  | 189-196       | TIMEOUT_CMD="gtimeout 5" ... fallback to timeout                | Platform incompat – neither command present on macOS; bundle custom timeout or use perl sleep loop |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
+| modules/ai_optimization.sh               | 25-35         | check_network_connectivity usage                                 | Undefined function in this scope – import from helpers.sh or implement locally |
++------------------------------------------+---------------+------------------------------------------------------------------+------------------------------------------+
 ```
 
 ## Summary
 
-Total fake/mock/simulated segments identified: 7
+Total fake/mock/simulated segments identified: 21
 
 ### Categories of Issues:
-1. **False Verification Messages** (4 instances) - Scripts claim successful removal/completion without actual verification
+1. **False Verification Messages** (7 instances) - Scripts claim successful removal/completion without actual verification
 2. **Unverified Success Claims** (2 instances) - Success messages without functional testing
 3. **Fake Metrics** (1 instance) - Calculated metrics that don't reflect real performance data
+4. **Requirement Gaps / Undefined Dependencies** (6 instances) - Missing variables, external libs, or over-restrictive validations
+5. **Platform Incompatibilities / Missing Commands** (3 instances) - Reliance on commands not available on macOS
+6. **Missing Credentials / Auth Configuration** (1 instance) - Blank API key leading to authentication failure
 
 ### Remediation Approach:
 All identified segments will be replaced with production-grade code that:

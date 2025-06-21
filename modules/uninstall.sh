@@ -26,7 +26,7 @@ terminate_cursor_processes() {
     local force_timeout="${2:-5}"
     local max_verification_attempts="${3:-5}"
 
-    uninstall_log "INFO" "Terminating all Cursor processes..."
+    uninstall_log "INFO" "Terminating all Cursor processes (graceful: ${graceful_timeout}s, force: ${force_timeout}s)..."
 
     # Step 1: Graceful application quit using AppleScript
     if osascript -e 'tell application "Cursor" to quit' 2>/dev/null; then
@@ -242,8 +242,6 @@ verify_uninstall_completion() {
     done
 
     # FIXED: Improved summary logic
-    local total_issues=$((verification_errors + verification_warnings))
-
     if [[ $verification_errors -eq 0 && $verification_warnings -eq 0 ]]; then
         uninstall_log "SUCCESS" "Uninstall verification passed - no remaining components"
         return 0
@@ -286,7 +284,7 @@ enhanced_uninstall_cursor() {
 
     # Step 1: Terminate all running Cursor processes
     show_progress_with_dashboard $((++completed_steps)) $total_steps "Terminating Cursor processes" "$start_time"
-    if terminate_cursor_processes; then
+    if terminate_cursor_processes 10 5 5; then
         ((success_count++))
         uninstall_log "SUCCESS" "All Cursor processes terminated"
     else
