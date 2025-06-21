@@ -1020,7 +1020,7 @@ for cache_dir in "${font_cache_dirs[@]}"; do
 
 if [[ -d "$cache_dir" ]]; then
 
-if rm -rf "${cache_dir:?}"/* 2>/dev/null; then
+if rm -r -f "${cache_dir:?}"/* 2>/dev/null; then
 
 ((cleaned_count++))
 

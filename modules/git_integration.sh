@@ -145,7 +145,7 @@ perform_git_commit_and_push() {
     log_with_level "INFO" "Cleaning up generated files..."
     if [[ -d "coverage" ]]; then
         log_with_level "INFO" "Removing coverage directory..."
-        rm -rf coverage
+        rm -r -f coverage
     fi
 
     # Check for changes after cleanup

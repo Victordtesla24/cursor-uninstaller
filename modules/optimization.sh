@@ -24,7 +24,7 @@ source "${LIB_DIR}/helpers.sh"     # For ensure_directory and other helpers
 
 # Module configuration
 readonly OPT_MODULE_NAME="optimization"
-readonly OPT_MODULE_VERSION="2.0.0"
+readonly OPT_MODULE_VERSION="2.1.0"
 
 # Optimization settings
 readonly OPTIMIZATION_TEMP_DIR="${TEMP_DIR}/optimization"
@@ -437,6 +437,10 @@ apply_system_optimizations() {
     local optimizations_applied=0
     local backup_created=false
 
+    # Timestamp for verification checks later in the function
+    local OPT_START_TS_FILE="/tmp/.optimization_start"
+    touch "$OPT_START_TS_FILE" 2>/dev/null || true
+
     echo -e "\n${BOLD}${CYAN}🔧 APPLYING COMPREHENSIVE SYSTEM OPTIMIZATIONS${NC}"
     echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
 
@@ -507,6 +511,16 @@ apply_system_optimizations() {
         ((optimizations_applied++))
     else
         echo -e "   ${RED}❌ Failed to optimize background processes${NC}"
+        ((optimization_errors++))
+    fi
+
+    # 7. FILESYSTEM & DATABASE OPTIMIZATION
+    echo -e "\n${BOLD}7. FILESYSTEM & DATABASE OPTIMIZATION:${NC}"
+    if optimize_filesystem_and_database; then
+        echo -e "   ${GREEN}✅ Optimized Spotlight, Launch Services, caches${NC}"
+        ((optimizations_applied++))
+    else
+        echo -e "   ${RED}❌ Failed to optimize filesystem/database components${NC}"
         ((optimization_errors++))
     fi
 
@@ -1408,3 +1422,108 @@ else
     echo "This module must be sourced, not executed directly"
     exit 1
 fi
+
+################################################################################
+# NEW: FILESYSTEM & DATABASE OPTIMIZATION FUNCTIONS                            #
+################################################################################
+
+# Disable Spotlight indexing for heavy directories
+optimize_spotlight_indexing() {
+    opt_log "DEBUG" "Disabling Spotlight indexing for large/unnecessary directories..."
+
+    # Directories to exclude
+    local dirs_to_exclude=(
+        "$HOME/Downloads"
+        "$HOME/Desktop"
+        "$HOME/Library/Caches"
+        "$HOME/.cache"
+        "$HOME/.npm"
+        "$HOME/.yarn"
+        "$PWD/node_modules"
+        "$PWD/.next"
+        "$PWD/dist"
+        "$PWD/build"
+    )
+
+    local success=true
+
+    for dir in "${dirs_to_exclude[@]}"; do
+        if [[ -d "$dir" ]]; then
+            if ! sudo mdutil -i off "$dir" &>/dev/null; then
+                success=false
+            fi
+        fi
+    done
+
+    # Ensure Spotlight is enabled for root volume to avoid system issues
+    sudo mdutil -i on / &>/dev/null || true
+
+    [[ "$success" == "true" ]]
+}
+
+# Rebuild Launch Services database for faster app launches
+rebuild_launch_services_database() {
+    opt_log "DEBUG" "Rebuilding Launch Services database..."
+    local lsregister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+    if [[ -x "$lsregister" ]]; then
+        sudo "$lsregister" -kill -r -domain local -domain system -domain user &>/dev/null
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Clean font caches to avoid rendering delays
+clean_font_caches() {
+    opt_log "DEBUG" "Cleaning font caches..."
+    if command -v atsutil >/dev/null 2>&1; then
+        # Gracefully shut down ATS server to release file locks
+        sudo atsutil server -shutdown &>/dev/null || true
+
+        # Remove cached font databases in a safe, supported manner
+        if sudo atsutil databases -remove &>/dev/null; then
+            # Restart ATS server so that normal font services resume
+            sudo atsutil server -ping &>/dev/null || true
+            return 0
+        else
+            return 1
+        fi
+    else
+        opt_log "WARN" "atsutil not found; skipping font cache cleanup."
+        return 1
+    fi
+}
+
+# Rebuild dyld shared cache for up-to-date dynamic linking
+rebuild_dyld_cache() {
+    opt_log "DEBUG" "Rebuilding dyld shared cache..."
+    if sudo update_dyld_shared_cache -force &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Update locate database for quick file searches
+update_locate_database() {
+    opt_log "DEBUG" "Updating locate database..."
+    if sudo /usr/libexec/locate.updatedb &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Wrapper to run all filesystem/database optimizations
+optimize_filesystem_and_database() {
+    local overall_success=true
+
+    optimize_spotlight_indexing || overall_success=false
+    rebuild_launch_services_database || overall_success=false
+    clean_font_caches || overall_success=false
+    rebuild_dyld_cache || overall_success=false
+    update_locate_database || overall_success=false
+
+    [[ "$overall_success" == "true" ]]
+}

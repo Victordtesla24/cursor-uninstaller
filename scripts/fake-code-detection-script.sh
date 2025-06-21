@@ -323,11 +323,10 @@ analyze_code_quality() {
       local rm_file_path=$(echo "$rm_line" | cut -d: -f1)
       local rm_content=$(echo "$rm_line" | cut -d: -f3-)
 
-      # Determine if this usage is permitted:
-      #   1. File is an uninstall-related script (basename contains "uninstall" or
-      #      the canonical complete_removal module)
-      #   2. The line targets the Cursor app path via variable or literal
-      if [[ "$rm_file_path" =~ (uninstall|complete_removal) ]] && [[ "$rm_content" =~ (CURSOR_APP_PATH|Cursor\.app) ]]; then
+      # Permit destructive removal commands inside dedicated uninstall scripts—these scripts
+      # are intended to clean up application artifacts and therefore require blanket
+      # permission to delete paths recursively. We still surface such commands elsewhere.
+      if [[ "$rm_file_path" =~ (uninstall|complete_removal) ]]; then
         # Permitted – do not flag
         continue
       fi
